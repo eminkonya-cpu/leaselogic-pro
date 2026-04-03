@@ -1,0 +1,490 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Banknote, Euro, Package, Printer } from "lucide-react";
+import ParameterCard from "@/components/finance/ParameterCard";
+import ResultCard from "@/components/finance/ResultCard";
+import AmortizationTable from "@/components/finance/AmortizationTable";
+import ExpenseInputCard from "@/components/finance/ExpenseInputCard";
+import RateProjectionInput from "@/components/finance/RateProjectionInput";
+import CurrencyComparisonReport from "@/components/finance/CurrencyComparisonReport";
+import PrintablePDF from "@/components/finance/PrintablePDF";
+import { MACHINE_MODELS } from "@/components/finance/machineModels";
+import { calculatePMT, generateAmortization } from "@/lib/financeCalculations";
+
+export default function ForwardCalculator() {
+  const [activeTab, setActiveTab] = useState<"plain" | "allin" | "advantage">(
+    "plain",
+  );
+  const [pdfCurrency, setPdfCurrency] = useState<"EUR" | "TRY">("EUR");
+  const [params, setParams] = useState({
+    euroRate: 50.5,
+    dollarRate: 43.5,
+    firma: "Maats Makia A.Ş.",
+    makine: "MT 1840-100",
+    machinePriceEuro: 100_000,
+    term: 24,
+    euroInterest: 6.5,
+    tlInterest: 38,
+    downPaymentEuro: 20000,
+  });
+  const [expenses, setExpenses] = useState({
+    kasko1: 1300,
+    kasko2: 1300,
+    kasko3: 0,
+    kasko4: 0,
+    leasingCost: 1700,
+    importCost: 0,
+  });
+  const [monthlyGrowthPct, setMonthlyGrowthPct] = useState(1.5);
+
+  const handleParamChange = (key: string, value: string | number) =>
+    setParams((prev) => ({ ...prev, [key]: value }));
+  const handleExpenseChange = (key: string, value: number) =>
+    setExpenses((prev) => ({ ...prev, [key]: value }));
+  const resetRates = () => setMonthlyGrowthPct(1.5);
+
+  const computedRates = useMemo(() => {
+    const rates: number[] = [];
+    for (let i = 0; i < 36; i++) {
+      rates.push(
+        params.euroRate *
+          Math.pow(1 + monthlyGrowthPct / 100, i + 1),
+      );
+    }
+    return rates;
+  }, [params.euroRate, monthlyGrowthPct]);
+
+  const calc = useMemo(() => {
+    const {
+      machinePriceEuro,
+      euroRate,
+      term,
+      euroInterest,
+      tlInterest,
+      downPaymentEuro,
+    } = params;
+    const priceTL = machinePriceEuro * euroRate;
+    const downPaymentTL = downPaymentEuro * euroRate;
+    const plainFinanceEuro = machinePriceEuro - downPaymentEuro;
+    const plainFinanceTL = priceTL - downPaymentTL;
+    const plainMonthlyEuro = calculatePMT(plainFinanceEuro, euroInterest, term);
+    const plainMonthlyTL = calculatePMT(plainFinanceTL, tlInterest, term);
+    const plainTotalEuro = plainMonthlyEuro * term + downPaymentEuro;
+    const plainTotalTL = plainMonthlyTL * term + downPaymentTL;
+    const plainDiffEuro = plainTotalEuro - machinePriceEuro;
+    const plainDiffTL = plainTotalTL - priceTL;
+    const plainScheduleEuro = generateAmortization(
+      plainFinanceEuro,
+      euroInterest,
+      term,
+    );
+    const plainScheduleTL = generateAmortization(
+      plainFinanceTL,
+      tlInterest,
+      term,
+    );
+    const totalExpenses = Object.values(expenses).reduce(
+      (s, v) => s + (v || 0),
+      0,
+    );
+    const totalExpensesTL = totalExpenses * euroRate;
+    const allInBaseEuro = machinePriceEuro + totalExpenses;
+    const allInBaseTL = priceTL + totalExpensesTL;
+    const allInFinanceEuro = Math.max(0, allInBaseEuro - downPaymentEuro);
+    const allInFinanceTL = Math.max(0, allInBaseTL - downPaymentTL);
+    const allInMonthlyEuro = calculatePMT(allInFinanceEuro, euroInterest, term);
+    const allInMonthlyTL = calculatePMT(allInFinanceTL, tlInterest, term);
+    const allInTotalEuro = allInMonthlyEuro * term + downPaymentEuro;
+    const allInTotalTL = allInMonthlyTL * term + downPaymentTL;
+    const allInDiffEuro = allInTotalEuro - allInBaseEuro;
+    const allInDiffTL = allInTotalTL - allInBaseTL;
+    const allInScheduleEuro = generateAmortization(
+      allInFinanceEuro,
+      euroInterest,
+      term,
+    );
+    const allInScheduleTL = generateAmortization(
+      allInFinanceTL,
+      tlInterest,
+      term,
+    );
+    const netMachineEuro = machinePriceEuro;
+    const projRates = computedRates
+      .slice(0, term)
+      .map((r, i) => ({ month: i + 1, rate: r }));
+
+    return {
+      priceTL,
+      downPaymentTL,
+      plainFinanceEuro,
+      plainFinanceTL,
+      plainMonthlyEuro,
+      plainMonthlyTL,
+      plainTotalEuro,
+      plainTotalTL,
+      plainDiffEuro,
+      plainDiffTL,
+      plainScheduleEuro,
+      plainScheduleTL,
+      allInMonthlyEuro,
+      allInMonthlyTL,
+      allInScheduleEuro,
+      allInScheduleTL,
+      totalExpenses,
+      totalExpensesTL,
+      allInBaseEuro,
+      allInBaseTL,
+      allInTotalEuro,
+      allInTotalTL,
+      allInDiffEuro,
+      allInDiffTL,
+      netMachineEuro,
+      projRates,
+    };
+  }, [params, expenses, computedRates]);
+
+  const handlePrint = () => {
+    const printArea = document.getElementById("pdf-print-area");
+    if (printArea) printArea.style.display = "block";
+    window.print();
+    setTimeout(() => {
+      if (printArea) printArea.style.display = "none";
+    }, 300);
+  };
+
+  const tabConfig = [
+    {
+      value: "plain" as const,
+      label: "Sade Makine",
+      activeClass: "bg-[#1f6fa7] text-white shadow-lg",
+      inactiveClass: "bg-[#d9ecf7] text-[#114a72] hover:bg-[#c6e2f1]",
+    },
+    {
+      value: "allin" as const,
+      label: "Her Şey Dahil",
+      activeClass: "bg-[#e28b1f] text-white shadow-lg",
+      inactiveClass: "bg-[#fde8cb] text-[#985a0d] hover:bg-[#f9ddb1]",
+    },
+    {
+      value: "advantage" as const,
+      label: "Kur Avantajı",
+      activeClass: "bg-[#1e8f54] text-white shadow-lg",
+      inactiveClass: "bg-[#d4f2e2] text-[#0f5f36] hover:bg-[#bee8d1]",
+    },
+  ];
+
+  return (
+    <div className="space-y-6 rounded-2xl border border-white/70 bg-white/50 p-4 shadow-2xl shadow-slate-300/30 backdrop-blur md:p-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <ParameterCard
+          title="Döviz Kurları"
+          icon={Euro}
+          fields={[
+            { key: "euroRate", label: "Euro Kur (₺)", placeholder: "50.5" },
+            { key: "dollarRate", label: "Dolar Kur (₺)", placeholder: "43.5" },
+          ]}
+          values={params}
+          onChange={handleParamChange}
+        />
+        <ParameterCard
+          title="Makine Bilgileri"
+          icon={Package}
+          fields={[
+            {
+              key: "firma",
+              label: "Firma",
+              placeholder: "Firma Adı",
+              type: "text",
+            },
+            {
+              key: "makine",
+              label: "Makine",
+              placeholder: "Model",
+              type: "text",
+              options: MACHINE_MODELS,
+            },
+            {
+              key: "machinePriceEuro",
+              label: "Makine Bedeli (€) KDV Hariç",
+              placeholder: "100000",
+            },
+          ]}
+          values={params}
+          onChange={handleParamChange}
+        />
+        <ParameterCard
+          title="Finansman Detayları"
+          icon={Banknote}
+          fields={[
+            { key: "downPaymentEuro", label: "Peşinat (€)", placeholder: "20000" },
+            { key: "term", label: "Vade (Ay)", placeholder: "24" },
+            {
+              key: "euroInterest",
+              label: "Euro Faiz Oranı (%)",
+              placeholder: "6.5",
+              step: "0.1",
+            },
+            {
+              key: "tlInterest",
+              label: "TL Faiz Oranı (%)",
+              placeholder: "38",
+              step: "0.1",
+            },
+          ]}
+          values={params}
+          onChange={handleParamChange}
+        />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="grid w-full max-w-3xl grid-cols-1 gap-2 rounded-2xl border border-white/70 bg-white/70 p-1.5 shadow-md sm:grid-cols-3">
+            {tabConfig.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setActiveTab(tab.value)}
+                className={`flex w-full items-center justify-center rounded-xl px-3 py-2.5 text-center text-sm font-extrabold transition-all duration-200 ${
+                  activeTab === tab.value ? tab.activeClass : tab.inactiveClass
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {(activeTab === "plain" || activeTab === "allin") && (
+            <div className="flex items-center gap-2">
+              <div className="rounded-xl border border-primary/20 bg-white/80 p-1 text-xs shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setPdfCurrency("EUR")}
+                  className={`rounded-md px-2 py-1 font-bold ${
+                    pdfCurrency === "EUR"
+                      ? "bg-primary text-primary-foreground"
+                      : ""
+                  }`}
+                >
+                  EURO
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPdfCurrency("TRY")}
+                  className={`rounded-md px-2 py-1 font-bold ${
+                    pdfCurrency === "TRY"
+                      ? "bg-primary text-primary-foreground"
+                      : ""
+                  }`}
+                >
+                  TL
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-primary/5 px-3 py-2 text-sm font-extrabold text-primary transition-colors hover:bg-primary/10"
+                title="PDF olarak kaydet / Yazdır"
+              >
+                <Printer className="h-4 w-4" />
+                <span>PDF İndir</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {activeTab === "plain" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <ResultCard
+                title="€ Sade Makine - Euro Finansman"
+                icon={Euro}
+                currency="€"
+                noDecimals
+                rows={[
+                  {
+                    label: "Mal Bedeli (KDV Hariç)",
+                    value: params.machinePriceEuro,
+                  },
+                  { label: "Peşinat", value: params.downPaymentEuro },
+                  { label: "Aylık € Taksit", value: calc.plainMonthlyEuro },
+                  {
+                    label: "Toplam € Ödeme",
+                    value: calc.plainTotalEuro,
+                    highlight: true,
+                  },
+                  { label: "Vade Farkı", value: calc.plainDiffEuro },
+                  {
+                    label: "(Fiyatlar KDV hariçtir)",
+                    value: null,
+                    note: true,
+                  },
+                ]}
+              />
+              <ResultCard
+                title="₺ Sade Makine - TL Finansman"
+                icon={Banknote}
+                currency="₺"
+                rows={[
+                  {
+                    label: "Mal Bedeli (KDV Hariç)",
+                    value: calc.priceTL,
+                  },
+                  { label: "Peşinat", value: calc.downPaymentTL },
+                  { label: "Aylık ₺ Taksit", value: calc.plainMonthlyTL },
+                  {
+                    label: "Toplam ₺ Ödeme",
+                    value: calc.plainTotalTL,
+                    highlight: true,
+                  },
+                  { label: "Vade Farkı", value: calc.plainDiffTL },
+                  {
+                    label: "(Fiyatlar KDV hariçtir)",
+                    value: null,
+                    note: true,
+                  },
+                ]}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <AmortizationTable
+                schedule={calc.plainScheduleEuro}
+                currency="€"
+                downPayment={params.downPaymentEuro}
+                interestRatePct={params.euroInterest}
+              />
+              <AmortizationTable
+                schedule={calc.plainScheduleTL}
+                currency="₺"
+                downPayment={calc.downPaymentTL}
+                interestRatePct={params.tlInterest}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === "allin" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <ExpenseInputCard expenses={expenses} onChange={handleExpenseChange} />
+              <ResultCard
+                title="Toplam Maliyet (Euro)"
+                icon={Euro}
+                currency="€"
+                noDecimals
+                rows={[
+                  {
+                    label: "Mal Bedeli (KDV Hariç)",
+                    value: calc.netMachineEuro,
+                  },
+                  {
+                    label: "Toplam Ek Masraflar",
+                    value: calc.totalExpenses,
+                  },
+                  { label: "Finanse Edilen Toplam", value: calc.allInBaseEuro },
+                  { label: "Faiz", value: calc.allInDiffEuro },
+                  {
+                    label: "Anahtar Teslim Toplam",
+                    value: calc.allInTotalEuro,
+                    highlight: true,
+                  },
+                  { label: "Aylık € Taksit", value: calc.allInMonthlyEuro },
+                  {
+                    label: "(Fiyatlar KDV hariçtir)",
+                    value: null,
+                    note: true,
+                  },
+                ]}
+              />
+              <ResultCard
+                title="Toplam Maliyet (TL)"
+                icon={Banknote}
+                currency="₺"
+                rows={[
+                  {
+                    label: "Mal Bedeli (KDV Hariç)",
+                    value: calc.netMachineEuro * params.euroRate,
+                  },
+                  {
+                    label: "Toplam Ek Masraflar",
+                    value: calc.totalExpensesTL,
+                  },
+                  { label: "Finanse Edilen Toplam", value: calc.allInBaseTL },
+                  { label: "Faiz", value: calc.allInDiffTL },
+                  {
+                    label: "Anahtar Teslim Toplam",
+                    value: calc.allInTotalTL,
+                    highlight: true,
+                  },
+                  {
+                    label: "Aylık ₺ Taksit",
+                    value: calc.allInMonthlyTL,
+                  },
+                  {
+                    label: "(Fiyatlar KDV hariçtir)",
+                    value: null,
+                    note: true,
+                  },
+                ]}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <AmortizationTable
+                schedule={calc.allInScheduleEuro}
+                currency="€"
+                downPayment={params.downPaymentEuro}
+                interestRatePct={params.euroInterest}
+              />
+              <AmortizationTable
+                schedule={calc.allInScheduleTL}
+                currency="₺"
+                downPayment={calc.downPaymentTL}
+                interestRatePct={params.tlInterest}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === "advantage" && (
+          <div className="space-y-4">
+            <RateProjectionInput
+              baseRate={params.euroRate}
+              monthlyGrowthPct={monthlyGrowthPct}
+              onGrowthChange={setMonthlyGrowthPct}
+              onReset={resetRates}
+              months={params.term}
+              computedRates={computedRates}
+            />
+            <CurrencyComparisonReport
+              scheduleEuro={calc.plainScheduleEuro}
+              scheduleTL={calc.plainScheduleTL}
+              projectedRates={calc.projRates}
+              euroRate={params.euroRate}
+              monthlyGrowthPct={monthlyGrowthPct}
+              downPaymentEuro={params.downPaymentEuro}
+              downPaymentTL={calc.downPaymentTL}
+              term={params.term}
+            />
+          </div>
+        )}
+      </div>
+
+      <PrintablePDF
+        params={params}
+        calc={{
+          plainScheduleEuro:
+            activeTab === "allin" ? calc.allInScheduleEuro : calc.plainScheduleEuro,
+          plainScheduleTL:
+            activeTab === "allin" ? calc.allInScheduleTL : calc.plainScheduleTL,
+          plainMonthlyEuro:
+            activeTab === "allin" ? calc.allInMonthlyEuro : calc.plainMonthlyEuro,
+          plainMonthlyTL:
+            activeTab === "allin" ? calc.allInMonthlyTL : calc.plainMonthlyTL,
+          totalExpenses: calc.totalExpenses,
+        }}
+        mode={activeTab}
+        expenses={expenses}
+        printCurrency={pdfCurrency}
+      />
+    </div>
+  );
+}
