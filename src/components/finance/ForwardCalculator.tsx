@@ -388,18 +388,18 @@ export default function ForwardCalculator() {
 
         {activeTab === "allin" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[0.88fr_1.06fr_1.06fr]">
               <ExpenseInputCard
                 expenses={expenses}
                 onChange={handleExpenseChange}
-                className="sm:[&_input]:h-8 sm:[&_input]:text-[12px] lg:[&_input]:h-10 lg:[&_input]:text-sm"
+                className="sm:[&_input]:h-8 sm:[&_input]:text-[11px] lg:[&_input]:h-10 lg:[&_input]:text-sm"
               />
               <ResultCard
                 title="Toplam Maliyet (Euro)"
                 icon={Euro}
                 currency="€"
                 noDecimals
-                className="sm:[&_svg]:h-3.5 sm:[&_svg]:w-3.5 sm:[&_span]:max-w-[12rem] lg:[&_span]:max-w-[18rem]"
+                tabletCompact
                 rows={[
                   {
                     label: "Mal Bedeli (KDV Hariç)",
@@ -428,7 +428,7 @@ export default function ForwardCalculator() {
                 title="Toplam Maliyet (TL)"
                 icon={Banknote}
                 currency="₺"
-                className="sm:[&_svg]:h-3.5 sm:[&_svg]:w-3.5 sm:[&_span]:max-w-[12rem] lg:[&_span]:max-w-[18rem]"
+                tabletCompact
                 rows={[
                   {
                     label: "Mal Bedeli (KDV Hariç)",
