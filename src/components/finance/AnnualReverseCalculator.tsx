@@ -12,6 +12,8 @@ import {
 import AmortizationTable from "@/components/finance/AmortizationTable";
 import { usePersistentState } from "@/lib/usePersistentState";
 
+const REVERSE_STORAGE_PREFIX = "llp:v2:reverse";
+
 function totalPaymentEuroAnnual(
   grossBaseEuro: number,
   downPaymentEuro: number,
@@ -65,28 +67,28 @@ function clampTermYears(v: string | number) {
     typeof v === "string"
       ? Number(String(v).replace(",", "."))
       : Number(v);
-  const n = Math.trunc(Number.isFinite(raw) ? raw : 3);
-  return Math.min(3, Math.max(1, n));
+  const n = Math.trunc(Number.isFinite(raw) ? raw : 0);
+  return Math.min(3, Math.max(0, n));
 }
 
 export default function AnnualReverseCalculator() {
   const [sharedParams, setSharedParams] = usePersistentState(
-    "llp:reverse-shared:params",
+    `${REVERSE_STORAGE_PREFIX}:shared:params`,
     {
     allInTotalEuro: 100_000,
     euroRate: 50.5,
-    downPaymentEuro: 20_000,
+    downPaymentEuro: 0,
     euroInterest: 6.5,
     },
   );
-  const [term, setTerm] = usePersistentState("llp:reverse:term-annual", "3");
+  const [term, setTerm] = usePersistentState(`${REVERSE_STORAGE_PREFIX}:term-annual`, "0");
   const [expenses, setExpenses] = usePersistentState(
-    "llp:reverse-shared:expenses",
+    `${REVERSE_STORAGE_PREFIX}:shared:expenses`,
     {
-    kasko1: 1300,
-    kasko2: 1300,
+    kasko1: 0,
+    kasko2: 0,
     kasko3: 0,
-    leasingCost: 1700,
+    leasingCost: 0,
     importCost: 0,
     },
   );

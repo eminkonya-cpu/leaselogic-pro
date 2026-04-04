@@ -13,45 +13,47 @@ import { MACHINE_MODELS } from "@/components/finance/machineModels";
 import { calculatePMT, generateAmortization } from "@/lib/financeCalculations";
 import { usePersistentState } from "@/lib/usePersistentState";
 
+const FORWARD_STORAGE_PREFIX = "llp:v2:forward";
+
 export default function ForwardCalculator() {
   const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
   const [activeTab, setActiveTab] = usePersistentState<
     "plain" | "allin" | "advantage"
   >(
-    "llp:forward-shared:active-tab",
+    `${FORWARD_STORAGE_PREFIX}:shared:active-tab`,
     "plain",
   );
   const [pdfCurrency, setPdfCurrency] = usePersistentState<"EUR" | "TRY">(
-    "llp:forward-shared:pdf-currency",
+    `${FORWARD_STORAGE_PREFIX}:shared:pdf-currency`,
     "EUR",
   );
   const [sharedParams, setSharedParams] = usePersistentState(
-    "llp:forward-shared:params",
+    `${FORWARD_STORAGE_PREFIX}:shared:params`,
     {
     euroRate: 51.5,
     dollarRate: 42,
     firma: "Maats Makia A.Ş.",
     makine: "MT 1840-100",
-    machinePriceEuro: 145_000,
+    machinePriceEuro: 0,
     euroInterest: 6.8,
     tlInterest: 42,
-    downPaymentEuro: 20000,
+    downPaymentEuro: 0,
     },
   );
-  const [term, setTerm] = usePersistentState("llp:forward:term-monthly", 24);
+  const [term, setTerm] = usePersistentState(`${FORWARD_STORAGE_PREFIX}:term-monthly`, 0);
   const [expenses, setExpenses] = usePersistentState(
-    "llp:forward-shared:expenses",
+    `${FORWARD_STORAGE_PREFIX}:shared:expenses`,
     {
-    kasko1: 1300,
-    kasko2: 1300,
+    kasko1: 0,
+    kasko2: 0,
     kasko3: 0,
     kasko4: 0,
-    leasingCost: 1700,
+    leasingCost: 0,
     importCost: 0,
     },
   );
   const [monthlyGrowthPct, setMonthlyGrowthPct] = usePersistentState(
-    "llp:forward-shared:monthly-growth-pct",
+    `${FORWARD_STORAGE_PREFIX}:shared:monthly-growth-pct`,
     1.5,
   );
 
