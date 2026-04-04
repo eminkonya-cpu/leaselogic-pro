@@ -217,6 +217,8 @@ export default function AnnualForwardCalculator() {
       totalExpensesTL,
       allInBaseEuro,
       allInBaseTL,
+      allInFinanceEuro,
+      allInFinanceTL,
       allInTotalEuro,
       allInTotalTL,
       allInDiffEuro,
@@ -470,14 +472,14 @@ export default function AnnualForwardCalculator() {
                 tabletCompact
                 rows={[
                   {
-                    label: "Mal Bedeli (KDV Hariç)",
+                    label: "Makina Bedeli (KDV Hariç)",
                     value: calc.netMachineEuro,
                   },
                   {
-                    label: "Toplam Ek Masraflar",
+                    label: "Seçilen Ek Masraflar",
                     value: calc.totalExpenses,
                   },
-                  { label: "Finanse Edilen Toplam", value: calc.allInBaseEuro },
+                  { label: "Finanse Edilen Toplam", value: calc.allInFinanceEuro },
                   { label: "Faiz", value: calc.allInDiffEuro },
                   {
                     label: "Anahtar Teslim Toplam",
@@ -499,14 +501,14 @@ export default function AnnualForwardCalculator() {
                 tabletCompact
                 rows={[
                   {
-                    label: "Mal Bedeli (KDV Hariç)",
+                    label: "Makina Bedeli (KDV Hariç)",
                     value: calc.netMachineEuro * params.euroRate,
                   },
                   {
-                    label: "Toplam Ek Masraflar",
+                    label: "Seçilen Ek Masraflar",
                     value: calc.totalExpensesTL,
                   },
-                  { label: "Finanse Edilen Toplam", value: calc.allInBaseTL },
+                  { label: "Finanse Edilen Toplam", value: calc.allInFinanceTL },
                   { label: "Faiz", value: calc.allInDiffTL },
                   {
                     label: "Anahtar Teslim Toplam",

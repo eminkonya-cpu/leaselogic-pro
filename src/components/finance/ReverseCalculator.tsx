@@ -177,12 +177,12 @@ export default function ReverseCalculator() {
           noDecimals
           rows={[
             {
-              label: "Makine ve Ek Maliyetler Dahil Bedel",
+              label: "Anahtar Teslim Fiyat",
               value: params.allInTotalEuro,
               highlight: true,
             },
             {
-              label: "- Toplam Ek Masraflar",
+              label: "- Seçilen Ek Masraflar",
               value: -calc.totalExpensesEuro,
             },
             { label: "- Vade Farkı", value: -calc.interestDiff },
