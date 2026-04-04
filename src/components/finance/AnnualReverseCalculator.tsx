@@ -20,6 +20,10 @@ function totalPaymentEuroAnnual(
   annualRatePct: number,
   termYears: number,
 ) {
+  if (termYears <= 0) {
+    return Math.max(0, grossBaseEuro);
+  }
+
   const financed = Math.max(0, grossBaseEuro - downPaymentEuro);
   const pmt = calculateAnnualPMT(financed, annualRatePct, termYears);
   return pmt * termYears + downPaymentEuro;
@@ -133,13 +137,19 @@ export default function AnnualReverseCalculator() {
       params.euroInterest,
       termYears,
     );
-    const total = annual * termYears + params.downPaymentEuro;
-    const interestDiff = total - grossBaseEuro;
-    const schedule = generateAnnualAmortization(
-      financed,
-      params.euroInterest,
-      termYears,
-    );
+    const total =
+      termYears > 0
+        ? annual * termYears + params.downPaymentEuro
+        : grossBaseEuro;
+    const interestDiff = termYears > 0 ? total - grossBaseEuro : 0;
+    const schedule =
+      termYears > 0
+        ? generateAnnualAmortization(
+            financed,
+            params.euroInterest,
+            termYears,
+          )
+        : [];
     return {
       totalExpensesEuro,
       netMachineEuro,

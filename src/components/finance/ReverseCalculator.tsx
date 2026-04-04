@@ -17,6 +17,10 @@ function totalPaymentEuro(
   annualRatePct: number,
   term: number,
 ) {
+  if (term <= 0) {
+    return Math.max(0, grossBaseEuro);
+  }
+
   const financed = Math.max(0, grossBaseEuro - downPaymentEuro);
   const pmt = calculatePMT(financed, annualRatePct, term);
   return pmt * term + downPaymentEuro;
@@ -116,13 +120,19 @@ export default function ReverseCalculator() {
     const grossBaseEuro = netMachineEuro + totalExpensesEuro;
     const financed = Math.max(0, grossBaseEuro - params.downPaymentEuro);
     const monthly = calculatePMT(financed, params.euroInterest, params.term);
-    const total = monthly * params.term + params.downPaymentEuro;
-    const interestDiff = total - grossBaseEuro;
-    const schedule = generateAmortization(
-      financed,
-      params.euroInterest,
-      params.term,
-    );
+    const total =
+      params.term > 0
+        ? monthly * params.term + params.downPaymentEuro
+        : grossBaseEuro;
+    const interestDiff = params.term > 0 ? total - grossBaseEuro : 0;
+    const schedule =
+      params.term > 0
+        ? generateAmortization(
+            financed,
+            params.euroInterest,
+            params.term,
+          )
+        : [];
     return {
       totalExpensesEuro,
       netMachineEuro,
