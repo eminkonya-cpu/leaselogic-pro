@@ -16,27 +16,27 @@ export default function RateProjectionInput(props: {
 }) {
   return (
     <Card className="overflow-hidden border-2 border-[#2f5f83] bg-gradient-to-b from-white to-slate-50/90 shadow-xl shadow-slate-300/30 backdrop-blur">
-      <CardHeader className="relative border-t-4 border-[#f7c948] bg-[#113a5a] px-3 pb-3.5 pt-4 text-white">
+      <CardHeader className="relative border-t-4 border-[#f7c948] bg-[#113a5a] px-3 pb-3 pt-3.5 text-white sm:pb-3.5 sm:pt-4">
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="absolute right-2 top-3 z-10 text-xs text-white hover:bg-white/15 md:right-3"
+          className="absolute right-2 top-2.5 z-10 h-7 px-2 text-[11px] text-white hover:bg-white/15 md:right-3 md:top-3 md:h-8 md:text-xs"
           onClick={props.onReset}
         >
           Sıfırla
         </Button>
-        <CardTitle className="flex w-full flex-col items-center justify-center gap-2 pr-14 text-center text-[15px] font-extrabold tracking-tight text-white md:pr-16">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#0f2f49] text-[#f7c948] ring-1 ring-[#255679] shadow-sm">
-            <TrendingUp className="h-[18px] w-[18px]" />
+        <CardTitle className="flex w-full items-center justify-start gap-2 pr-14 text-left text-[13px] font-extrabold tracking-tight text-white md:pr-16 md:text-[15px] lg:flex-col lg:justify-center lg:text-center">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f2f49] text-[#f7c948] ring-1 ring-[#255679] shadow-sm md:h-9 md:w-9">
+            <TrendingUp className="h-4 w-4 md:h-[18px] md:w-[18px]" />
           </span>
           <span className="leading-snug">Kur Projeksiyonu</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 pt-4">
+      <CardContent className="space-y-3 pt-3 sm:pt-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="space-y-1.5">
-            <div className="text-xs font-bold text-slate-600">
+            <div className="text-[11px] font-bold text-slate-600 sm:text-xs">
               Başlangıç Kur (₺/€)
             </div>
             <Input
@@ -45,7 +45,7 @@ export default function RateProjectionInput(props: {
             />
           </div>
           <div className="space-y-1.5">
-            <div className="text-xs font-bold text-slate-600">
+            <div className="text-[11px] font-bold text-slate-600 sm:text-xs">
               Aylık Kur Artışı (%)
             </div>
             <Input
@@ -60,7 +60,7 @@ export default function RateProjectionInput(props: {
           <div className="hidden md:block" />
         </div>
         <div className="rounded-md border border-slate-200 p-3">
-          <div className="text-xs font-bold text-slate-600">
+          <div className="text-[11px] font-bold text-slate-600 sm:text-xs">
             {props.months} ay boyunca aylık %{formatNumber(props.monthlyGrowthPct, { decimals: 2 })}{" "}
             artış uygular
           </div>

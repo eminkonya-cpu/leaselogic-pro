@@ -187,12 +187,14 @@ export default function ReverseCalculator() {
           ]}
         />
       </div>
-      <AmortizationTable
-        schedule={calc.schedule}
-        currency="€"
-        downPayment={params.downPaymentEuro}
-        interestRatePct={params.euroInterest}
-      />
+      <div className="hidden lg:block">
+        <AmortizationTable
+          schedule={calc.schedule}
+          currency="€"
+          downPayment={params.downPaymentEuro}
+          interestRatePct={params.euroInterest}
+        />
+      </div>
     </div>
   );
 }

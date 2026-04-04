@@ -23,9 +23,7 @@ export default function CurrencyComparisonReport(props: {
 }) {
   const dpEur = Number(props.downPaymentEuro) || 0;
   const dpTl = Number(props.downPaymentTL) || 0;
-  const sumEur = sumPayments(props.scheduleEuro);
   const sumTlInst = sumPayments(props.scheduleTL);
-  const euroTotal = dpEur + sumEur;
   const tlTotal = dpTl + sumTlInst;
 
   const installmentsEuroToTl = props.scheduleEuro.reduce((s, r, idx) => {
@@ -80,7 +78,7 @@ export default function CurrencyComparisonReport(props: {
 
   return (
     <div className="space-y-4">
-      <div className="text-sm font-semibold text-slate-900">
+      <div className="text-[13px] font-semibold text-slate-900 sm:text-sm">
         Finansman Karşılaştırması (Özet)
       </div>
 
@@ -93,9 +91,9 @@ export default function CurrencyComparisonReport(props: {
             ? "Euro finansmanı daha avantajlı"
             : "TL finansmanı daha avantajlı"}
         </AlertTitle>
-        <AlertDescription className="space-y-4 text-sm leading-relaxed text-slate-700">
-          <div className="rounded-lg border border-white/70 bg-white/80 p-4 shadow-sm">
-            <p className="text-[13px] leading-relaxed text-slate-700">
+        <AlertDescription className="space-y-3 text-[13px] leading-relaxed text-slate-700 sm:space-y-4 sm:text-sm">
+          <div className="rounded-lg border border-white/70 bg-white/80 p-3 shadow-sm sm:p-4">
+            <p className="text-[12px] leading-relaxed text-slate-700 sm:text-[13px]">
               Aylık <strong>%{formatNumber(props.monthlyGrowthPct, { decimals: 2 })}</strong>{" "}
               kur artışı varsayımıyla yapılan analiz sonucunda,{" "}
               <strong className="text-slate-900">
@@ -107,7 +105,7 @@ export default function CurrencyComparisonReport(props: {
               </strong>{" "}
               daha avantajlı görünüyor.
             </p>
-            <p className="mt-2 text-base font-extrabold text-slate-900">
+            <p className="mt-2 text-[15px] font-extrabold text-slate-900 sm:text-base">
               Yani bu varsayım altında cebinizden yaklaşık{" "}
               <span className={euroLooksBetter ? "text-emerald-700" : "text-amber-700"}>
                 {formatNumber(Math.abs(advantage), { decimals: 2 })} ₺
@@ -117,25 +115,25 @@ export default function CurrencyComparisonReport(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-3 text-[13px] sm:text-sm">
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 {euroPathLabel}
               </div>
-              <div className="mt-1 text-xl font-extrabold tabular-nums text-slate-900">
+              <div className="mt-1 text-lg font-extrabold tabular-nums text-slate-900 sm:text-xl">
                 {formatNumber(euroToTlProjected, { decimals: 2 })} ₺
               </div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-3 text-[13px] sm:text-sm">
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 {tlPathLabel}
               </div>
-              <div className="mt-1 text-xl font-extrabold tabular-nums text-slate-900">
+              <div className="mt-1 text-lg font-extrabold tabular-nums text-slate-900 sm:text-xl">
                 {formatNumber(tlTotal, { decimals: 2 })} ₺
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <div className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
             <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
               Toplam nakit çıkışı
             </div>

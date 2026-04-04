@@ -26,14 +26,14 @@ export default function AmortizationTable(props: {
     periodUnit === "year" ? "yıllık taksit" : "taksit";
   return (
     <Card className="overflow-hidden border-2 border-[#2f5f83] bg-gradient-to-b from-white to-slate-50/90 shadow-xl shadow-slate-300/30 backdrop-blur">
-      <CardHeader className="border-t-4 border-[#f7c948] bg-[#113a5a] px-3 pb-3.5 pt-4 text-white">
-        <CardTitle className="w-full text-center text-[13px] font-extrabold leading-snug tracking-tight text-white sm:text-sm">
+      <CardHeader className="border-t-4 border-[#f7c948] bg-[#113a5a] px-3 pb-3 pt-3.5 text-white sm:pb-3.5 sm:pt-4">
+        <CardTitle className="w-full text-center text-[12px] font-extrabold leading-snug tracking-tight text-white sm:text-sm">
           Ödeme Planı ({props.currency}) — %
           {formatNumber(props.interestRatePct ?? 0, { decimals: 1 })} Faiz —{" "}
           {props.schedule.length} {periodSuffix}
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent className="pt-3 sm:pt-4">
         <div className="max-h-[340px] overflow-auto rounded-md border border-slate-200">
           <Table>
             <TableHeader className="sticky top-0 bg-background">
@@ -81,7 +81,7 @@ export default function AmortizationTable(props: {
             </TableBody>
           </Table>
         </div>
-        <div className="mt-3 text-[11px] font-semibold leading-relaxed text-slate-600">
+        <div className="mt-3 text-[10px] font-semibold leading-relaxed text-slate-600 sm:text-[11px]">
           Bu ödeme planı ön bilgilendirme amaçlıdır, bağlayıcı değildir. Kasko ve diğer
           masraf kalemlerine vade farkı yansıyabileceğinden küçük ilave tutarlar
           oluşabilir.

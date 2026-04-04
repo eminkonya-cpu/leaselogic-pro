@@ -208,7 +208,7 @@ function CalculatorApp({
             <button
               type="button"
               onClick={() => setMode("forward")}
-              className={`rounded-lg px-3 py-2 text-xs font-extrabold transition-all ${
+              className={`rounded-lg px-2.5 py-1.5 text-[11px] font-extrabold transition-all sm:px-3 sm:py-2 sm:text-xs ${
                 mode === "forward"
                   ? "bg-blue-500 text-white shadow-md ring-2 ring-blue-200/80"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -219,7 +219,7 @@ function CalculatorApp({
             <button
               type="button"
               onClick={() => setMode("reverse")}
-              className={`rounded-lg px-3 py-2 text-xs font-extrabold transition-all ${
+              className={`rounded-lg px-2.5 py-1.5 text-[11px] font-extrabold transition-all sm:px-3 sm:py-2 sm:text-xs ${
                 mode === "reverse"
                   ? "bg-rose-500 text-white shadow-md ring-2 ring-rose-200/80"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"

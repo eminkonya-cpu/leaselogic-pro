@@ -37,18 +37,18 @@ export default function ExpenseInputCard(props: {
   const fields = variant === "annual" ? fieldsAnnual : fieldsMonthly;
   return (
     <Card className="overflow-hidden border-2 border-[#2f5f83] bg-gradient-to-b from-white to-slate-50/90 shadow-xl shadow-slate-300/30 backdrop-blur">
-      <CardHeader className="border-t-4 border-[#f7c948] bg-[#113a5a] px-3 pb-3.5 pt-4 text-white">
-        <CardTitle className="flex w-full flex-col items-center justify-center gap-2 text-center text-[15px] font-extrabold tracking-tight text-white">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#0f2f49] text-[#f7c948] ring-1 ring-[#255679] shadow-sm">
-            <Euro className="h-[18px] w-[18px]" />
+      <CardHeader className="border-t-4 border-[#f7c948] bg-[#113a5a] px-2.5 pb-2.5 pt-3 text-white sm:px-3 sm:pb-3.5 sm:pt-4">
+        <CardTitle className="flex w-full items-center justify-start gap-2 text-left text-[13px] font-extrabold tracking-tight text-white sm:flex-col sm:justify-center sm:gap-2 sm:text-center sm:text-[15px]">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f2f49] text-[#f7c948] ring-1 ring-[#255679] shadow-sm sm:h-9 sm:w-9">
+            <Euro className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
           </span>
           <span className="max-w-[16rem] leading-snug">Ek Masraflar (Euro)</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 pt-4">
+      <CardContent className="space-y-2.5 px-2.5 pt-2.5 sm:space-y-3 sm:px-6 sm:pt-4">
         {fields.map((f) => (
-          <div key={f.key} className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-600">{f.label}</Label>
+          <div key={f.key} className="space-y-1">
+            <Label className="text-[11px] font-bold text-slate-600 sm:text-xs">{f.label}</Label>
             <Input
               value={String(props.expenses[f.key] ?? 0)}
               type="number"

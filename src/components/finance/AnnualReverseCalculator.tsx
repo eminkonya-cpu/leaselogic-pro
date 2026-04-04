@@ -215,13 +215,15 @@ export default function AnnualReverseCalculator() {
           ]}
         />
       </div>
-      <AmortizationTable
-        schedule={calc.schedule}
-        currency="€"
-        downPayment={params.downPaymentEuro}
-        interestRatePct={params.euroInterest}
-        periodUnit="year"
-      />
+      <div className="hidden lg:block">
+        <AmortizationTable
+          schedule={calc.schedule}
+          currency="€"
+          downPayment={params.downPaymentEuro}
+          interestRatePct={params.euroInterest}
+          periodUnit="year"
+        />
+      </div>
     </div>
   );
 }

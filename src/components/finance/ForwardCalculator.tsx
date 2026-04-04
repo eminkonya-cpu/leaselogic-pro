@@ -258,13 +258,13 @@ export default function ForwardCalculator() {
 
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="grid w-full max-w-3xl grid-cols-1 gap-2 rounded-2xl border border-white/70 bg-white/70 p-1.5 shadow-md sm:grid-cols-3">
+          <div className="grid w-full max-w-3xl grid-cols-1 gap-1.5 rounded-2xl border border-white/70 bg-white/70 p-1.5 shadow-md sm:grid-cols-3 sm:gap-2">
             {tabConfig.map((tab) => (
               <button
                 key={tab.value}
                 type="button"
                 onClick={() => setActiveTab(tab.value)}
-                className={`flex w-full items-center justify-center rounded-xl px-3 py-2.5 text-center text-sm font-extrabold transition-all duration-200 ${
+                className={`flex w-full items-center justify-center rounded-xl px-2.5 py-2 text-center text-[12px] font-extrabold transition-all duration-200 sm:px-3 sm:py-2.5 sm:text-sm ${
                   activeTab === tab.value ? tab.activeClass : tab.inactiveClass
                 }`}
               >
@@ -273,12 +273,12 @@ export default function ForwardCalculator() {
             ))}
           </div>
           {(activeTab === "plain" || activeTab === "allin") && (
-            <div className="flex items-center gap-2">
-              <div className="rounded-xl border border-primary/20 bg-white/80 p-1 text-xs shadow-sm">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="rounded-xl border border-primary/20 bg-white/80 p-1 text-[11px] shadow-sm sm:text-xs">
                 <button
                   type="button"
                   onClick={() => setPdfCurrency("EUR")}
-                  className={`rounded-md px-2 py-1 font-bold ${
+                  className={`rounded-md px-1.5 py-1 font-bold sm:px-2 ${
                     pdfCurrency === "EUR"
                       ? "bg-primary text-primary-foreground"
                       : ""
@@ -289,7 +289,7 @@ export default function ForwardCalculator() {
                 <button
                   type="button"
                   onClick={() => setPdfCurrency("TRY")}
-                  className={`rounded-md px-2 py-1 font-bold ${
+                  className={`rounded-md px-1.5 py-1 font-bold sm:px-2 ${
                     pdfCurrency === "TRY"
                       ? "bg-primary text-primary-foreground"
                       : ""
@@ -301,10 +301,10 @@ export default function ForwardCalculator() {
               <button
                 type="button"
                 onClick={handlePrint}
-                className="flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-primary/5 px-3 py-2 text-sm font-extrabold text-primary transition-colors hover:bg-primary/10"
+                className="flex items-center gap-1.5 rounded-xl border-2 border-primary/30 bg-primary/5 px-2.5 py-1.5 text-[12px] font-extrabold text-primary transition-colors hover:bg-primary/10 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
                 title="PDF önizleme aç"
               >
-                <Printer className="h-4 w-4" />
+                <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span>PDF Önizle</span>
               </button>
             </div>
@@ -364,7 +364,7 @@ export default function ForwardCalculator() {
                 ]}
               />
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="hidden grid-cols-1 gap-4 lg:grid lg:grid-cols-2">
               <AmortizationTable
                 schedule={calc.plainScheduleEuro}
                 currency="€"
@@ -446,7 +446,7 @@ export default function ForwardCalculator() {
                 ]}
               />
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="hidden grid-cols-1 gap-4 lg:grid lg:grid-cols-2">
               <AmortizationTable
                 schedule={calc.allInScheduleEuro}
                 currency="€"
