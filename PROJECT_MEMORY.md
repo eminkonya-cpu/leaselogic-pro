@@ -46,6 +46,13 @@ Supporting finance UI:
 - `src/components/finance/machineModels.ts`
 - `src/components/finance/format.ts`
 
+Current forward-calculation tab structure:
+
+- `Kampanyalı Fiyat`: campaign price already includes financing cost; user selects extra costs and sees total customer payment / remaining after down payment
+- `Sade Makine`: standard financing on machine-only price
+- `Her Şey Dahil`: standard financing including selected extra costs
+- `Kur Avantajı`: comparison tab for the standard machine financing path
+
 UI primitives live in:
 
 - `src/components/ui/*`
@@ -63,6 +70,14 @@ UI primitives live in:
 Shared result row type:
 
 - `AmortizationRow`
+
+Campaign pricing logic:
+
+- campaign price is treated as already finance-included
+- no extra interest is added on top of campaign price
+- customer total = campaign machine price + selected extra costs
+- remaining after down payment = customer total - down payment
+- monthly / annual installment display in campaign mode uses zero-interest equal distribution over the selected term
 
 ## Authentication and Access Control
 
@@ -154,6 +169,12 @@ To avoid damaging the project:
 3. run `npm run build` for meaningful changes
 4. test login flow if auth files were touched
 5. only then push to GitHub / Vercel
+
+UI safety rules for calculators:
+
+- do not break existing `Sade Makine`, `Her Şey Dahil`, or `Kur Avantajı` behavior when changing campaign mode
+- `Kampanyalı Fiyat` must remain the first forward-calculation tab in both monthly and annual views
+- payment plans should be visible on desktop only (`xl` and up), and hidden on tablet / phone for all calculator modes
 
 High-risk files / areas:
 

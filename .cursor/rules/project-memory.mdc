@@ -15,3 +15,6 @@ alwaysApply: true
 - Do not commit `.env.local` or expose secret / service-role keys.
 - High-risk files: `src/app/HomeClient.tsx`, `src/lib/supabase.ts`, `src/lib/financeCalculations.ts`, Vercel env vars, Supabase URL configuration.
 - When helping future sessions, use `PROJECT_MEMORY.md` and `PROJECT_HANDOVER.md` as the source of truth for project context and operations.
+- Forward calculators now include a first tab named `Kampanyalı Fiyat` in both monthly and annual modes; preserve it when changing tab order or shared state.
+- Campaign mode means the entered machine price already includes financing cost; do not add another interest layer on top of that price.
+- Payment plans across calculator modes should stay desktop-only and remain hidden on tablet / phone layouts.

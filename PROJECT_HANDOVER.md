@@ -103,3 +103,12 @@ Eger unutulan sey proje olustururken verilen `database password` ise:
 ## Not
 
 Bu dosya, proje kurulumu ve yonetim akisini hizli hatirlamak icin hazirlandi.
+
+## Son Finance Notlari
+
+- Ileri hesaplama tarafinda yeni ilk sekme: `Kampanyali Fiyat`
+- Bu sekme hem aylik hem yillik odemede vardir
+- Kampanyali fiyat mantiginda girilen makina bedeline tekrar faiz eklenmez
+- Musteri toplami = kampanyali makina bedeli + secilen ek masraflar
+- Pesinat sonrasi kalan tutar ayrica gosterilir
+- Odeme plani tum modlarda sadece masaustunde gorunur; tablet ve telefonda gizlidir

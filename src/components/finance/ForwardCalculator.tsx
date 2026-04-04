@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Banknote, Euro, Package, Printer } from "lucide-react";
+import { Banknote, Check, Euro, Package, Printer } from "lucide-react";
 import ParameterCard from "@/components/finance/ParameterCard";
 import ResultCard from "@/components/finance/ResultCard";
 import AmortizationTable from "@/components/finance/AmortizationTable";
@@ -18,10 +18,10 @@ const FORWARD_STORAGE_PREFIX = "llp:v2:forward";
 export default function ForwardCalculator() {
   const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
   const [activeTab, setActiveTab] = usePersistentState<
-    "plain" | "allin" | "advantage"
+    "campaign" | "plain" | "allin" | "advantage"
   >(
     `${FORWARD_STORAGE_PREFIX}:shared:active-tab`,
-    "plain",
+    "campaign",
   );
   const [pdfCurrency, setPdfCurrency] = usePersistentState<"EUR" | "TRY">(
     `${FORWARD_STORAGE_PREFIX}:shared:pdf-currency`,
@@ -136,6 +136,20 @@ export default function ForwardCalculator() {
       tlInterest,
       term,
     );
+    const campaignRemainingEuro = Math.max(0, allInBaseEuro - downPaymentEuro);
+    const campaignRemainingTL = Math.max(0, allInBaseTL - downPaymentTL);
+    const campaignMonthlyEuro = calculatePMT(campaignRemainingEuro, 0, term);
+    const campaignMonthlyTL = calculatePMT(campaignRemainingTL, 0, term);
+    const campaignScheduleEuro = generateAmortization(
+      campaignRemainingEuro,
+      0,
+      term,
+    );
+    const campaignScheduleTL = generateAmortization(
+      campaignRemainingTL,
+      0,
+      term,
+    );
     const netMachineEuro = machinePriceEuro;
     const projRates = computedRates
       .slice(0, term)
@@ -164,6 +178,12 @@ export default function ForwardCalculator() {
       allInBaseTL,
       allInFinanceEuro,
       allInFinanceTL,
+      campaignRemainingEuro,
+      campaignRemainingTL,
+      campaignMonthlyEuro,
+      campaignMonthlyTL,
+      campaignScheduleEuro,
+      campaignScheduleTL,
       allInTotalEuro,
       allInTotalTL,
       allInDiffEuro,
@@ -181,23 +201,100 @@ export default function ForwardCalculator() {
     window.print();
   };
 
+  const machinePriceLabel =
+    activeTab === "campaign"
+      ? "Kampanyalı Makina Bedeli (€) KDV Hariç"
+      : "Makine Bedeli (€) KDV Hariç";
+  const financeCardTitle =
+    activeTab === "campaign" ? "Ödeme Detayları" : "Finansman Detayları";
+  const financeFields =
+    activeTab === "campaign"
+      ? [
+          { key: "downPaymentEuro", label: "Peşinat (€)", placeholder: "20000" },
+          { key: "term", label: "Vade (Ay)", placeholder: "24" },
+        ]
+      : [
+          { key: "downPaymentEuro", label: "Peşinat (€)", placeholder: "20000" },
+          { key: "term", label: "Vade (Ay)", placeholder: "24" },
+          {
+            key: "euroInterest",
+            label: "Euro Faiz Oranı (%)",
+            placeholder: "6.5",
+            step: "0.1",
+          },
+          {
+            key: "tlInterest",
+            label: "TL Faiz Oranı (%)",
+            placeholder: "38",
+            step: "0.1",
+          },
+        ];
+
+  const printMode =
+    activeTab === "campaign"
+      ? "campaign"
+      : activeTab === "allin"
+        ? "allin"
+        : "plain";
+  const printParams =
+    activeTab === "campaign"
+      ? { ...params, euroInterest: 0, tlInterest: 0 }
+      : params;
+  const printCalc = {
+    plainScheduleEuro:
+      activeTab === "campaign"
+        ? calc.campaignScheduleEuro
+        : activeTab === "allin"
+          ? calc.allInScheduleEuro
+          : calc.plainScheduleEuro,
+    plainScheduleTL:
+      activeTab === "campaign"
+        ? calc.campaignScheduleTL
+        : activeTab === "allin"
+          ? calc.allInScheduleTL
+          : calc.plainScheduleTL,
+    plainMonthlyEuro:
+      activeTab === "campaign"
+        ? calc.campaignMonthlyEuro
+        : activeTab === "allin"
+          ? calc.allInMonthlyEuro
+          : calc.plainMonthlyEuro,
+    plainMonthlyTL:
+      activeTab === "campaign"
+        ? calc.campaignMonthlyTL
+        : activeTab === "allin"
+          ? calc.allInMonthlyTL
+          : calc.plainMonthlyTL,
+    totalExpenses: calc.totalExpenses,
+  };
+
   const tabConfig = [
+    {
+      value: "campaign" as const,
+      label: "Kampanyalı Fiyat",
+      activeClass:
+        "bg-[#8b5cf6] text-white shadow-[0_10px_24px_rgba(139,92,246,0.34)] ring-2 ring-white/90 ring-offset-2 ring-offset-slate-100 border border-white/70 scale-[1.02]",
+      inactiveClass: "bg-[#eee5ff] text-[#5d3cb3] hover:bg-[#e1d4ff]",
+    },
     {
       value: "plain" as const,
       label: "Sade Makine",
-      activeClass: "bg-[#1f6fa7] text-white shadow-lg",
+      activeClass:
+        "bg-[#1f6fa7] text-white shadow-[0_10px_24px_rgba(31,111,167,0.32)] ring-2 ring-white/90 ring-offset-2 ring-offset-slate-100 border border-white/70 scale-[1.02]",
       inactiveClass: "bg-[#d9ecf7] text-[#114a72] hover:bg-[#c6e2f1]",
     },
     {
       value: "allin" as const,
       label: "Her Şey Dahil",
-      activeClass: "bg-[#e28b1f] text-white shadow-lg",
+      activeClass:
+        "bg-[#e28b1f] text-white shadow-[0_10px_24px_rgba(226,139,31,0.34)] ring-2 ring-white/90 ring-offset-2 ring-offset-slate-100 border border-white/70 scale-[1.02]",
       inactiveClass: "bg-[#fde8cb] text-[#985a0d] hover:bg-[#f9ddb1]",
     },
     {
       value: "advantage" as const,
       label: "Kur Avantajı",
-      activeClass: "bg-[#1e8f54] text-white shadow-lg",
+      activeClass:
+        "bg-[#1e8f54] text-white shadow-[0_10px_24px_rgba(30,143,84,0.34)] ring-2 ring-white/90 ring-offset-2 ring-offset-slate-100 border border-white/70 scale-[1.02]",
       inactiveClass: "bg-[#d4f2e2] text-[#0f5f36] hover:bg-[#bee8d1]",
     },
   ];
@@ -234,7 +331,7 @@ export default function ForwardCalculator() {
             },
             {
               key: "machinePriceEuro",
-              label: "Makine Bedeli (€) KDV Hariç",
+              label: machinePriceLabel,
               placeholder: "100000",
             },
           ]}
@@ -242,48 +339,49 @@ export default function ForwardCalculator() {
           onChange={handleParamChange}
         />
         <ParameterCard
-          title="Finansman Detayları"
+          title={financeCardTitle}
           icon={Banknote}
-          fields={[
-            { key: "downPaymentEuro", label: "Peşinat (€)", placeholder: "20000" },
-            { key: "term", label: "Vade (Ay)", placeholder: "24" },
-            {
-              key: "euroInterest",
-              label: "Euro Faiz Oranı (%)",
-              placeholder: "6.5",
-              step: "0.1",
-            },
-            {
-              key: "tlInterest",
-              label: "TL Faiz Oranı (%)",
-              placeholder: "38",
-              step: "0.1",
-            },
-          ]}
+          fields={financeFields}
           values={params}
           onChange={handleParamChange}
         />
       </div>
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="grid w-full max-w-3xl grid-cols-1 gap-1.5 rounded-2xl border border-white/70 bg-white/70 p-1.5 shadow-md sm:grid-cols-3 sm:gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-between">
+          <div className="grid w-full flex-1 grid-cols-2 gap-1.5 rounded-2xl border border-white/70 bg-white/70 p-1.5 shadow-md sm:grid-cols-4 sm:gap-1.5 lg:max-w-[880px]">
             {tabConfig.map((tab) => (
               <button
                 key={tab.value}
                 type="button"
                 onClick={() => setActiveTab(tab.value)}
-                className={`flex w-full items-center justify-center rounded-xl px-2.5 py-2 text-center text-[12px] font-extrabold transition-all duration-200 sm:px-3 sm:py-2.5 sm:text-sm ${
+                aria-pressed={activeTab === tab.value}
+                className={`flex min-h-10 w-full items-center justify-center rounded-xl px-2 py-1.5 text-center text-[11px] font-extrabold leading-tight transition-all duration-200 sm:min-h-11 sm:px-2.5 sm:py-2 sm:text-[12px] lg:min-h-10 lg:px-2.5 lg:py-2 lg:text-[13px] ${
                   activeTab === tab.value ? tab.activeClass : tab.inactiveClass
                 }`}
               >
-                {tab.label}
+                <span className="flex items-center justify-center gap-1.5">
+                  <span
+                    className={`inline-flex h-4 w-4 items-center justify-center rounded-full border transition-all ${
+                      activeTab === tab.value
+                        ? "h-5 w-5 border-white/95 bg-white text-slate-900 shadow-md"
+                        : "border-current/25 bg-white/35 text-transparent"
+                    }`}
+                  >
+                    {activeTab === tab.value ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <span className="h-1.5 w-1.5 rounded-full bg-current/40" />
+                    )}
+                  </span>
+                  <span>{tab.label}</span>
+                </span>
               </button>
             ))}
           </div>
-          {(activeTab === "plain" || activeTab === "allin") && (
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="rounded-xl border border-primary/20 bg-white/80 p-1 text-[11px] shadow-sm sm:text-xs">
+          {(activeTab === "plain" || activeTab === "allin" || activeTab === "campaign") && (
+            <div className="flex w-full shrink-0 items-center justify-end gap-1.5 sm:gap-2 lg:w-auto">
+              <div className="rounded-xl border border-primary/20 bg-white/80 p-1 text-[10px] shadow-sm sm:text-[11px]">
                 <button
                   type="button"
                   onClick={() => setPdfCurrency("EUR")}
@@ -310,7 +408,7 @@ export default function ForwardCalculator() {
               <button
                 type="button"
                 onClick={handlePrint}
-                className="flex items-center gap-1.5 rounded-xl border-2 border-primary/30 bg-primary/5 px-2.5 py-1.5 text-[12px] font-extrabold text-primary transition-colors hover:bg-primary/10 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
+                className="flex items-center gap-1.5 rounded-xl border-2 border-primary/30 bg-primary/5 px-2 py-1.5 text-[11px] font-extrabold text-primary transition-colors hover:bg-primary/10 sm:gap-2 sm:px-2.5 sm:py-2 sm:text-[12px] lg:text-[13px]"
                 title="PDF önizleme aç"
               >
                 <Printer className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -319,6 +417,100 @@ export default function ForwardCalculator() {
             </div>
           )}
         </div>
+
+        {activeTab === "campaign" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[0.74fr_1.13fr_1.13fr]">
+              <ExpenseInputCard
+                expenses={expenses}
+                onChange={handleExpenseChange}
+                className="sm:[&_input]:h-8 sm:[&_input]:text-[11px] lg:[&_input]:h-10 lg:[&_input]:text-sm"
+              />
+              <ResultCard
+                title="Toplam Müşteri Ödemesi (Euro)"
+                icon={Euro}
+                currency="€"
+                noDecimals
+                tabletCompact
+                rows={[
+                  {
+                    label: "Kampanyalı Makina Bedeli",
+                    value: calc.netMachineEuro,
+                  },
+                  {
+                    label: "Seçilen Ek Masraflar",
+                    value: calc.totalExpenses,
+                  },
+                  {
+                    label: "Toplam Müşteri Ödemesi",
+                    value: calc.allInBaseEuro,
+                    highlight: true,
+                  },
+                  { label: "Peşinat", value: params.downPaymentEuro },
+                  {
+                    label: "Peşinat Sonrası Kalan",
+                    value: calc.campaignRemainingEuro,
+                  },
+                  { label: "Aylık € Taksit", value: calc.campaignMonthlyEuro },
+                  {
+                    label: "(Kampanya fiyatına finansman maliyeti dahildir)",
+                    value: null,
+                    note: true,
+                  },
+                ]}
+              />
+              <ResultCard
+                title="Toplam Müşteri Ödemesi (TL)"
+                icon={Banknote}
+                currency="₺"
+                tabletCompact
+                rows={[
+                  {
+                    label: "Kampanyalı Makina Bedeli",
+                    value: calc.netMachineEuro * params.euroRate,
+                  },
+                  {
+                    label: "Seçilen Ek Masraflar",
+                    value: calc.totalExpensesTL,
+                  },
+                  {
+                    label: "Toplam Müşteri Ödemesi",
+                    value: calc.allInBaseTL,
+                    highlight: true,
+                  },
+                  { label: "Peşinat", value: calc.downPaymentTL },
+                  {
+                    label: "Peşinat Sonrası Kalan",
+                    value: calc.campaignRemainingTL,
+                  },
+                  {
+                    label: "Aylık ₺ Taksit",
+                    value: calc.campaignMonthlyTL,
+                  },
+                  {
+                    label: "(Kampanya fiyatına finansman maliyeti dahildir)",
+                    value: null,
+                    note: true,
+                  },
+                ]}
+              />
+            </div>
+            <div className="hidden xl:grid xl:grid-cols-2 xl:gap-4">
+              <AmortizationTable
+                schedule={calc.campaignScheduleEuro}
+                currency="€"
+                downPayment={params.downPaymentEuro}
+                interestRatePct={0}
+              />
+              <AmortizationTable
+                schedule={calc.campaignScheduleTL}
+                currency="₺"
+                downPayment={calc.downPaymentTL}
+                interestRatePct={0}
+              />
+            </div>
+          </div>
+        )}
 
         {activeTab === "plain" && (
           <div className="space-y-4">
@@ -373,7 +565,7 @@ export default function ForwardCalculator() {
                 ]}
               />
             </div>
-            <div className="hidden grid-cols-1 gap-4 sm:grid sm:grid-cols-2">
+            <div className="hidden xl:grid xl:grid-cols-2 xl:gap-4">
               <AmortizationTable
                 schedule={calc.plainScheduleEuro}
                 currency="€"
@@ -461,7 +653,7 @@ export default function ForwardCalculator() {
                 ]}
               />
             </div>
-            <div className="hidden grid-cols-1 gap-4 sm:grid sm:grid-cols-2">
+            <div className="hidden xl:grid xl:grid-cols-2 xl:gap-4">
               <AmortizationTable
                 schedule={calc.allInScheduleEuro}
                 currency="€"
@@ -503,38 +695,18 @@ export default function ForwardCalculator() {
       </div>
 
       <PrintablePDF
-        params={params}
-        calc={{
-          plainScheduleEuro:
-            activeTab === "allin" ? calc.allInScheduleEuro : calc.plainScheduleEuro,
-          plainScheduleTL:
-            activeTab === "allin" ? calc.allInScheduleTL : calc.plainScheduleTL,
-          plainMonthlyEuro:
-            activeTab === "allin" ? calc.allInMonthlyEuro : calc.plainMonthlyEuro,
-          plainMonthlyTL:
-            activeTab === "allin" ? calc.allInMonthlyTL : calc.plainMonthlyTL,
-          totalExpenses: calc.totalExpenses,
-        }}
-        mode={activeTab}
+        params={printParams}
+        calc={printCalc}
+        mode={printMode}
         expenses={expenses}
         printCurrency={pdfCurrency}
       />
       <PrintablePDFPreviewModal
         open={isMobilePreviewOpen}
         onClose={() => setIsMobilePreviewOpen(false)}
-        params={params}
-        calc={{
-          plainScheduleEuro:
-            activeTab === "allin" ? calc.allInScheduleEuro : calc.plainScheduleEuro,
-          plainScheduleTL:
-            activeTab === "allin" ? calc.allInScheduleTL : calc.plainScheduleTL,
-          plainMonthlyEuro:
-            activeTab === "allin" ? calc.allInMonthlyEuro : calc.plainMonthlyEuro,
-          plainMonthlyTL:
-            activeTab === "allin" ? calc.allInMonthlyTL : calc.plainMonthlyTL,
-          totalExpenses: calc.totalExpenses,
-        }}
-        mode={activeTab}
+        params={printParams}
+        calc={printCalc}
+        mode={printMode}
         expenses={expenses}
         printCurrency={pdfCurrency}
       />

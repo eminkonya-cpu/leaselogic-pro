@@ -42,6 +42,7 @@ function PrintablePDFContent(
     className?: string;
   },
 ) {
+  const isCampaignMode = props.mode === "campaign";
   const firma = props.params.firma ?? "-";
   const makine = props.params.makine ?? "-";
   const unitPriceEuro = props.params.machinePriceEuro ?? 0;
@@ -103,15 +104,26 @@ function PrintablePDFContent(
             {paymentMode === "annual" ? `${term} yıl` : `${term} ay`}
           </div>
 
-          <div className="text-slate-600">Euro Faiz</div>
-          <div className="text-right tabular-nums font-extrabold">
-            %{formatNumber(euroInterest, { decimals: 1 })}
-          </div>
+          {!isCampaignMode ? (
+            <>
+              <div className="text-slate-600">Euro Faiz</div>
+              <div className="text-right tabular-nums font-extrabold">
+                %{formatNumber(euroInterest, { decimals: 1 })}
+              </div>
 
-          <div className="text-slate-600">TL Faiz</div>
-          <div className="text-right tabular-nums font-extrabold">
-            %{formatNumber(tlInterest, { decimals: 1 })}
-          </div>
+              <div className="text-slate-600">TL Faiz</div>
+              <div className="text-right tabular-nums font-extrabold">
+                %{formatNumber(tlInterest, { decimals: 1 })}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-slate-600">Kampanya Tipi</div>
+              <div className="text-right font-extrabold">
+                Kampanyali fiyat
+              </div>
+            </>
+          )}
 
           <div className="text-slate-600">PDF Para Birimi</div>
           <div className="text-right font-extrabold">
@@ -126,10 +138,10 @@ function PrintablePDFContent(
           </div>
         </div>
 
-        {props.mode === "allin" && props.expenses ? (
+        {(props.mode === "allin" || props.mode === "campaign") && props.expenses ? (
           <div className="border-t border-slate-200 px-3 py-2 print:px-2 print:py-1.5">
             <div className="mb-1 text-xs font-extrabold print:text-[10px]">
-              Ek Maliyetler
+              Secilen Ek Masraflar
             </div>
             <div className="space-y-1 text-xs print:space-y-0.5 print:text-[10px]">
               {Object.entries(props.expenses)
@@ -155,7 +167,9 @@ function PrintablePDFContent(
 
       <div className="mt-1 rounded-lg border border-slate-300 bg-white print:break-inside-auto">
         <div className="border-b border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-extrabold print:px-2 print:py-1 print:text-[12px]">
-          Ödeme Planı ({symbol}) — %{formatNumber(planInterest, { decimals: 1 })} Faiz
+          Ödeme Planı ({symbol}){!isCampaignMode
+            ? ` — %${formatNumber(planInterest, { decimals: 1 })} Faiz`
+            : " — Kampanyali fiyat"}
           {paymentMode === "annual" ? " — Yılda bir taksit" : ""}
         </div>
         <div className="px-0 py-0 print:break-inside-auto">
@@ -209,10 +223,14 @@ function PrintablePDFContent(
       <div className="mt-4 space-y-1 text-xs font-semibold text-slate-700 print:mt-1.5 print:break-inside-avoid print:space-y-0.5 print:text-[10px]">
         <div>Bu dokümandaki tüm tutarlar KDV hariçtir.</div>
         <div>Bu plan ön bilgilendirme amaçlıdır, bağlayıcı değildir.</div>
-        <div>
-          Kasko ve masraf bedellerine vade farkı yansıyabileceği için küçük ilave tutarlar
-          oluşabilir.
-        </div>
+        {isCampaignMode ? (
+          <div>Kampanya fiyatina finansman maliyeti dahil kabul edilmistir.</div>
+        ) : (
+          <div>
+            Kasko ve masraf bedellerine vade farkı yansıyabileceği için küçük ilave tutarlar
+            oluşabilir.
+          </div>
+        )}
       </div>
     </div>
   );
