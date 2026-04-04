@@ -169,12 +169,7 @@ export default function ForwardCalculator() {
   }, [params, expenses, computedRates]);
 
   const handlePrint = () => {
-    const printArea = document.getElementById("pdf-print-area");
-    if (printArea) printArea.style.display = "block";
     window.print();
-    setTimeout(() => {
-      if (printArea) printArea.style.display = "none";
-    }, 300);
   };
 
   const tabConfig = [
@@ -307,10 +302,10 @@ export default function ForwardCalculator() {
                 type="button"
                 onClick={handlePrint}
                 className="flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-primary/5 px-3 py-2 text-sm font-extrabold text-primary transition-colors hover:bg-primary/10"
-                title="PDF olarak kaydet / Yazdır"
+                title="PDF önizleme aç"
               >
                 <Printer className="h-4 w-4" />
-                <span>PDF İndir</span>
+                <span>PDF Önizle</span>
               </button>
             </div>
           )}

@@ -144,27 +144,52 @@
 
 @media print {
   @page {
-    margin: 8mm 12mm 12mm 12mm;
+    margin: 4mm 8mm 6mm 8mm;
   }
 
-  body * {
-    visibility: hidden;
+  body > * {
+    display: none !important;
   }
-  .pdf-print-root,
-  .pdf-print-root * ,
-  #pdf-print-area,
-  #pdf-print-area * {
-    visibility: visible;
-  }
-  .pdf-print-root,
+
   #pdf-print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
+    display: block !important;
+    position: static !important;
     width: 100%;
     background: #fff;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
   .no-print {
     display: none !important;
+  }
+
+  tr,
+  .break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  table,
+  .break-inside-auto {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
   }
 }
