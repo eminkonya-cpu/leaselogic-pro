@@ -92,7 +92,7 @@ export default function ResultCard(props: {
               </div>
               <div
                 className={cn(
-                  "tabular-nums text-[15px] font-extrabold text-slate-900 lg:text-base",
+                  "whitespace-nowrap tabular-nums text-[15px] font-extrabold text-slate-900 lg:text-base",
                   props.tabletCompact && "sm:text-[13px] lg:text-base",
                 )}
               >

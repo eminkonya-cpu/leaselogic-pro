@@ -388,7 +388,7 @@ export default function ForwardCalculator() {
 
         {activeTab === "allin" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[0.88fr_1.06fr_1.06fr]">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[0.8fr_1.1fr_1.1fr]">
               <ExpenseInputCard
                 expenses={expenses}
                 onChange={handleExpenseChange}
