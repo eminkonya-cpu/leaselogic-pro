@@ -28,7 +28,6 @@ import {
   LoaderCircle,
   LogOut,
   ShieldAlert,
-  ShieldCheck,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 
@@ -51,6 +50,20 @@ type AccessCheckResult =
       allowed: false;
       reason: string;
     };
+
+function isRecoverableSessionError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const normalizedMessage = error.message.toLowerCase();
+
+  return (
+    normalizedMessage.includes("refresh token") ||
+    normalizedMessage.includes("invalid token") ||
+    normalizedMessage.includes("session not found")
+  );
+}
 
 async function checkAuthorizedAccess(
   supabase: SupabaseClient,
@@ -137,72 +150,79 @@ function CalculatorApp({
   return (
     <div className="min-h-dvh bg-gradient-to-b from-sky-50 via-white to-blue-50">
       <header className="border-b border-white/10 bg-gradient-to-r from-[#0a2440] via-[#0c2e53] to-[#114579] text-white shadow-xl">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-300/15 ring-1 ring-amber-200/30 shadow-lg">
-              <span className="text-lg font-extrabold text-amber-200" aria-hidden>
-                🧮
-              </span>
-            </div>
-            <div className="leading-tight">
-              <div className="text-base font-extrabold tracking-wide">
-                Finansman Hesaplayici{" "}
-                <span className="text-white/80">| Emin KONYA</span>
+        <div className="mx-auto max-w-6xl px-4 py-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-300/15 ring-1 ring-amber-200/30 shadow-lg">
+                  <span className="text-lg font-extrabold text-amber-200" aria-hidden>
+                    🧮
+                  </span>
+                </div>
+                <div className="leading-tight">
+                  <div className="text-base font-extrabold tracking-wide">
+                    Finansman Hesaplayici{" "}
+                    <span className="text-white/80">| Emin KONYA</span>
+                  </div>
+                  <div className="text-xs font-bold text-cyan-100/90">
+                    Makine Finansmani Maliyet Analizi
+                  </div>
+                </div>
               </div>
-              <div className="text-xs font-bold text-cyan-100/90">
-                Makine Finansmani Maliyet Analizi
-              </div>
-            </div>
-          </div>
 
-          <div className="flex flex-col gap-2 md:items-end">
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setMode("forward")}
-                className={`rounded-lg px-3 py-2 text-xs font-extrabold transition-all ${
-                  mode === "forward"
-                    ? "bg-blue-500 text-white shadow-md ring-2 ring-white/30"
-                    : "bg-white/10 text-white/85 hover:bg-white/15 hover:text-white"
-                }`}
-              >
-                Ileri Hesaplama
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("reverse")}
-                className={`rounded-lg px-3 py-2 text-xs font-extrabold transition-all ${
-                  mode === "reverse"
-                    ? "bg-rose-500 text-white shadow-md ring-2 ring-white/30"
-                    : "bg-white/10 text-white/85 hover:bg-white/15 hover:text-white"
-                }`}
-              >
-                Geri Hesaplama
-              </button>
+              <div className="flex flex-wrap items-center gap-2 text-xs md:justify-end">
+                <span className="rounded-full bg-white/10 px-3 py-1 font-bold text-cyan-100">
+                  Giris: {userEmail}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+                  onClick={onSignOut}
+                  disabled={isSigningOut}
+                >
+                  {isSigningOut ? (
+                    <LoaderCircle className="animate-spin" aria-hidden />
+                  ) : (
+                    <LogOut aria-hidden />
+                  )}
+                  Cikis Yap
+                </Button>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="rounded-full bg-white/10 px-3 py-1 font-bold text-cyan-100">
-                Giris: {userEmail}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
-                onClick={onSignOut}
-                disabled={isSigningOut}
-              >
-                {isSigningOut ? (
-                  <LoaderCircle className="animate-spin" aria-hidden />
-                ) : (
-                  <LogOut aria-hidden />
-                )}
-                Cikis Yap
-              </Button>
-            </div>
           </div>
         </div>
       </header>
+
+      <div className="border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur">
+        <div className="mx-auto flex max-w-6xl justify-center px-4 py-3">
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMode("forward")}
+              className={`rounded-lg px-3 py-2 text-xs font-extrabold transition-all ${
+                mode === "forward"
+                  ? "bg-blue-500 text-white shadow-md ring-2 ring-blue-200/80"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              Ileri Hesaplama
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("reverse")}
+              className={`rounded-lg px-3 py-2 text-xs font-extrabold transition-all ${
+                mode === "reverse"
+                  ? "bg-rose-500 text-white shadow-md ring-2 ring-rose-200/80"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              Geri Hesaplama
+            </button>
+          </div>
+        </div>
+      </div>
 
       <PaymentFrequencySelector
         value={paymentFrequency}
@@ -315,6 +335,13 @@ export function HomeClient() {
       }
 
       if (error) {
+        if (isRecoverableSessionError(error)) {
+          void supabase.auth.signOut({ scope: "local" });
+          setAuthState("signed_out");
+          setMessage("");
+          return;
+        }
+
         setAuthState("signed_out");
         setMessage("Oturum okunurken bir hata olustu.");
         return;
@@ -406,34 +433,8 @@ export function HomeClient() {
         </div>
       </header>
 
-      <main className="mx-auto flex min-h-[calc(100dvh-88px)] max-w-6xl items-center px-4 py-8">
-        <div className="grid w-full gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="border-sky-100 bg-white/95 shadow-xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-900">
-                <ShieldCheck className="h-5 w-5 text-emerald-600" aria-hidden />
-                Yetkili Kullanim
-              </CardTitle>
-              <CardDescription>
-                Bu hesaplayici sadece senin tanimladigin kullanicilar tarafindan
-                kullanilabilir.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 text-sm text-slate-700">
-                <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3">
-                  Giris icin Supabase uzerinden olusturdugun e-posta ve sifre
-                  kullanilir.
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  Bir kullaniciyi kapatmak icin Supabase&apos;te
-                  `authorized_users` tablosunda `is_active` alanini `false`
-                  yapman yeterlidir.
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
+      <main className="mx-auto flex min-h-[calc(100dvh-88px)] max-w-6xl items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
           <Card className="border-slate-200 bg-white/95 shadow-xl">
             <CardHeader>
               <CardTitle>Giris Yap</CardTitle>
