@@ -1,13 +1,15 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatNumber } from "@/components/finance/format";
 import type { AmortizationRow } from "@/lib/financeCalculations";
 import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 import { expenseFieldLabels } from "./ExpenseInputCard";
 
-export default function PrintablePDF(props: {
+export type PrintablePdfProps = {
   params: {
     firma?: string;
     makine?: string;
@@ -33,7 +35,13 @@ export default function PrintablePDF(props: {
   /** Tanımlıysa ödeme tablosunda kullanılır (ör. yıllık modda genişletilmiş aylık satırlar). */
   printScheduleEuro?: AmortizationRow[];
   printScheduleTL?: AmortizationRow[];
-}) {
+};
+
+function PrintablePDFContent(
+  props: PrintablePdfProps & {
+    className?: string;
+  },
+) {
   const firma = props.params.firma ?? "-";
   const makine = props.params.makine ?? "-";
   const unitPriceEuro = props.params.machinePriceEuro ?? 0;
@@ -61,18 +69,13 @@ export default function PrintablePDF(props: {
       ? Number(props.params.downPaymentEuro ?? 0)
       : Number((props.params.downPaymentEuro ?? 0) * (props.params.euroRate ?? 0));
 
-  if (typeof document === "undefined") {
-    return null;
-  }
-
-  return createPortal(
+  return (
     <div
       id="pdf-print-area"
       className={cn(
-        "hidden",
         "pdf-print-root",
-        "print:block print:bg-white",
-        "print:px-3 print:pb-2 print:pt-0",
+        "bg-white",
+        props.className,
       )}
     >
       <div className="text-base font-extrabold leading-tight text-slate-900 print:mt-0 print:text-[14px]">
@@ -211,7 +214,61 @@ export default function PrintablePDF(props: {
           oluşabilir.
         </div>
       </div>
+    </div>
+  );
+}
+
+export function PrintablePDFPreviewModal(
+  props: PrintablePdfProps & {
+    open: boolean;
+    onClose: () => void;
+  },
+) {
+  if (!props.open || typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-auto bg-[#5b616a] p-3 sm:p-4">
+      <div className="sticky top-3 z-10 mb-3 flex justify-end sm:top-4 sm:mb-4">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 gap-1.5 border-slate-300 bg-white/95 px-3 text-xs font-bold text-slate-900 shadow-sm backdrop-blur"
+          onClick={props.onClose}
+        >
+          <X className="h-4 w-4" aria-hidden />
+          Kapat
+        </Button>
+      </div>
+
+      <div className="mx-auto w-full max-w-[210mm]">
+        <div className="min-h-[calc(100vh-6rem)] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.28)]">
+          <PrintablePDFContent
+            {...props}
+            className="w-full p-3 sm:p-4 md:p-[10mm]"
+          />
+        </div>
+      </div>
     </div>,
-    document.body
+    document.body,
+  );
+}
+
+export default function PrintablePDF(props: PrintablePdfProps) {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <PrintablePDFContent
+      {...props}
+      className={cn(
+        "hidden",
+        "print:block print:bg-white",
+        "print:px-3 print:pb-2 print:pt-0",
+      )}
+    />,
+    document.body,
   );
 }

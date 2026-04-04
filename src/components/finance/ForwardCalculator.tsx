@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Banknote, Euro, Package, Printer } from "lucide-react";
 import ParameterCard from "@/components/finance/ParameterCard";
 import ResultCard from "@/components/finance/ResultCard";
@@ -8,12 +8,13 @@ import AmortizationTable from "@/components/finance/AmortizationTable";
 import ExpenseInputCard from "@/components/finance/ExpenseInputCard";
 import RateProjectionInput from "@/components/finance/RateProjectionInput";
 import CurrencyComparisonReport from "@/components/finance/CurrencyComparisonReport";
-import PrintablePDF from "@/components/finance/PrintablePDF";
+import PrintablePDF, { PrintablePDFPreviewModal } from "@/components/finance/PrintablePDF";
 import { MACHINE_MODELS } from "@/components/finance/machineModels";
 import { calculatePMT, generateAmortization } from "@/lib/financeCalculations";
 import { usePersistentState } from "@/lib/usePersistentState";
 
 export default function ForwardCalculator() {
+  const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
   const [activeTab, setActiveTab] = usePersistentState<
     "plain" | "allin" | "advantage"
   >(
@@ -169,6 +170,10 @@ export default function ForwardCalculator() {
   }, [params, expenses, computedRates]);
 
   const handlePrint = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 1280) {
+      setIsMobilePreviewOpen(true);
+      return;
+    }
     window.print();
   };
 
@@ -364,7 +369,7 @@ export default function ForwardCalculator() {
                 ]}
               />
             </div>
-            <div className="hidden grid-cols-1 gap-4 lg:grid lg:grid-cols-2">
+            <div className="hidden grid-cols-1 gap-4 sm:grid sm:grid-cols-2">
               <AmortizationTable
                 schedule={calc.plainScheduleEuro}
                 currency="€"
@@ -383,13 +388,18 @@ export default function ForwardCalculator() {
 
         {activeTab === "allin" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <ExpenseInputCard expenses={expenses} onChange={handleExpenseChange} />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <ExpenseInputCard
+                expenses={expenses}
+                onChange={handleExpenseChange}
+                className="sm:[&_input]:h-8 sm:[&_input]:text-[12px] lg:[&_input]:h-10 lg:[&_input]:text-sm"
+              />
               <ResultCard
                 title="Toplam Maliyet (Euro)"
                 icon={Euro}
                 currency="€"
                 noDecimals
+                className="sm:[&_svg]:h-3.5 sm:[&_svg]:w-3.5 sm:[&_span]:max-w-[12rem] lg:[&_span]:max-w-[18rem]"
                 rows={[
                   {
                     label: "Mal Bedeli (KDV Hariç)",
@@ -418,6 +428,7 @@ export default function ForwardCalculator() {
                 title="Toplam Maliyet (TL)"
                 icon={Banknote}
                 currency="₺"
+                className="sm:[&_svg]:h-3.5 sm:[&_svg]:w-3.5 sm:[&_span]:max-w-[12rem] lg:[&_span]:max-w-[18rem]"
                 rows={[
                   {
                     label: "Mal Bedeli (KDV Hariç)",
@@ -446,7 +457,7 @@ export default function ForwardCalculator() {
                 ]}
               />
             </div>
-            <div className="hidden grid-cols-1 gap-4 lg:grid lg:grid-cols-2">
+            <div className="hidden grid-cols-1 gap-4 sm:grid sm:grid-cols-2">
               <AmortizationTable
                 schedule={calc.allInScheduleEuro}
                 currency="€"
@@ -488,6 +499,25 @@ export default function ForwardCalculator() {
       </div>
 
       <PrintablePDF
+        params={params}
+        calc={{
+          plainScheduleEuro:
+            activeTab === "allin" ? calc.allInScheduleEuro : calc.plainScheduleEuro,
+          plainScheduleTL:
+            activeTab === "allin" ? calc.allInScheduleTL : calc.plainScheduleTL,
+          plainMonthlyEuro:
+            activeTab === "allin" ? calc.allInMonthlyEuro : calc.plainMonthlyEuro,
+          plainMonthlyTL:
+            activeTab === "allin" ? calc.allInMonthlyTL : calc.plainMonthlyTL,
+          totalExpenses: calc.totalExpenses,
+        }}
+        mode={activeTab}
+        expenses={expenses}
+        printCurrency={pdfCurrency}
+      />
+      <PrintablePDFPreviewModal
+        open={isMobilePreviewOpen}
+        onClose={() => setIsMobilePreviewOpen(false)}
         params={params}
         calc={{
           plainScheduleEuro:

@@ -215,7 +215,7 @@ export default function AnnualReverseCalculator() {
           ]}
         />
       </div>
-      <div className="hidden lg:block">
+      <div className="hidden sm:block">
         <AmortizationTable
           schedule={calc.schedule}
           currency="€"
