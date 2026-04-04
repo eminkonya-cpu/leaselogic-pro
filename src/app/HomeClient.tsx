@@ -22,6 +22,7 @@ import {
   getSupabaseBrowserClient,
   isSupabaseConfigured,
 } from "@/lib/supabase";
+import { usePersistentState } from "@/lib/usePersistentState";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import {
   ArrowLeftRight,
@@ -143,9 +144,15 @@ function CalculatorApp({
   onSignOut: () => Promise<void>;
   isSigningOut: boolean;
 }) {
-  const [mode, setMode] = useState<"forward" | "reverse">("forward");
+  const [mode, setMode] = usePersistentState<"forward" | "reverse">(
+    "llp:home:mode",
+    "forward"
+  );
   const [paymentFrequency, setPaymentFrequency] =
-    useState<PaymentFrequency>("monthly");
+    usePersistentState<PaymentFrequency>(
+      "llp:home:payment-frequency",
+      "monthly"
+    );
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-sky-50 via-white to-blue-50">

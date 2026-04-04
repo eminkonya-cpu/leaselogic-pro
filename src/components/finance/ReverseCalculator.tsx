@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Euro } from "lucide-react";
 import ParameterCard from "@/components/finance/ParameterCard";
 import ExpenseInputCard from "@/components/finance/ExpenseInputCard";
 import ResultCard from "@/components/finance/ResultCard";
 import { calculatePMT, generateAmortization } from "@/lib/financeCalculations";
 import AmortizationTable from "@/components/finance/AmortizationTable";
+import { usePersistentState } from "@/lib/usePersistentState";
 
 function totalPaymentEuro(
   grossBaseEuro: number,
@@ -57,30 +58,44 @@ function solveNetMachineFromAllInTotal(args: {
 }
 
 export default function ReverseCalculator() {
-  const [params, setParams] = useState({
+  const [sharedParams, setSharedParams] = usePersistentState(
+    "llp:reverse-shared:params",
+    {
     allInTotalEuro: 100_000,
     euroRate: 50.5,
     downPaymentEuro: 20_000,
-    term: 24,
     euroInterest: 6.5,
-  });
-  const [expenses, setExpenses] = useState({
+    },
+  );
+  const [term, setTerm] = usePersistentState("llp:reverse:term-monthly", 24);
+  const [expenses, setExpenses] = usePersistentState(
+    "llp:reverse-shared:expenses",
+    {
     kasko1: 1300,
     kasko2: 1300,
     kasko3: 0,
     kasko4: 0,
     leasingCost: 1700,
     importCost: 0,
-  });
+    },
+  );
 
-  const handleParamChange = (key: string, value: string | number) =>
-    setParams((prev) => {
+  const params = useMemo(() => ({ ...sharedParams, term }), [sharedParams, term]);
+
+  const handleParamChange = (key: string, value: string | number) => {
+    if (key === "term") {
+      setTerm(Number(value));
+      return;
+    }
+
+    setSharedParams((prev) => {
       const n =
         typeof value === "string"
           ? Number(String(value).replace(",", "."))
           : Number(value);
       return { ...prev, [key]: Number.isFinite(n) ? n : 0 };
     });
+  };
   const handleExpenseChange = (key: string, value: number) =>
     setExpenses((prev) => ({ ...prev, [key]: value }));
 

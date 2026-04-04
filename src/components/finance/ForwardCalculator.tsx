@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Banknote, Euro, Package, Printer } from "lucide-react";
 import ParameterCard from "@/components/finance/ParameterCard";
 import ResultCard from "@/components/finance/ResultCard";
@@ -11,35 +11,59 @@ import CurrencyComparisonReport from "@/components/finance/CurrencyComparisonRep
 import PrintablePDF from "@/components/finance/PrintablePDF";
 import { MACHINE_MODELS } from "@/components/finance/machineModels";
 import { calculatePMT, generateAmortization } from "@/lib/financeCalculations";
+import { usePersistentState } from "@/lib/usePersistentState";
 
 export default function ForwardCalculator() {
-  const [activeTab, setActiveTab] = useState<"plain" | "allin" | "advantage">(
+  const [activeTab, setActiveTab] = usePersistentState<
+    "plain" | "allin" | "advantage"
+  >(
+    "llp:forward-shared:active-tab",
     "plain",
   );
-  const [pdfCurrency, setPdfCurrency] = useState<"EUR" | "TRY">("EUR");
-  const [params, setParams] = useState({
-    euroRate: 50.5,
-    dollarRate: 43.5,
+  const [pdfCurrency, setPdfCurrency] = usePersistentState<"EUR" | "TRY">(
+    "llp:forward-shared:pdf-currency",
+    "EUR",
+  );
+  const [sharedParams, setSharedParams] = usePersistentState(
+    "llp:forward-shared:params",
+    {
+    euroRate: 51.5,
+    dollarRate: 42,
     firma: "Maats Makia A.Ş.",
     makine: "MT 1840-100",
-    machinePriceEuro: 100_000,
-    term: 24,
-    euroInterest: 6.5,
-    tlInterest: 38,
+    machinePriceEuro: 145_000,
+    euroInterest: 6.8,
+    tlInterest: 42,
     downPaymentEuro: 20000,
-  });
-  const [expenses, setExpenses] = useState({
+    },
+  );
+  const [term, setTerm] = usePersistentState("llp:forward:term-monthly", 24);
+  const [expenses, setExpenses] = usePersistentState(
+    "llp:forward-shared:expenses",
+    {
     kasko1: 1300,
     kasko2: 1300,
     kasko3: 0,
     kasko4: 0,
     leasingCost: 1700,
     importCost: 0,
-  });
-  const [monthlyGrowthPct, setMonthlyGrowthPct] = useState(1.5);
+    },
+  );
+  const [monthlyGrowthPct, setMonthlyGrowthPct] = usePersistentState(
+    "llp:forward-shared:monthly-growth-pct",
+    1.5,
+  );
 
-  const handleParamChange = (key: string, value: string | number) =>
-    setParams((prev) => ({ ...prev, [key]: value }));
+  const params = useMemo(() => ({ ...sharedParams, term }), [sharedParams, term]);
+
+  const handleParamChange = (key: string, value: string | number) => {
+    if (key === "term") {
+      setTerm(Number(value));
+      return;
+    }
+
+    setSharedParams((prev) => ({ ...prev, [key]: value }));
+  };
   const handleExpenseChange = (key: string, value: number) =>
     setExpenses((prev) => ({ ...prev, [key]: value }));
   const resetRates = () => setMonthlyGrowthPct(1.5);

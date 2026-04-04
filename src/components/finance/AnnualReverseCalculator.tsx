@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Euro } from "lucide-react";
 import ParameterCard from "@/components/finance/ParameterCard";
 import ExpenseInputCard from "@/components/finance/ExpenseInputCard";
@@ -10,6 +10,7 @@ import {
   generateAnnualAmortization,
 } from "@/lib/financeCalculations";
 import AmortizationTable from "@/components/finance/AmortizationTable";
+import { usePersistentState } from "@/lib/usePersistentState";
 
 function totalPaymentEuroAnnual(
   grossBaseEuro: number,
@@ -69,32 +70,44 @@ function clampTermYears(v: string | number) {
 }
 
 export default function AnnualReverseCalculator() {
-  const [params, setParams] = useState({
+  const [sharedParams, setSharedParams] = usePersistentState(
+    "llp:reverse-shared:params",
+    {
     allInTotalEuro: 100_000,
     euroRate: 50.5,
     downPaymentEuro: 20_000,
-    term: "3",
     euroInterest: 6.5,
-  });
-  const [expenses, setExpenses] = useState({
+    },
+  );
+  const [term, setTerm] = usePersistentState("llp:reverse:term-annual", "3");
+  const [expenses, setExpenses] = usePersistentState(
+    "llp:reverse-shared:expenses",
+    {
     kasko1: 1300,
     kasko2: 1300,
     kasko3: 0,
     leasingCost: 1700,
     importCost: 0,
-  });
+    },
+  );
+
+  const params = useMemo(() => ({ ...sharedParams, term }), [sharedParams, term]);
 
   const handleParamChange = (key: string, value: string | number) =>
-    setParams((prev) => {
+    {
       if (key === "term") {
-        return { ...prev, term: String(value) };
+        setTerm(String(value));
+        return;
       }
       const n =
         typeof value === "string"
           ? Number(String(value).replace(",", "."))
           : Number(value);
-      return { ...prev, [key]: Number.isFinite(n) ? n : 0 };
-    });
+      setSharedParams((prev) => ({
+        ...prev,
+        [key]: Number.isFinite(n) ? n : 0,
+      }));
+    };
   const handleExpenseChange = (key: string, value: number) =>
     setExpenses((prev) => ({ ...prev, [key]: value }));
 
