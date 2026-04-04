@@ -1,0 +1,17 @@
+---
+description: Persistent context and safe-change rules for leaselogic-pro
+alwaysApply: true
+---
+
+# leaselogic-pro
+
+- This is a Next.js 16 leasing calculator deployed on Vercel and protected by Supabase email/password auth.
+- Keep the auth flow intact: `src/app/HomeClient.tsx` gates access and checks `public.authorized_users.is_active`.
+- Keep Supabase env names exactly as:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- Local development runs on port `3010`, not `3000`.
+- Prefer testing locally before risky edits; for substantive changes run `npm run lint`, and also `npm run build` when auth, env, routing, or finance logic changes.
+- Do not commit `.env.local` or expose secret / service-role keys.
+- High-risk files: `src/app/HomeClient.tsx`, `src/lib/supabase.ts`, `src/lib/financeCalculations.ts`, Vercel env vars, Supabase URL configuration.
+- When helping future sessions, use `PROJECT_MEMORY.md` and `PROJECT_HANDOVER.md` as the source of truth for project context and operations.
