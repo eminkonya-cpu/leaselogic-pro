@@ -75,19 +75,24 @@ export function CostDistributionChart(props: {
           aria-hidden
         >
           {props.totalValue != null ? (
-            <div className="absolute inset-[26%] flex flex-col items-center justify-center rounded-full bg-white shadow-inner">
+            <div
+              className={cn(
+                "absolute flex flex-col items-center justify-center rounded-full bg-white px-2 text-center shadow-inner",
+                large ? "inset-[20%]" : "inset-[22%]",
+              )}
+            >
               <span
                 className={cn(
-                  "font-semibold uppercase leading-none text-[#565e74]",
-                  large ? "text-xs" : "text-[10px]",
+                  "max-w-full font-semibold uppercase leading-tight text-[#565e74]",
+                  large ? "text-[11px] tracking-wide" : "text-[10px]",
                 )}
               >
                 {props.totalLabel ?? "Toplam Ödeme"}
               </span>
               <span
                 className={cn(
-                  "mt-1 font-bold leading-tight tabular-nums text-[#0b1c30]",
-                  large ? "text-2xl" : "text-lg",
+                  "mt-1 max-w-full font-bold leading-tight tabular-nums text-[#0b1c30]",
+                  large ? "text-xl sm:text-2xl" : "text-lg",
                 )}
               >
                 {formatMoney(props.totalValue, props.amountDecimals)}

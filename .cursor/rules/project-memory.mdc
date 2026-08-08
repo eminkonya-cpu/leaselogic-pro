@@ -5,16 +5,31 @@ alwaysApply: true
 
 # leaselogic-pro
 
-- This is a Next.js 16 leasing calculator deployed on Vercel and protected by Supabase email/password auth.
-- Keep the auth flow intact: `src/app/HomeClient.tsx` gates access and checks `public.authorized_users.is_active`.
-- Keep Supabase env names exactly as:
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- Local development runs on port `3010`, not `3000`.
-- Prefer testing locally before risky edits; for substantive changes run `npm run lint`, and also `npm run build` when auth, env, routing, or finance logic changes.
-- Do not commit `.env.local` or expose secret / service-role keys.
-- High-risk files: `src/app/HomeClient.tsx`, `src/lib/supabase.ts`, `src/lib/financeCalculations.ts`, Vercel env vars, Supabase URL configuration.
-- When helping future sessions, use `PROJECT_MEMORY.md` and `PROJECT_HANDOVER.md` as the source of truth for project context and operations.
-- Forward calculators now include a first tab named `Kampanyalı Fiyat` in both monthly and annual modes; preserve it when changing tab order or shared state.
-- Campaign mode means the entered machine price already includes financing cost; do not add another interest layer on top of that price.
-- Payment plans across calculator modes should stay desktop-only and remain hidden on tablet / phone layouts.
+- Next.js 16 leasing calculator on Vercel; Supabase email/password + `public.authorized_users.is_active`.
+- Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Never commit `.env.local`.
+- Local dev: `cd leaselogic-pro && npm run dev` → **http://127.0.0.1:3010** (port 3010 in package.json).
+- Production: **https://leaselogic-pro.vercel.app/** (deploy from GitHub `main`).
+
+## Known-good checkpoint (restore target)
+
+- **Tag:** `checkpoint/stitch-stable-2026-08-09`
+- **Doc:** `CHECKPOINT_2026-08-09.md` — full feature list and `git checkout` instructions.
+- If user says **“buraya dön” / checkpoint**, restore to that tag or follow the doc; do not guess older UI.
+
+## Forward calculator (current)
+
+- Stitch layout: `ForwardCalculatorLayout.tsx`; wrappers `ForwardCalculator.tsx`, `AnnualForwardCalculator.tsx`.
+- **Tab order (UI):** Sade Makine → Her Şey Dahil → Kampanyalı Fiyat → Kur Avantajı (not “campaign first”).
+- **TRY mode:** separate TL leg with `tlInterest` and TL schedules — not euro PMT × kur only.
+- **CatalogScrollRail:** all forward tabs when stitch chrome; `#opsiyonlar` anchor.
+- Campaign mode: machine price includes financing; zero interest on remainder — do not double-apply euro interest.
+
+## Reverse calculator (current)
+
+- `ReverseCalculatorLayout.tsx`; TL leg + **2 decimal** money display; detailed summary + PDF aligned with active currency.
+
+## Safety
+
+- High-risk: `HomeClient.tsx`, `supabase.ts`, `financeCalculations.ts`, Vercel env, Supabase URLs.
+- Substantive changes: `npm run lint`, `npm run build` when finance/auth/routing touched.
+- Source of truth: `PROJECT_MEMORY.md`, `CHECKPOINT_2026-08-09.md`, `PROJECT_HANDOVER.md`.

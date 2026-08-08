@@ -6,7 +6,23 @@
 
 Production URL:
 
-- `https://leaselogic-mscsvzy3f-eminkonya-cpus-projects.vercel.app`
+- `https://leaselogic-pro.vercel.app/`
+- (Alternatif deployment URL geçmişte: `https://leaselogic-mscsvzy3f-eminkonya-cpus-projects.vercel.app`)
+
+## Restore checkpoint (9 Aug 2026)
+
+**User-approved stable baseline.** If something breaks, return here:
+
+- Tag: `checkpoint/stitch-stable-2026-08-09`
+- Details: `CHECKPOINT_2026-08-09.md`
+- Commit baseline: `fd326eb` (Stitch + reverse + Vercel push) plus follow-up commits on `main` for donut chart + this doc.
+
+```bash
+git fetch origin --tags
+git checkout checkpoint/stitch-stable-2026-08-09
+```
+
+Local dev after checkout: `rm -rf .next && npm run dev` → http://127.0.0.1:3010
 
 ## Core Product Behavior
 
@@ -46,12 +62,15 @@ Supporting finance UI:
 - `src/components/finance/machineModels.ts`
 - `src/components/finance/format.ts`
 
-Current forward-calculation tab structure:
+Current forward-calculation tab structure (**UI order left → right**):
 
-- `Kampanyalı Fiyat`: campaign price already includes financing cost; user selects extra costs and sees total customer payment / remaining after down payment
-- `Sade Makine`: standard financing on machine-only price
-- `Her Şey Dahil`: standard financing including selected extra costs
-- `Kur Avantajı`: comparison tab for the standard machine financing path
+- `Sade Makine`: standard financing on machine-only price; catalog inline in left column
+- `Her Şey Dahil`: financing including extra costs; catalog at page bottom
+- `Kampanyalı Fiyat`: campaign price includes financing; catalog at page bottom
+- `Kampanyalı Fiyat`: campaign price already includes financing; extra costs; zero-interest equal installments on remainder; catalog at page bottom
+- `Kur Avantajı`: rate projection / comparison
+
+Stitch shell: `ForwardCalculatorLayout.tsx`, `ReverseCalculatorLayout.tsx`, `src/components/finance/ui/*`, `CatalogScrollRail.tsx`.
 
 UI primitives live in:
 
@@ -173,7 +192,7 @@ To avoid damaging the project:
 UI safety rules for calculators:
 
 - do not break existing `Sade Makine`, `Her Şey Dahil`, or `Kur Avantajı` behavior when changing campaign mode
-- `Kampanyalı Fiyat` must remain the first forward-calculation tab in both monthly and annual views
+- preserve **UI tab order**: Sade Makine → Her Şey Dahil → Kampanyalı Fiyat → Kur Avantajı (see `CHECKPOINT_2026-08-09.md`)
 - payment plans should be visible on desktop only (`xl` and up), and hidden on tablet / phone for all calculator modes
 
 High-risk files / areas:
