@@ -1,13 +1,15 @@
 "use client";
 
+import CatalogAdminEditor from "@/components/admin/CatalogAdminEditor";
+import { CatalogProvider } from "@/contexts/CatalogContext";
 import AnnualForwardCalculator from "@/components/finance/AnnualForwardCalculator";
 import AnnualReverseCalculator from "@/components/finance/AnnualReverseCalculator";
 import ForwardCalculator from "@/components/finance/ForwardCalculator";
 import {
-  PaymentFrequencySelector,
   type PaymentFrequency,
 } from "@/components/finance/PaymentFrequencySelector";
 import ReverseCalculator from "@/components/finance/ReverseCalculator";
+import LoginRatesBar from "@/components/finance/LoginRatesBar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,10 +27,10 @@ import {
 import { usePersistentState } from "@/lib/usePersistentState";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import {
-  ArrowLeftRight,
   LoaderCircle,
   LogOut,
   ShieldAlert,
+  UserCircle,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 
@@ -46,6 +48,7 @@ type AccessCheckResult =
   | {
       allowed: true;
       email: string;
+      canEditCatalog: boolean;
     }
   | {
       allowed: false;
@@ -81,7 +84,7 @@ async function checkAuthorizedAccess(
 
   const { data, error } = await supabase
     .from("authorized_users")
-    .select("is_active")
+    .select("is_active, can_edit_catalog")
     .eq("email", email)
     .maybeSingle();
 
@@ -101,7 +104,29 @@ async function checkAuthorizedAccess(
     };
   }
 
-  return { allowed: true, email };
+  return {
+    allowed: true,
+    email,
+    canEditCatalog: Boolean(data.can_edit_catalog),
+  };
+}
+
+function StitchFooter() {
+  return (
+    <footer className="mt-8 border-t border-[#c3c6d7] bg-white">
+      <div className="app-shell flex flex-col items-center justify-between gap-4 py-8 md:flex-row">
+        <span className="text-center text-sm font-semibold text-[#0b1c30] md:text-left">
+          © {new Date().getFullYear()} LeaseLogic Pro. Hesaplamalar bilgilendirme
+          amaçlıdır.
+        </span>
+        <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-[#565e74]">
+          <span>İletişim</span>
+          <span>Kullanım Koşulları</span>
+          <span>Gizlilik Politikası</span>
+        </div>
+      </div>
+    </footer>
+  );
 }
 
 function AppFooter() {
@@ -137,10 +162,12 @@ function AppFooter() {
 
 function CalculatorApp({
   userEmail,
+  canEditCatalog,
   onSignOut,
   isSigningOut,
 }: {
   userEmail: string;
+  canEditCatalog: boolean;
   onSignOut: () => Promise<void>;
   isSigningOut: boolean;
 }) {
@@ -153,128 +180,124 @@ function CalculatorApp({
       "llp:home:payment-frequency",
       "monthly"
     );
+  const [appView, setAppView] = usePersistentState<"calculator" | "catalog-admin">(
+    "llp:home:app-view",
+    "calculator",
+  );
+
+  const stitchPaymentProps = {
+    paymentFrequency,
+    onPaymentFrequencyChange: setPaymentFrequency,
+  };
 
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-sky-50 via-white to-blue-50">
-      <header className="border-b border-white/10 bg-gradient-to-r from-[#0a2440] via-[#0c2e53] to-[#114579] text-white shadow-xl">
-        <div className="mx-auto max-w-6xl px-4 py-4">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-300/15 ring-1 ring-amber-200/30 shadow-lg">
-                  <span className="text-lg font-extrabold text-amber-200" aria-hidden>
-                    🧮
-                  </span>
-                </div>
-                <div className="leading-tight">
-                  <div className="text-base font-extrabold tracking-wide">
-                    Finansman Hesaplayici{" "}
-                    <span className="text-white/80">| Emin KONYA</span>
-                  </div>
-                  <div className="text-xs font-bold text-cyan-100/90">
-                    Makine Finansmani Maliyet Analizi
-                  </div>
-                </div>
-              </div>
+    <CatalogProvider>
+    <div className="min-h-dvh bg-[#f8f9ff]">
+      <header className="sticky top-0 z-50 border-b border-[#c3c6d7] bg-[#f8f9ff]">
+        <div className="app-shell py-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              <h1 className="text-xl font-bold text-[#0b1c30]">
+                Finansman Hesaplayıcı
+              </h1>
+              <span className="hidden text-sm font-medium text-[#434655] sm:inline">
+                Makine Finansmanı Maliyet Analizi
+              </span>
+            </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-xs md:justify-end">
-                <span className="rounded-full bg-white/10 px-3 py-1 font-bold text-cyan-100">
-                  Giris: {userEmail}
-                </span>
+            <div className="flex flex-wrap items-center gap-2 text-xs sm:justify-end">
+              {canEditCatalog ? (
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
-                  onClick={onSignOut}
-                  disabled={isSigningOut}
+                  className="hidden h-9 border-[#c3c6d7] font-semibold text-[#565e74] md:inline-flex"
+                  onClick={() =>
+                    setAppView((v) =>
+                      v === "calculator" ? "catalog-admin" : "calculator",
+                    )
+                  }
                 >
-                  {isSigningOut ? (
-                    <LoaderCircle className="animate-spin" aria-hidden />
-                  ) : (
-                    <LogOut aria-hidden />
-                  )}
-                  Cikis Yap
+                  {appView === "calculator"
+                    ? "Fiyat listesi yönetimi"
+                    : "Hesaplayıcıya dön"}
                 </Button>
-              </div>
+              ) : null}
+              <span className="hidden items-center gap-2 rounded-full bg-[#eff4ff] px-3 py-1.5 text-xs font-semibold text-[#0b1c30] sm:inline-flex">
+                <UserCircle className="h-5 w-5 text-[#004ac6]" aria-hidden />
+                {userEmail}
+              </span>
+              <Button
+                type="button"
+                className="h-9 gap-2 bg-[#004ac6] font-semibold hover:bg-[#2563eb]"
+                onClick={onSignOut}
+                disabled={isSigningOut}
+              >
+                {isSigningOut ? (
+                  <LoaderCircle className="animate-spin" aria-hidden />
+                ) : (
+                  <LogOut className="h-4 w-4" aria-hidden />
+                )}
+                Çıkış Yap
+              </Button>
             </div>
-
           </div>
+
+          {appView === "calculator" ? (
+            <div className="mt-4 flex rounded-xl border border-[#c3c6d7] bg-white p-2 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setMode("forward")}
+                className={`flex-1 rounded-lg px-3 py-3 text-sm font-semibold transition-colors ${
+                  mode === "forward"
+                    ? "bg-[#004ac6] text-white shadow-sm"
+                    : "text-[#565e74] hover:bg-[#eff4ff]"
+                }`}
+              >
+                İleri Hesaplama
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("reverse")}
+                className={`flex-1 rounded-lg px-3 py-3 text-sm font-semibold transition-colors ${
+                  mode === "reverse"
+                    ? "bg-[#004ac6] text-white shadow-sm"
+                    : "text-[#565e74] hover:bg-[#eff4ff]"
+                }`}
+              >
+                Geri Hesaplama
+              </button>
+            </div>
+          ) : null}
         </div>
       </header>
 
-      <div className="border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur">
-        <div className="mx-auto flex max-w-6xl justify-center px-4 py-3">
-          <div className="flex flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setMode("forward")}
-              className={`rounded-lg px-2.5 py-1.5 text-[11px] font-extrabold transition-all sm:px-3 sm:py-2 sm:text-xs ${
-                mode === "forward"
-                  ? "bg-blue-500 text-white shadow-md ring-2 ring-blue-200/80"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
-            >
-              Ileri Hesaplama
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("reverse")}
-              className={`rounded-lg px-2.5 py-1.5 text-[11px] font-extrabold transition-all sm:px-3 sm:py-2 sm:text-xs ${
-                mode === "reverse"
-                  ? "bg-rose-500 text-white shadow-md ring-2 ring-rose-200/80"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
-            >
-              Geri Hesaplama
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <PaymentFrequencySelector
-        value={paymentFrequency}
-        onChange={setPaymentFrequency}
-      />
-
-      {mode === "reverse" && (
-        <div className="border-b border-blue-200 bg-white/90 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-start gap-3 px-4 py-3">
-            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#d9ecf7] text-[#114a72] ring-1 ring-[#b8d9ee]">
-              <ArrowLeftRight className="h-4 w-4" aria-hidden />
-            </div>
-            <div>
-              <div className="text-sm font-extrabold text-slate-900">
-                Geri Hesaplama
-                {paymentFrequency === "annual" ? (
-                  <span className="ml-2 text-xs font-bold text-amber-700">
-                    · Yilda bir odeme
-                  </span>
-                ) : null}
-              </div>
-              <div className="text-xs font-bold text-slate-600">
-                Anahtar teslim fiyatindan net makine bedeline ulasin (KDV haric)
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      {appView === "catalog-admin" ? (
+        <CatalogAdminEditor
+          userEmail={userEmail}
+          onBack={() => setAppView("calculator")}
+        />
+      ) : (
+        <>
+      <main className="app-shell py-8 text-[15px] leading-relaxed md:text-base">
         {paymentFrequency === "monthly" ? (
           mode === "forward" ? (
-            <ForwardCalculator />
+            <ForwardCalculator {...stitchPaymentProps} />
           ) : (
-            <ReverseCalculator />
+            <ReverseCalculator {...stitchPaymentProps} />
           )
         ) : mode === "forward" ? (
-          <AnnualForwardCalculator />
+          <AnnualForwardCalculator {...stitchPaymentProps} />
         ) : (
-          <AnnualReverseCalculator />
+          <AnnualReverseCalculator {...stitchPaymentProps} />
         )}
       </main>
 
+      <StitchFooter />
       <AppFooter />
+        </>
+      )}
     </div>
+    </CatalogProvider>
   );
 }
 
@@ -288,6 +311,7 @@ export function HomeClient() {
     isSupabaseConfigured ? "" : missingConfigMessage
   );
   const [sessionEmail, setSessionEmail] = useState("");
+  const [canEditCatalog, setCanEditCatalog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -312,6 +336,7 @@ export function HomeClient() {
       if (!session) {
         setAuthState("signed_out");
         setSessionEmail("");
+        setCanEditCatalog(false);
         return;
       }
 
@@ -327,11 +352,13 @@ export function HomeClient() {
         setAuthState("authenticated");
         setMessage("");
         setSessionEmail(access.email ?? session.user.email ?? "");
+        setCanEditCatalog(access.canEditCatalog);
         return;
       }
 
       setAuthState("inactive");
       setSessionEmail("");
+      setCanEditCatalog(false);
       setMessage(access.reason);
       await supabase.auth.signOut();
     };
@@ -414,6 +441,7 @@ export function HomeClient() {
     return (
       <CalculatorApp
         userEmail={sessionEmail}
+        canEditCatalog={canEditCatalog}
         onSignOut={handleSignOut}
         isSigningOut={isSigningOut}
       />
@@ -443,7 +471,8 @@ export function HomeClient() {
       <main className="mx-auto flex min-h-[calc(100dvh-88px)] max-w-6xl items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           <Card className="border-slate-200 bg-white/95 shadow-xl">
-            <CardHeader>
+            <CardHeader className="space-y-2 pb-2">
+              <LoginRatesBar />
               <CardTitle>Giris Yap</CardTitle>
               <CardDescription>
                 Yonetici tarafindan tanimlanan hesap bilgilerinle oturum ac.

@@ -1,6 +1,5 @@
 "use client";
 
-import { CalendarDays, CalendarRange } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type PaymentFrequency = "monthly" | "annual";
@@ -8,87 +7,100 @@ export type PaymentFrequency = "monthly" | "annual";
 export function PaymentFrequencySelector(props: {
   value: PaymentFrequency;
   onChange: (v: PaymentFrequency) => void;
+  variant?: "bar" | "card";
 }) {
+  const card = props.variant === "card";
+
+  if (card) {
+    return (
+      <div
+        className="rounded-xl border border-[#c3c6d7] bg-white p-6 shadow-sm"
+        role="tablist"
+        aria-label="Ödeme sıklığı"
+      >
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={props.value === "monthly"}
+            onClick={() => props.onChange("monthly")}
+            className={cn(
+              "flex w-full flex-col items-center justify-center rounded-lg py-4 transition-colors shadow-sm",
+              props.value === "monthly"
+                ? "bg-[#004ac6] text-white"
+                : "border border-[#c3c6d7] bg-white text-[#565e74] hover:bg-[#eff4ff]",
+            )}
+          >
+            <span className="text-lg font-semibold">Aylık ödeme</span>
+            <span className="text-xs font-semibold opacity-80 md:text-sm">
+              Aylık taksit planı
+            </span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={props.value === "annual"}
+            onClick={() => props.onChange("annual")}
+            className={cn(
+              "flex w-full flex-col items-center justify-center rounded-lg py-4 transition-colors",
+              props.value === "annual"
+                ? "bg-[#004ac6] text-white shadow-sm"
+                : "border border-[#c3c6d7] bg-white text-[#565e74] hover:bg-[#eff4ff]",
+            )}
+          >
+            <span className="text-lg font-semibold">Yılda bir ödeme</span>
+            <span className="text-xs font-semibold opacity-80 md:text-sm">
+              En fazla 3 yıl vade
+            </span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      className="border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur"
+      className="border-b border-slate-200/80 bg-white"
       role="tablist"
       aria-label="Ödeme sıklığı"
     >
-      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-2 px-4 py-2.5 sm:max-w-6xl sm:gap-3 sm:py-4 sm:grid-cols-2">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={props.value === "monthly"}
-          onClick={() => props.onChange("monthly")}
-          className={cn(
-            "mx-auto flex w-full max-w-[18rem] items-center justify-center gap-2 rounded-xl border-2 px-2.5 py-2.5 text-left transition-all sm:max-w-none sm:flex-col sm:gap-3 sm:px-4 sm:py-4 sm:text-center",
-            props.value === "monthly"
-              ? "border-blue-600 bg-blue-50/90 shadow-md ring-2 ring-blue-200/80"
-              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80",
-          )}
-        >
-          <span
+      <div className="mx-auto max-w-6xl px-4 py-3">
+        <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={props.value === "monthly"}
+            onClick={() => props.onChange("monthly")}
             className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl",
+              "flex-1 rounded-lg px-3 py-2 text-center text-xs font-bold transition-colors sm:text-sm",
               props.value === "monthly"
-                ? "bg-blue-600 text-white shadow-md"
-                : "bg-slate-100 text-slate-600",
+                ? "bg-[#2563eb] text-white shadow-sm"
+                : "text-slate-600 hover:text-slate-900",
             )}
           >
-            <CalendarDays className="h-5 w-5 sm:h-7 sm:w-7" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1 sm:w-full sm:flex-none">
-            <div
-              className={cn(
-                "text-[13px] font-extrabold leading-tight sm:text-sm",
-                props.value === "monthly" ? "text-blue-900" : "text-slate-800",
-              )}
-            >
-              Aylık ödeme
-            </div>
-            <div className="mt-0.5 text-[11px] font-semibold leading-tight text-slate-600 sm:mt-1 sm:text-xs">
+            Aylık ödeme
+            <span className="mt-0.5 block text-[10px] font-semibold opacity-80 sm:text-[11px]">
               Aylık taksit planı
-            </div>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={props.value === "annual"}
-          onClick={() => props.onChange("annual")}
-          className={cn(
-            "mx-auto flex w-full max-w-[18rem] items-center justify-center gap-2 rounded-xl border-2 px-2.5 py-2.5 text-left transition-all sm:max-w-none sm:flex-col sm:gap-3 sm:px-4 sm:py-4 sm:text-center",
-            props.value === "annual"
-              ? "border-amber-500 bg-amber-50/90 shadow-md ring-2 ring-amber-200/80"
-              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80",
-          )}
-        >
-          <span
+            </span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={props.value === "annual"}
+            onClick={() => props.onChange("annual")}
             className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl",
+              "flex-1 rounded-lg px-3 py-2 text-center text-xs font-bold transition-colors sm:text-sm",
               props.value === "annual"
-                ? "bg-amber-500 text-white shadow-md"
-                : "bg-slate-100 text-slate-600",
+                ? "bg-[#2563eb] text-white shadow-sm"
+                : "text-slate-600 hover:text-slate-900",
             )}
           >
-            <CalendarRange className="h-5 w-5 sm:h-7 sm:w-7" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1 sm:w-full sm:flex-none">
-            <div
-              className={cn(
-                "text-[13px] font-extrabold leading-tight sm:text-sm",
-                props.value === "annual" ? "text-amber-950" : "text-slate-800",
-              )}
-            >
-              Yılda bir ödeme
-            </div>
-            <div className="mt-0.5 text-[11px] font-semibold leading-tight text-slate-600 sm:mt-1 sm:text-xs">
-              Yıllık taksit, en fazla 3 yıl vade
-            </div>
-          </div>
-        </button>
+            Yılda bir ödeme
+            <span className="mt-0.5 block text-[10px] font-semibold opacity-80 sm:text-[11px]">
+              En fazla 3 yıl vade
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   );

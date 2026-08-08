@@ -33,10 +33,51 @@ export default function ExpenseInputCard(props: {
   onChange: (key: string, value: number) => void;
   /** Aylık: 4 kasko; yıllık: 3 kasko + aynı sıra. */
   variant?: "monthly" | "annual";
+  appearance?: "legacy" | "minimal";
+  comfortable?: boolean;
   className?: string;
 }) {
   const variant = props.variant ?? "monthly";
   const fields = variant === "annual" ? fieldsAnnual : fieldsMonthly;
+  const minimal = props.appearance === "minimal";
+  const roomy = props.comfortable ?? false;
+
+  const fieldList = (
+    <div
+      className={cn(
+        minimal
+          ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          : "space-y-2.5 lg:space-y-3",
+      )}
+    >
+      {fields.map((f) => (
+        <div key={f.key} className="space-y-1">
+          <Label
+            className={cn(
+              "font-semibold text-slate-600",
+              roomy ? "text-[15px] text-[#434655] md:text-base" : "text-[11px] lg:text-xs",
+            )}
+          >
+            {f.label}
+          </Label>
+          <Input
+            className={cn(roomy ? "h-10 text-base md:text-[17px]" : "h-9")}
+            value={String(props.expenses[f.key] ?? 0)}
+            type="number"
+            inputMode="decimal"
+            onChange={(e) =>
+              props.onChange(f.key, Number(e.target.value || 0))
+            }
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (minimal) {
+    return <div className={props.className}>{fieldList}</div>;
+  }
+
   return (
     <Card
       className={cn(
@@ -53,19 +94,7 @@ export default function ExpenseInputCard(props: {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2.5 px-2.5 pt-2.5 lg:space-y-3 lg:px-6 lg:pt-4">
-        {fields.map((f) => (
-          <div key={f.key} className="space-y-1">
-            <Label className="text-[11px] font-bold text-slate-600 lg:text-xs">{f.label}</Label>
-            <Input
-              value={String(props.expenses[f.key] ?? 0)}
-              type="number"
-              inputMode="decimal"
-              onChange={(e) =>
-                props.onChange(f.key, Number(e.target.value || 0))
-              }
-            />
-          </div>
-        ))}
+        {fieldList}
       </CardContent>
     </Card>
   );

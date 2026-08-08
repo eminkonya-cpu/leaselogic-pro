@@ -43,4 +43,18 @@ Kisinin erisimini kapatmak icin `authorized_users` tablosunda:
 - `is_active` alanini `false` yap
 - veya satiri tamamen sil
 
-Bir sonraki oturum kontrolunde uygulamaya giremez.
+### 5. Opsiyon fiyat listesi (ekran uzerinden duzenleme)
+
+1. `supabase-catalog-admin.sql` dosyasini Supabase SQL Editor'de calistir.
+2. Kendi e-postana duzenleme yetkisi ver:
+
+```sql
+update public.authorized_users
+set can_edit_catalog = true
+where lower(email) = lower('sizin@eposta.com');
+```
+
+3. Uygulamada giris yap → ust barda **Fiyat listesi yonetimi** → fiyatlari kaydet.
+
+Tabloda kayit yoksa varsayilan liste (`catalogPrices.ts`) kullanilir; ilk kayit tum kullanicilara acilir.
+
