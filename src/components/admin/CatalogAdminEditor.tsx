@@ -10,14 +10,166 @@ import {
   type CatalogCategoryId,
   type CatalogItem,
 } from "@/lib/catalogPrices";
-import { LoaderCircle, Plus, Save, Trash2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { LoaderCircle, GripVertical, Plus, Save, Trash2 } from "lucide-react";
+import { useCallback, useState, type DragEvent } from "react";
 
 function cloneCategories(cats: CatalogCategory[]): CatalogCategory[] {
   return cats.map((c) => ({
     ...c,
     items: c.items.map((i) => ({ ...i })),
   }));
+}
+
+function reorderCategoryItems(
+  items: CatalogItem[],
+  fromVisibleIndex: number,
+  toVisibleIndex: number,
+): CatalogItem[] {
+  const noneItem = items.find((item) => item.id === "none");
+  const visible = items.filter((item) => item.id !== "none");
+  if (
+    fromVisibleIndex < 0 ||
+    toVisibleIndex < 0 ||
+    fromVisibleIndex >= visible.length ||
+    toVisibleIndex >= visible.length ||
+    fromVisibleIndex === toVisibleIndex
+  ) {
+    return items;
+  }
+
+  const nextVisible = [...visible];
+  const [moved] = nextVisible.splice(fromVisibleIndex, 1);
+  nextVisible.splice(toVisibleIndex, 0, moved);
+
+  return noneItem ? [noneItem, ...nextVisible] : nextVisible;
+}
+
+function CatalogItemRow(props: {
+  categoryId: CatalogCategoryId;
+  item: CatalogItem;
+  index: number;
+  dragIndex: number | null;
+  dropIndex: number | null;
+  onDragIndexChange: (index: number | null) => void;
+  onDropIndexChange: (index: number | null) => void;
+  onReorder: (
+    categoryId: CatalogCategoryId,
+    fromVisibleIndex: number,
+    toVisibleIndex: number,
+  ) => void;
+  onUpdate: (
+    categoryId: CatalogCategoryId,
+    itemId: string,
+    patch: Partial<Pick<CatalogItem, "label" | "priceEuro">>,
+  ) => void;
+  onRemove: (categoryId: CatalogCategoryId, itemId: string) => void;
+}) {
+  const {
+    categoryId,
+    item,
+    index,
+    dragIndex,
+    dropIndex,
+    onDragIndexChange,
+    onDropIndexChange,
+    onReorder,
+    onUpdate,
+    onRemove,
+  } = props;
+
+  const isDragging = dragIndex === index;
+  const isDropTarget =
+    dropIndex === index && dragIndex !== null && dragIndex !== index;
+
+  const handleDragStart = (event: DragEvent<HTMLButtonElement>) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(index));
+    onDragIndexChange(index);
+
+    const row = event.currentTarget.closest("[data-catalog-row]");
+    if (row instanceof HTMLElement) {
+      event.dataTransfer.setDragImage(row, 24, row.offsetHeight / 2);
+    }
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (dragIndex !== null && dragIndex !== index) {
+      onDropIndexChange(index);
+    }
+  };
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const fromIndex = Number(event.dataTransfer.getData("text/plain"));
+    if (Number.isFinite(fromIndex) && fromIndex !== index) {
+      onReorder(categoryId, fromIndex, index);
+    }
+    onDragIndexChange(null);
+    onDropIndexChange(null);
+  };
+
+  return (
+    <div
+      data-catalog-row
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      className={`grid grid-cols-[auto_1fr_7rem_auto] items-center gap-2 rounded-lg border p-2 transition-colors ${
+        isDragging
+          ? "border-[#f59e0b]/50 bg-[#fffbeb]/90 opacity-60"
+          : isDropTarget
+            ? "border-[#f59e0b] bg-[#fef3c7]/80 ring-2 ring-[#f59e0b]/25"
+            : "border-slate-100 bg-slate-50/80"
+      }`}
+    >
+      <button
+        type="button"
+        draggable
+        aria-label={`${item.label} sırasını değiştir`}
+        title="Sürükleyerek sırayı değiştir"
+        onDragStart={handleDragStart}
+        onDragEnd={() => {
+          onDragIndexChange(null);
+          onDropIndexChange(null);
+        }}
+        className="flex h-9 w-7 shrink-0 cursor-grab items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 transition-colors hover:border-[#f59e0b]/40 hover:bg-[#fffbeb] hover:text-[#b45309] active:cursor-grabbing"
+      >
+        <GripVertical className="h-4 w-4" aria-hidden />
+      </button>
+      <Input
+        value={item.label}
+        onChange={(e) =>
+          onUpdate(categoryId, item.id, {
+            label: e.target.value,
+          })
+        }
+        className="h-9 text-xs font-semibold"
+      />
+      <Input
+        type="number"
+        min={0}
+        step={1}
+        value={item.priceEuro}
+        onChange={(e) =>
+          onUpdate(categoryId, item.id, {
+            priceEuro: Number(e.target.value) || 0,
+          })
+        }
+        className="h-9 text-xs font-semibold tabular-nums"
+      />
+      <Button
+        type="button"
+        size="icon-sm"
+        variant="ghost"
+        className="text-rose-600 hover:text-rose-700"
+        onClick={() => onRemove(categoryId, item.id)}
+        title="Kalemi sil"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
 }
 
 function CatalogAdminEditorForm(props: {
@@ -31,6 +183,11 @@ function CatalogAdminEditorForm(props: {
   );
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [dragState, setDragState] = useState<{
+    categoryId: CatalogCategoryId;
+    index: number;
+  } | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
 
   const updateItem = useCallback(
     (
@@ -86,6 +243,30 @@ function CatalogAdminEditorForm(props: {
             : {
                 ...cat,
                 items: cat.items.filter((i) => i.id !== itemId),
+              },
+        ),
+      );
+    },
+    [],
+  );
+
+  const reorderItem = useCallback(
+    (
+      categoryId: CatalogCategoryId,
+      fromVisibleIndex: number,
+      toVisibleIndex: number,
+    ) => {
+      setDraft((prev) =>
+        prev.map((cat) =>
+          cat.id !== categoryId
+            ? cat
+            : {
+                ...cat,
+                items: reorderCategoryItems(
+                  cat.items,
+                  fromVisibleIndex,
+                  toVisibleIndex,
+                ),
               },
         ),
       );
@@ -177,47 +358,36 @@ function CatalogAdminEditorForm(props: {
             <div className="space-y-2">
               {category.items
                 .filter((item) => item.id !== "none")
-                .map((item) => (
-                  <div
+                .map((item, index) => (
+                  <CatalogItemRow
                     key={item.id}
-                    className="grid grid-cols-[1fr_7rem_auto] items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/80 p-2"
-                  >
-                    <Input
-                      value={item.label}
-                      onChange={(e) =>
-                        updateItem(category.id, item.id, {
-                          label: e.target.value,
-                        })
+                    categoryId={category.id}
+                    item={item}
+                    index={index}
+                    dragIndex={
+                      dragState?.categoryId === category.id
+                        ? dragState.index
+                        : null
+                    }
+                    dropIndex={
+                      dragState?.categoryId === category.id ? dropIndex : null
+                    }
+                    onDragIndexChange={(nextIndex) => {
+                      if (nextIndex === null) {
+                        setDragState(null);
+                        return;
                       }
-                      className="h-9 text-xs font-semibold"
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      step={1}
-                      value={item.priceEuro}
-                      onChange={(e) =>
-                        updateItem(category.id, item.id, {
-                          priceEuro: Number(e.target.value) || 0,
-                        })
-                      }
-                      className="h-9 text-xs font-semibold tabular-nums"
-                    />
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      variant="ghost"
-                      className="text-rose-600 hover:text-rose-700"
-                      onClick={() => removeItem(category.id, item.id)}
-                      title="Kalemi sil"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      setDragState({ categoryId: category.id, index: nextIndex });
+                    }}
+                    onDropIndexChange={setDropIndex}
+                    onReorder={reorderItem}
+                    onUpdate={updateItem}
+                    onRemove={removeItem}
+                  />
                 ))}
             </div>
             <p className="mt-2 text-[10px] font-semibold text-slate-500">
-              Orta sütun: KDV hariç € fiyat
+              Sol tutamaktan sürükleyerek sıralayın · Orta sütun: KDV hariç € fiyat
             </p>
           </section>
         ))}

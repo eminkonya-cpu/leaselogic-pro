@@ -49,6 +49,7 @@ export default function CatalogSelector(props: {
   const fullWidth = props.layout === "full" || props.layout === "page" || clean;
   const comfortable = props.density !== "compact";
   const plainProfile = props.profile === "plain";
+  const highlightPage = clean && pageWidth && !plainProfile;
 
   const grid = categories.map((category) => {
     const selectableItems = category.items.filter((item) => item.id !== "none");
@@ -63,6 +64,7 @@ export default function CatalogSelector(props: {
           clean
             ? cn(
                 "border-[#c3c6d7] shadow-sm",
+                highlightPage && "border-[#fcd34d]/70",
                 plainProfile
                   ? "min-h-0"
                   : comfortable &&
@@ -76,9 +78,14 @@ export default function CatalogSelector(props: {
             "border-b border-slate-100",
             clean
               ? cn(
-                  "bg-[#eff4ff] px-3 py-2",
+                  highlightPage
+                    ? "border-[#fcd34d]/60 bg-[#fef3c7] px-3 py-2"
+                    : "bg-[#eff4ff] px-3 py-2",
                   plainProfile && "px-3 py-2",
-                  comfortable && !plainProfile && "border-[#c3c6d7] max-lg:px-3 max-lg:py-2",
+                  comfortable &&
+                    !plainProfile &&
+                    !highlightPage &&
+                    "border-[#c3c6d7] max-lg:px-3 max-lg:py-2",
                 )
               : "px-2 py-1.5",
           )}
@@ -238,14 +245,23 @@ export default function CatalogSelector(props: {
     return (
       <section
         className={cn(
-          "rounded-xl border border-[#c3c6d7] bg-white shadow-sm",
+          highlightPage
+            ? "relative overflow-hidden rounded-xl border border-[#fbbf24]/45 bg-[#fffbeb] pl-2 shadow-sm ring-1 ring-[#f59e0b]/10"
+            : "rounded-xl border border-[#c3c6d7] bg-white shadow-sm",
           plainProfile ? "p-4" : "p-4 sm:p-5 max-lg:p-3",
           props.className,
         )}
       >
+        {highlightPage ? (
+          <div
+            className="absolute bottom-0 left-0 top-0 w-1 bg-[#f59e0b]"
+            aria-hidden
+          />
+        ) : null}
         <div
           className={cn(
-            "flex flex-wrap items-center justify-between gap-3 border-b border-[#c3c6d7]",
+            "flex flex-wrap items-center justify-between gap-3 border-b",
+            highlightPage ? "border-[#fcd34d]/60" : "border-[#c3c6d7]",
             plainProfile ? "mb-3 pb-2" : "mb-3 pb-2 max-lg:mb-2 max-lg:pb-1.5",
           )}
         >
@@ -253,6 +269,7 @@ export default function CatalogSelector(props: {
             <h2
               className={cn(
                 "font-semibold text-[#0b1c30]",
+                highlightPage && "text-[#92400e]",
                 plainProfile ? "text-base sm:text-lg" : "text-base md:text-[17px] max-lg:text-lg",
               )}
             >
@@ -276,7 +293,8 @@ export default function CatalogSelector(props: {
             type="button"
             onClick={() => props.onClearAll?.()}
             className={cn(
-              "font-semibold text-[#004ac6] hover:underline",
+              "font-semibold hover:underline",
+              highlightPage ? "text-[#b45309]" : "text-[#004ac6]",
               comfortable ? "text-sm md:text-[15px]" : "text-xs",
             )}
           >
@@ -301,7 +319,8 @@ export default function CatalogSelector(props: {
         </div>
         <div
           className={cn(
-            "grid grid-cols-2 gap-3 rounded-xl bg-[#eff4ff] px-4 sm:grid-cols-4 max-lg:gap-2 max-lg:px-3",
+            "grid grid-cols-2 gap-3 rounded-xl px-4 sm:grid-cols-4 max-lg:gap-2 max-lg:px-3",
+            highlightPage ? "bg-[#fde68a]/35" : "bg-[#eff4ff]",
             plainProfile
               ? "mt-3 py-2.5 text-xs sm:text-sm"
               : cn(

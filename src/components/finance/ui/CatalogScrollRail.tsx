@@ -69,7 +69,7 @@ export function CatalogScrollRail(props: {
           "fixed z-40 flex lg:hidden",
           "inset-x-4 bottom-4 max-w-lg mx-auto",
           "items-center justify-center gap-2",
-          "rounded-full border border-[#004ac6]/30 bg-[#004ac6] px-5 py-3.5 shadow-lg",
+          "rounded-full border border-[#f59e0b]/35 bg-[#f59e0b] px-5 py-3.5 shadow-lg",
           "text-[15px] font-semibold text-white",
           "active:scale-[0.98] transition-transform",
           focusRing,
@@ -89,23 +89,23 @@ export function CatalogScrollRail(props: {
           "left-3 xl:left-6",
           "top-1/2 -translate-y-1/2",
           "flex-col items-center gap-2",
-          "rounded-xl border border-[#004ac6]/25 bg-white/95 px-2 py-3 shadow-md backdrop-blur-sm",
-          "transition-colors hover:border-[#004ac6]/45 hover:bg-[#eff4ff]",
+          "rounded-xl border border-[#f59e0b]/30 bg-[#fffbeb]/95 px-2 py-3 shadow-md backdrop-blur-sm",
+          "transition-colors hover:border-[#f59e0b]/50 hover:bg-[#fef3c7]",
           focusRing,
         )}
       >
         <span
-          className="min-h-[4.5rem] w-0.5 shrink-0 rounded-full bg-gradient-to-b from-[#004ac6]/20 via-[#004ac6] to-[#004ac6]/20"
+          className="min-h-[4.5rem] w-0.5 shrink-0 rounded-full bg-gradient-to-b from-[#f59e0b]/25 via-[#f59e0b] to-[#f59e0b]/25"
           aria-hidden
         />
-        <ChevronDown className="h-4 w-4 shrink-0 text-[#004ac6]" aria-hidden />
+        <ChevronDown className="h-4 w-4 shrink-0 text-[#b45309]" aria-hidden />
         <span
-          className="max-w-[3.25rem] text-center text-[11px] font-bold leading-tight text-[#004ac6]"
+          className="max-w-[3.25rem] text-center text-[11px] font-bold leading-tight text-[#b45309]"
           style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
         >
           Opsiyonlar
         </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-[#004ac6]" aria-hidden />
+        <ChevronDown className="h-4 w-4 shrink-0 text-[#b45309]" aria-hidden />
       </button>
     </>
   );
