@@ -37,17 +37,17 @@ export default function FinanceFieldGrid(props: {
       type === "text" && f.options?.length ? `list-${f.key}` : undefined;
 
     return (
-      <div key={f.key} className="space-y-1">
+      <div key={f.key} className="space-y-0.5">
         <Label
           className={cn(
             "font-semibold text-slate-600",
-            roomy ? "text-[15px] font-medium text-[#434655] md:text-base" : "text-[11px]",
+            roomy ? "text-xs font-medium text-[#434655] md:text-[13px]" : "text-[11px]",
           )}
         >
           {f.label}
         </Label>
         <Input
-          className={cn(roomy ? "h-10 text-base md:text-[17px]" : "h-9 text-sm")}
+          className={cn(roomy ? "h-8 text-[13px] md:text-sm max-lg:h-8 max-lg:text-sm" : "h-8 text-sm max-lg:h-8")}
           value={value}
           type={type}
           list={listId}
@@ -76,23 +76,23 @@ export default function FinanceFieldGrid(props: {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className="space-y-3">
+    <div className="finance-field-grid grid grid-cols-1 gap-3 max-lg:gap-2.5 sm:grid-cols-2">
+      <div className="space-y-2">
         <p
           className={cn(
             "font-bold text-slate-800",
-            roomy ? "text-[17px] font-semibold text-[#0b1c30] md:text-lg" : "text-xs",
+            roomy ? "text-sm font-semibold text-[#0b1c30] md:text-[15px]" : "text-xs",
           )}
         >
           {props.machineTitle ?? "Makine Bilgileri"}
         </p>
         {props.machineFields.map(renderField)}
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         <p
           className={cn(
             "font-bold text-slate-800",
-            roomy ? "text-[17px] font-semibold text-[#0b1c30] md:text-lg" : "text-xs",
+            roomy ? "text-sm font-semibold text-[#0b1c30] md:text-[15px]" : "text-xs",
           )}
         >
           {props.financeTitle ?? "Finansman Detayları"}

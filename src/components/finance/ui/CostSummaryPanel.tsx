@@ -62,13 +62,13 @@ export function CostDistributionChart(props: {
     <div className="flex flex-col items-center">
       <h3
         className={cn(
-          "mb-6 w-full text-left font-semibold uppercase tracking-wider text-[#434655]",
-          large ? "text-sm md:text-[15px]" : "text-xs",
+          "mb-4 w-full text-left font-semibold uppercase tracking-wider text-[#434655]",
+          large ? "text-xs md:text-[13px]" : "text-[10px]",
         )}
       >
         Maliyet Dağılımı
       </h3>
-      <div className={cn("relative mb-6", large ? "h-52 w-52" : "h-48 w-48")}>
+      <div className={cn("relative mb-4 max-lg:mb-3", large ? "h-40 w-40 max-lg:h-32 max-lg:w-32" : "h-36 w-36 max-lg:h-32 max-lg:w-32")}>
         <div
           className="relative h-full w-full rounded-full shadow-md ring-4 ring-[#eff4ff]"
           style={{ background: gradient }}
@@ -92,7 +92,7 @@ export function CostDistributionChart(props: {
               <span
                 className={cn(
                   "mt-1 max-w-full font-bold leading-tight tabular-nums text-[#0b1c30]",
-                  large ? "text-xl sm:text-2xl" : "text-lg",
+                  large ? "text-base sm:text-lg" : "text-base",
                 )}
               >
                 {formatMoney(props.totalValue, props.amountDecimals)}
@@ -107,7 +107,7 @@ export function CostDistributionChart(props: {
       <div
         className={cn(
           "grid w-full grid-cols-1 gap-2 font-semibold text-[#0b1c30] sm:grid-cols-2 sm:gap-3",
-          large ? "text-[15px] leading-snug md:text-base" : "text-xs",
+          large ? "text-xs leading-snug md:text-sm" : "text-xs",
         )}
       >
         {activeSegments.map((s) => {
@@ -159,38 +159,38 @@ export default function CostSummaryPanel(props: {
 
   if (stitch) {
     return (
-      <div className="flex flex-col gap-3 text-base text-[#0b1c30]">
+      <div className="flex flex-col gap-2 text-[13px] text-[#0b1c30] md:text-sm">
         {lineRows.map((row, index) => (
           <div
             key={row.label}
             className={cn(
-              "flex items-end justify-between border-[#c3c6d7]/50 pb-2",
+              "flex items-end justify-between border-[#c3c6d7]/50 pb-1.5",
               index < lineRows.length - 1 ? "border-b" : "",
             )}
           >
-            <span className="text-[15px] text-[#434655] md:text-base">{row.label}</span>
-            <span className="text-[15px] font-semibold tabular-nums md:text-base">
+            <span className="text-xs text-[#434655] md:text-[13px]">{row.label}</span>
+            <span className="text-xs font-semibold tabular-nums md:text-[13px]">
               {formatMoney(row.value, props.amountDecimals)}{" "}
               {props.currencySymbol}
             </span>
           </div>
         ))}
-        <div className="mt-2 rounded-lg border border-[#2563eb]/20 bg-[#eff4ff] p-4">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-lg font-bold text-[#0b1c30]">
+        <div className="mt-1 rounded-lg border border-[#2563eb]/20 bg-[#eff4ff] p-3 max-lg:p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-bold text-[#0b1c30] max-lg:text-xs">
               {props.stitchPrimaryTotalLabel ?? "Toplam (EUR)"}
             </span>
-            <span className="text-[28px] font-bold leading-8 tabular-nums text-[#004ac6]">
+            <span className="text-xl font-bold leading-7 tabular-nums text-[#004ac6] md:text-[22px] max-lg:text-lg max-lg:leading-6">
               {formatMoney(props.totalEuro ?? 0, props.amountDecimals)}{" "}
               {props.currencySymbol}
             </span>
           </div>
           {props.monthlyInstallment != null ? (
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-[15px] font-semibold uppercase tracking-wide text-[#565e74] md:text-base">
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[#565e74] md:text-[13px]">
                 {props.installmentLabel ?? "Aylık Taksit:"}
               </span>
-              <span className="text-xl font-semibold tabular-nums text-[#0b1c30]">
+              <span className="text-base font-semibold tabular-nums text-[#0b1c30] md:text-lg">
                 {formatMoney(props.monthlyInstallment, props.amountDecimals)}{" "}
                 {props.currencySymbol}
               </span>

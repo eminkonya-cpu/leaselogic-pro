@@ -65,7 +65,8 @@ export default function CatalogSelector(props: {
                 "border-[#c3c6d7] shadow-sm",
                 plainProfile
                   ? "min-h-0"
-                  : comfortable && "min-h-[320px] sm:min-h-[360px]",
+                  : comfortable &&
+                    "min-h-[240px] sm:min-h-[260px] max-lg:min-h-0",
               )
             : "max-h-[220px] rounded-lg border-slate-200/90 bg-white/90 shadow-sm",
         )}
@@ -75,9 +76,9 @@ export default function CatalogSelector(props: {
             "border-b border-slate-100",
             clean
               ? cn(
-                  "bg-[#eff4ff] px-4 py-3",
+                  "bg-[#eff4ff] px-3 py-2",
                   plainProfile && "px-3 py-2",
-                  comfortable && !plainProfile && "border-[#c3c6d7]",
+                  comfortable && !plainProfile && "border-[#c3c6d7] max-lg:px-3 max-lg:py-2",
                 )
               : "px-2 py-1.5",
           )}
@@ -88,7 +89,7 @@ export default function CatalogSelector(props: {
                 "font-bold text-slate-800",
                 clean
                   ? comfortable && !plainProfile
-                    ? "text-base font-semibold text-[#0b1c30]"
+                    ? "text-xs font-semibold text-[#0b1c30] md:text-[13px]"
                     : "text-xs font-semibold text-[#0b1c30] sm:text-sm"
                   : "text-[11px] lg:text-xs",
               )}
@@ -131,8 +132,8 @@ export default function CatalogSelector(props: {
                   plainProfile
                     ? "max-h-[min(168px,22vh)]"
                     : comfortable
-                      ? "max-h-[min(400px,55vh)]"
-                      : "max-h-[min(320px,50vh)]",
+                      ? "max-h-[min(280px,48vh)] max-lg:max-h-[min(200px,34vh)]"
+                      : "max-h-[min(260px,44vh)] max-lg:max-h-[min(180px,32vh)]",
                 )
               : "px-1.5 py-1.5",
           )}
@@ -156,7 +157,7 @@ export default function CatalogSelector(props: {
                     "flex cursor-pointer items-center gap-3 rounded-lg px-3 transition-colors",
                     clean
                       ? comfortable
-                        ? "py-2.5 text-[15px] leading-snug md:text-base"
+                        ? "py-2 text-[13px] leading-snug max-lg:gap-2 max-lg:px-2 max-lg:py-1.5 max-lg:text-[13px]"
                         : plainProfile
                           ? "py-2 text-sm sm:text-[15px]"
                           : "py-2 text-xs sm:text-[13px]"
@@ -214,7 +215,7 @@ export default function CatalogSelector(props: {
                       className={cn(
                         "shrink-0 tabular-nums font-semibold",
                         comfortable
-                          ? "text-[17px] md:text-lg"
+                          ? "text-sm md:text-[15px] max-lg:text-sm"
                           : plainProfile
                             ? "text-sm sm:text-[15px]"
                             : "text-xs sm:text-[13px]",
@@ -238,21 +239,21 @@ export default function CatalogSelector(props: {
       <section
         className={cn(
           "rounded-xl border border-[#c3c6d7] bg-white shadow-sm",
-          plainProfile ? "p-4" : "p-5 sm:p-6",
+          plainProfile ? "p-4" : "p-4 sm:p-5 max-lg:p-3",
           props.className,
         )}
       >
         <div
           className={cn(
             "flex flex-wrap items-center justify-between gap-3 border-b border-[#c3c6d7]",
-            plainProfile ? "mb-3 pb-2" : "mb-5 pb-3",
+            plainProfile ? "mb-3 pb-2" : "mb-3 pb-2 max-lg:mb-2 max-lg:pb-1.5",
           )}
         >
           <div>
             <h2
               className={cn(
                 "font-semibold text-[#0b1c30]",
-                plainProfile ? "text-lg sm:text-xl" : "text-[1.375rem] md:text-2xl",
+                plainProfile ? "text-base sm:text-lg" : "text-base md:text-[17px] max-lg:text-lg",
               )}
             >
               Opsiyonlar ve Diğer Giderler
@@ -262,7 +263,7 @@ export default function CatalogSelector(props: {
                 Finansmana dahil — ataşman / bakım / donanım
               </p>
             ) : comfortable ? (
-              <p className="mt-1 text-[15px] text-[#434655] md:text-base">
+              <p className="mt-1 text-sm text-[#434655] md:text-[15px]">
                 Ataşman ve donanım çoklu; bakım paketi tek seçim
               </p>
             ) : (
@@ -276,7 +277,7 @@ export default function CatalogSelector(props: {
             onClick={() => props.onClearAll?.()}
             className={cn(
               "font-semibold text-[#004ac6] hover:underline",
-              comfortable ? "text-[15px] md:text-base" : "text-xs",
+              comfortable ? "text-sm md:text-[15px]" : "text-xs",
             )}
           >
             Tümünü Temizle
@@ -284,14 +285,14 @@ export default function CatalogSelector(props: {
         </div>
         <div
           className={cn(
-            "grid gap-4",
+            "grid gap-3 max-lg:gap-2.5",
             plainProfile
               ? "grid-cols-1 gap-3 sm:grid-cols-2"
               : fullWidth
                 ? pageWidth && comfortable
-                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+                  ? "grid-cols-1 max-lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
                   : comfortable
-                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+                    ? "grid-cols-1 max-lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
                     : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
                 : "grid-cols-1 sm:grid-cols-2",
           )}
@@ -300,13 +301,13 @@ export default function CatalogSelector(props: {
         </div>
         <div
           className={cn(
-            "grid grid-cols-2 gap-3 rounded-xl bg-[#eff4ff] px-4 sm:grid-cols-4",
+            "grid grid-cols-2 gap-3 rounded-xl bg-[#eff4ff] px-4 sm:grid-cols-4 max-lg:gap-2 max-lg:px-3",
             plainProfile
               ? "mt-3 py-2.5 text-xs sm:text-sm"
               : cn(
-                  "mt-5 py-4",
+                  "mt-3 py-3 max-lg:mt-2 max-lg:py-2",
                   comfortable
-                    ? "text-base"
+                    ? "text-sm max-lg:text-sm"
                     : "text-xs font-semibold text-slate-600 sm:text-sm",
                 ),
           )}
@@ -359,7 +360,7 @@ export default function CatalogSelector(props: {
             >
               Toplam
             </span>
-            <span className="tabular-nums text-lg font-bold text-[#004ac6]">
+            <span className="tabular-nums text-base font-bold text-[#004ac6] md:text-lg">
               {resolved.totalEuro.toLocaleString("tr-TR")} €
             </span>
           </div>

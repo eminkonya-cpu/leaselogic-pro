@@ -8,31 +8,37 @@ export function PaymentFrequencySelector(props: {
   value: PaymentFrequency;
   onChange: (v: PaymentFrequency) => void;
   variant?: "bar" | "card";
+  density?: "default" | "compact";
 }) {
   const card = props.variant === "card";
+  const compact = props.density === "compact";
 
   if (card) {
     return (
       <div
-        className="rounded-xl border border-[#c3c6d7] bg-white p-6 shadow-sm"
+        className={cn(
+          "rounded-xl border border-[#c3c6d7] bg-white shadow-sm",
+          compact ? "p-3 max-lg:p-3" : "p-4 max-lg:p-4",
+        )}
         role="tablist"
         aria-label="Ödeme sıklığı"
       >
-        <div className="flex flex-col gap-2">
+        <div className={cn("flex flex-col", compact ? "gap-1" : "gap-1.5")}>
           <button
             type="button"
             role="tab"
             aria-selected={props.value === "monthly"}
             onClick={() => props.onChange("monthly")}
             className={cn(
-              "flex w-full flex-col items-center justify-center rounded-lg py-4 transition-colors shadow-sm",
+              "flex w-full flex-col items-center justify-center rounded-lg transition-colors shadow-sm",
+              compact ? "py-2 max-lg:py-1.5" : "py-3 max-lg:py-2.5",
               props.value === "monthly"
                 ? "bg-[#004ac6] text-white"
                 : "border border-[#c3c6d7] bg-white text-[#565e74] hover:bg-[#eff4ff]",
             )}
           >
-            <span className="text-lg font-semibold">Aylık ödeme</span>
-            <span className="text-xs font-semibold opacity-80 md:text-sm">
+            <span className="text-sm font-semibold max-lg:text-sm">Aylık ödeme</span>
+            <span className="text-[11px] font-semibold opacity-80 md:text-xs">
               Aylık taksit planı
             </span>
           </button>
@@ -42,14 +48,15 @@ export function PaymentFrequencySelector(props: {
             aria-selected={props.value === "annual"}
             onClick={() => props.onChange("annual")}
             className={cn(
-              "flex w-full flex-col items-center justify-center rounded-lg py-4 transition-colors",
+              "flex w-full flex-col items-center justify-center rounded-lg transition-colors",
+              compact ? "py-2 max-lg:py-1.5" : "py-3 max-lg:py-2.5",
               props.value === "annual"
                 ? "bg-[#004ac6] text-white shadow-sm"
                 : "border border-[#c3c6d7] bg-white text-[#565e74] hover:bg-[#eff4ff]",
             )}
           >
-            <span className="text-lg font-semibold">Yılda bir ödeme</span>
-            <span className="text-xs font-semibold opacity-80 md:text-sm">
+            <span className="text-sm font-semibold max-lg:text-sm">Yılda bir ödeme</span>
+            <span className="text-[11px] font-semibold opacity-80 md:text-xs">
               En fazla 3 yıl vade
             </span>
           </button>

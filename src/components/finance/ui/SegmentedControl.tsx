@@ -33,10 +33,10 @@ export default function SegmentedControl<T extends string>(props: {
             aria-selected={active}
             onClick={() => props.onChange(opt.value)}
             className={cn(
-              "flex-1 rounded-lg px-2 py-2 text-center font-bold transition-colors",
+              "flex-1 rounded-lg px-2 py-1.5 text-center font-bold transition-colors",
               large
                 ? "min-h-11 text-base sm:min-w-[8rem]"
-                : "min-h-9 text-xs sm:min-w-[7rem] sm:text-sm",
+                : "min-h-8 text-[11px] sm:min-w-[6.5rem] sm:text-xs",
               active
                 ? "bg-[#2563eb] text-white shadow-sm"
                 : "text-slate-600 hover:bg-white hover:text-slate-900",

@@ -14,6 +14,8 @@ import FinanceFieldGrid, {
 } from "@/components/finance/ui/FinanceFieldGrid";
 import PaymentSchedulePanel from "@/components/finance/ui/PaymentSchedulePanel";
 import SectionCard from "@/components/finance/ui/SectionCard";
+import SectionClearAction from "@/components/finance/ui/SectionClearAction";
+import { CATALOG_SECTION_ID } from "@/components/finance/ui/CatalogScrollRail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +60,8 @@ export default function ReverseCalculatorLayout(props: {
     itemId: string,
   ) => void;
   handleCatalogClearAll: () => void;
+  handleClearMachineFinance: () => void;
+  handleClearExpenses: () => void;
   handlePrint: () => void;
   handleOpenSummaryReport: () => void;
   handleNewCalculation: () => void;
@@ -131,32 +135,118 @@ export default function ReverseCalculatorLayout(props: {
         placeholder: "24",
       };
 
+  const reverseSummaryContent = (
+    <>
+      <SectionCard
+        title="Geri Hesaplama Özeti"
+        variant="stitch"
+        accentBar
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 rounded-full border-[#c3c6d7] bg-white text-xs font-semibold text-[#004ac6] md:text-[13px]"
+            onClick={props.handleOpenSummaryReport}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Özet Rapor
+          </Button>
+        }
+      >
+        <CostSummaryPanel
+          rows={summaryRows}
+          currencySymbol={sym}
+          layout="stitch"
+          totalEuro={netMachineDisplay}
+          monthlyInstallment={installment}
+          amountDecimals={2}
+          installmentLabel={
+            isAnnual ? "Yıllık Taksit:" : "Aylık Taksit:"
+          }
+          stitchPrimaryTotalLabel={
+            isTry ? "Net makine bedeli" : "Net makine bedeli (EUR)"
+          }
+        />
+      </SectionCard>
+
+      <SectionCard variant="stitch">
+        <CostDistributionChart
+          segments={segments}
+          totalLabel="Makine fiyatı"
+          totalValue={allInTotal}
+          currencySymbol={sym}
+          large
+          amountDecimals={2}
+        />
+      </SectionCard>
+
+      <PaymentSchedulePanel
+        schedule={schedule}
+        currencySymbol={sym}
+        downPayment={downPayment}
+        interestRatePct={planInterest}
+        periodUnit={isAnnual ? "year" : "month"}
+        defaultExpanded={false}
+        comfortable
+        totalPayment={totalPrimary}
+        amountDecimals={2}
+      />
+
+      <div className="flex flex-col gap-3">
+        <Button
+          type="button"
+          className="h-11 gap-2 rounded-xl bg-[#004ac6] text-sm font-semibold hover:bg-[#2563eb] shadow-md max-lg:h-11 max-lg:text-sm"
+          onClick={props.handlePrint}
+        >
+          <Printer className="h-5 w-5" />
+          PDF Raporu Oluştur
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 gap-2 rounded-xl border-[#c3c6d7] font-semibold text-sm max-lg:h-10 max-lg:text-sm"
+          onClick={props.handleNewCalculation}
+        >
+          <RotateCcw className="h-4 w-4" />
+          Yeni Hesaplama
+        </Button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="space-y-8 pb-8">
+    <div className="space-y-5 pb-5 max-lg:space-y-4 max-lg:pb-5">
       {isAnnual ? (
-        <p className="rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-[15px] font-semibold text-[#565e74] shadow-sm md:text-base">
+        <p className="rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#565e74] shadow-sm md:text-[15px]">
           Geri hesaplama · Yılda bir taksit · Vade en fazla 3 yıl · KDV hariç
         </p>
       ) : (
-        <p className="rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-[15px] font-semibold text-[#565e74] shadow-sm md:text-base">
+        <p className="rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#565e74] shadow-sm md:text-[15px]">
           Geri hesaplama · Makine fiyatından net makine bedeline · KDV hariç
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
-        <div className="flex flex-col gap-8 lg:col-span-8">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="finance-calc-stack finance-calc-stack--with-catalog">
+        <div className="finance-calc-stack__main grid grid-cols-1 gap-4 max-lg:gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
+        <div className="finance-mobile-tight flex flex-col gap-4 max-lg:gap-3 lg:col-span-8 lg:gap-4">
+          <div className="grid grid-cols-1 gap-3 max-lg:gap-2.5 md:grid-cols-2">
             <PaymentFrequencySelector
               variant="card"
+              density="compact"
               value={props.paymentFrequency}
               onChange={props.onPaymentFrequencyChange}
             />
-            <SectionCard title="Para Birimi ve Kur" variant="stitch">
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="flex rounded-lg border border-[#c3c6d7] bg-[#eff4ff] p-1">
+            <SectionCard
+              title="Para Birimi ve Kur"
+              variant="stitch"
+              density="compact"
+            >
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="flex rounded-lg border border-[#c3c6d7] bg-[#eff4ff] p-0.5">
                   <button
                     type="button"
-                    className={`rounded-md px-6 py-2 text-sm font-semibold shadow-sm ${
+                    className={`rounded-md px-4 py-1.5 text-sm font-semibold shadow-sm ${
                       props.pdfCurrency === "EUR"
                         ? "bg-[#004ac6] text-white"
                         : "text-[#565e74]"
@@ -167,7 +257,7 @@ export default function ReverseCalculatorLayout(props: {
                   </button>
                   <button
                     type="button"
-                    className={`rounded-md px-6 py-2 text-sm font-semibold ${
+                    className={`rounded-md px-4 py-1.5 text-sm font-semibold ${
                       props.pdfCurrency === "TRY"
                         ? "bg-[#004ac6] text-white shadow-sm"
                         : "text-[#565e74]"
@@ -178,12 +268,12 @@ export default function ReverseCalculatorLayout(props: {
                   </button>
                 </div>
                 <div className="min-w-[8rem] flex-1 space-y-1">
-                  <Label className="text-[15px] font-semibold text-[#434655] md:text-base">
+                  <Label className="text-sm font-semibold text-[#434655] md:text-[15px]">
                     Kur (₺ / €)
                   </Label>
                   <div className="flex gap-2">
                     <Input
-                      className="h-10 border-[#c3c6d7] bg-white text-base"
+                      className="h-8 border-[#c3c6d7] bg-white text-[13px] md:text-sm"
                       type="number"
                       step="0.01"
                       value={props.params.euroRate || ""}
@@ -198,7 +288,7 @@ export default function ReverseCalculatorLayout(props: {
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10 shrink-0 border-[#c3c6d7]"
+                      className="h-8 w-8 shrink-0 border-[#c3c6d7]"
                       onClick={() => props.handleRefreshEuroRate()}
                       title="Referans kur"
                     >
@@ -214,6 +304,12 @@ export default function ReverseCalculatorLayout(props: {
             title="Geri Hesaplama Parametreleri"
             description="KDV hariç tutarlar"
             variant="stitch"
+            action={
+              <SectionClearAction
+                onClick={props.handleClearMachineFinance}
+                label="Parametreleri temizle"
+              />
+            }
           >
             <FinanceFieldGrid
               machineTitle="Müşteri ve makine"
@@ -268,104 +364,48 @@ export default function ReverseCalculatorLayout(props: {
             title="Ek Masraflar"
             description="(Kasko, Leasing, İthalat)"
             variant="stitch"
+            density="compact"
+            action={
+              <SectionClearAction
+                onClick={props.handleClearExpenses}
+                label="Ek masrafları temizle"
+              />
+            }
           >
             <ExpenseInputCard
               expenses={props.expenses}
               onChange={props.handleExpenseChange}
               appearance="minimal"
               comfortable
+              compact
               variant={isAnnual ? "annual" : "monthly"}
             />
           </SectionCard>
         </div>
 
-        <div className="flex flex-col gap-6 lg:col-span-4 lg:sticky lg:top-[5.5rem]">
-          <SectionCard
-            title="Geri Hesaplama Özeti"
-            variant="stitch"
-            accentBar
-            action={
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 gap-1.5 rounded-full border-[#c3c6d7] bg-white text-[15px] font-semibold text-[#004ac6] md:text-sm"
-                onClick={props.handleOpenSummaryReport}
-              >
-                <FileText className="h-3.5 w-3.5" />
-                Özet Rapor
-              </Button>
-            }
-          >
-            <CostSummaryPanel
-              rows={summaryRows}
-              currencySymbol={sym}
-              layout="stitch"
-              totalEuro={netMachineDisplay}
-              monthlyInstallment={installment}
-              amountDecimals={2}
-              installmentLabel={
-                isAnnual ? "Yıllık Taksit:" : "Aylık Taksit:"
-              }
-              stitchPrimaryTotalLabel={
-                isTry ? "Net makine bedeli" : "Net makine bedeli (EUR)"
-              }
-            />
-          </SectionCard>
+        <div className="hidden lg:flex lg:col-span-4 lg:sticky lg:top-[4.75rem] flex-col gap-4">
+          {reverseSummaryContent}
+        </div>
+        </div>
 
-          <SectionCard variant="stitch">
-            <CostDistributionChart
-              segments={segments}
-              totalLabel="Makine fiyatı"
-              totalValue={allInTotal}
-              currencySymbol={sym}
-              large
-              amountDecimals={2}
-            />
-          </SectionCard>
-
-          <PaymentSchedulePanel
-            schedule={schedule}
-            currencySymbol={sym}
-            downPayment={downPayment}
-            interestRatePct={planInterest}
-            periodUnit={isAnnual ? "year" : "month"}
-            defaultExpanded={false}
-            comfortable
-            totalPayment={totalPrimary}
-            amountDecimals={2}
+        <div
+          id={CATALOG_SECTION_ID}
+          className="finance-calc-stack__catalog scroll-mt-24"
+        >
+          <CatalogSelector
+            appearance="clean"
+            layout="page"
+            density="comfortable"
+            selection={props.catalogSelection}
+            onToggle={props.handleCatalogToggle}
+            onClearAll={props.handleCatalogClearAll}
           />
+        </div>
 
-          <div className="flex flex-col gap-3">
-            <Button
-              type="button"
-              className="h-14 gap-2 rounded-xl bg-[#004ac6] text-lg font-semibold hover:bg-[#2563eb] shadow-md"
-              onClick={props.handlePrint}
-            >
-              <Printer className="h-5 w-5" />
-              PDF Raporu Oluştur
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 gap-2 rounded-xl border-[#c3c6d7] font-semibold"
-              onClick={props.handleNewCalculation}
-            >
-              <RotateCcw className="h-4 w-4" />
-              Yeni Hesaplama
-            </Button>
-          </div>
+        <div className="finance-calc-stack__summary flex flex-col gap-4 max-lg:gap-3 lg:hidden">
+          {reverseSummaryContent}
         </div>
       </div>
-
-      <CatalogSelector
-        appearance="clean"
-        layout="page"
-        density="comfortable"
-        selection={props.catalogSelection}
-        onToggle={props.handleCatalogToggle}
-        onClearAll={props.handleCatalogClearAll}
-      />
     </div>
   );
 }

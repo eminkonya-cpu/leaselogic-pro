@@ -16,6 +16,7 @@ import FinanceFieldGrid, {
 } from "@/components/finance/ui/FinanceFieldGrid";
 import PaymentSchedulePanel from "@/components/finance/ui/PaymentSchedulePanel";
 import SectionCard from "@/components/finance/ui/SectionCard";
+import SectionClearAction from "@/components/finance/ui/SectionClearAction";
 import SegmentedControl from "@/components/finance/ui/SegmentedControl";
 import SummaryCard from "@/components/finance/ui/SummaryCard";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,8 @@ export default function ForwardCalculatorLayout(props: {
     itemId: string,
   ) => void;
   handleCatalogClearAll: () => void;
+  handleClearMachineFinance: () => void;
+  handleClearExpenses: () => void;
   handlePrint: () => void;
   handleOpenSummaryReport: () => void;
   handleNewCalculation: () => void;
@@ -212,8 +215,159 @@ export default function ForwardCalculatorLayout(props: {
     </div>
   );
 
+  const summaryColumnContent =
+    props.activeTab === "advantage" ? (
+      <>
+        <SectionCard title="Kur Projeksiyonu" variant={showStitchChrome ? "stitch" : "default"}>
+          <RateProjectionInput
+            baseRate={props.params.euroRate}
+            monthlyGrowthPct={props.monthlyGrowthPct}
+            onGrowthChange={props.setMonthlyGrowthPct}
+            onReset={props.resetRates}
+            months={
+              props.rateProjectionMonths ??
+              (Number(props.params.term) || 0)
+            }
+            computedRates={props.computedRates}
+          />
+        </SectionCard>
+        <CurrencyComparisonReport
+          scheduleEuro={props.calc.plainScheduleEuro}
+          scheduleTL={props.calc.plainScheduleTL}
+          projectedRates={props.calc.projRates}
+          euroRate={props.params.euroRate}
+          monthlyGrowthPct={props.monthlyGrowthPct}
+          downPaymentEuro={props.params.downPaymentEuro}
+          downPaymentTL={props.calc.downPaymentTL}
+          term={
+            props.comparisonTerm ?? (Number(props.params.term) || 0)
+          }
+          paymentFrequency={paymentFrequency}
+        />
+      </>
+    ) : showStitchChrome ? (
+      <>
+        <SectionCard
+          title="Hesaplama Özeti"
+          variant="stitch"
+          accentBar
+          action={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+                    className="h-8 gap-1.5 rounded-full border-[#c3c6d7] bg-white text-xs font-semibold text-[#004ac6] md:text-[13px]"
+              onClick={props.handleOpenSummaryReport}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Özet Rapor
+            </Button>
+          }
+        >
+          <CostSummaryPanel
+            rows={summaryRows}
+            currencySymbol={sym}
+            layout="stitch"
+            totalEuro={totalPrimary}
+            monthlyInstallment={monthly}
+            installmentLabel={
+              isAnnual ? "Yıllık Taksit:" : "Aylık Taksit:"
+            }
+            stitchPrimaryTotalLabel={
+              isTry ? "Toplam ödeme" : "Toplam (EUR)"
+            }
+          />
+        </SectionCard>
+
+        <SectionCard variant="stitch">
+          <CostDistributionChart
+            segments={segments}
+            totalLabel="Toplam Ödeme"
+            totalValue={totalPrimary}
+            currencySymbol={sym}
+            large
+          />
+        </SectionCard>
+
+        <PaymentSchedulePanel
+          schedule={schedule}
+          currencySymbol={sym}
+          downPayment={downPayment}
+          interestRatePct={interestRate}
+          periodUnit={isAnnual ? "year" : "month"}
+          defaultExpanded={false}
+          comfortable={showStitchChrome}
+          totalPayment={totalPrimary}
+        />
+
+        <div className="flex flex-col gap-3">
+          <Button
+            type="button"
+            className="h-11 gap-2 rounded-xl bg-[#004ac6] text-sm font-semibold hover:bg-[#2563eb] shadow-md max-lg:h-11 max-lg:text-sm"
+            onClick={props.handlePrint}
+          >
+            <Printer className="h-5 w-5" />
+            PDF Raporu Oluştur
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 gap-2 rounded-xl border-[#c3c6d7] font-semibold text-sm max-lg:h-10 max-lg:text-sm"
+            onClick={props.handleNewCalculation}
+          >
+            <RotateCcw className="h-4 w-4" />
+            Yeni Hesaplama
+          </Button>
+        </div>
+      </>
+    ) : (
+      <>
+        <SectionCard
+          title="Hesaplama Özeti"
+          action={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs font-bold"
+              onClick={props.handleOpenSummaryReport}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Özet Rapor
+            </Button>
+          }
+        >
+          <CostSummaryPanel
+            rows={summaryRows}
+            currencySymbol={sym}
+            totalLabel="Toplam ödeme"
+            totalValue={totalPrimary}
+            segments={segments}
+            layout="split"
+          />
+        </SectionCard>
+
+        <PaymentSchedulePanel
+          schedule={schedule}
+          currencySymbol={sym}
+          downPayment={downPayment}
+          interestRatePct={interestRate}
+          periodUnit={isAnnual ? "year" : "month"}
+          defaultExpanded={false}
+          totalPayment={totalPrimary}
+        />
+      </>
+    );
+
+  const summaryAsideClass = cn(
+    "flex flex-col gap-4",
+    showStitchChrome
+      ? "lg:sticky lg:top-[4.75rem]"
+      : "xl:sticky xl:top-4",
+  );
+
   return (
-    <div className="space-y-8 pb-8">
+    <div className="space-y-5 pb-5 max-lg:space-y-4 max-lg:pb-5">
       <CatalogScrollRail
         enabled={showStitchChrome}
         observeKey={props.activeTab}
@@ -224,21 +378,37 @@ export default function ForwardCalculatorLayout(props: {
         </p>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
-        <div className="flex flex-col gap-8 lg:col-span-8">
+      <div
+        className={cn(
+          "finance-calc-stack",
+          showStitchChrome && !isPlainTab && "finance-calc-stack--with-catalog",
+        )}
+      >
+        <div className="finance-calc-stack__main grid grid-cols-1 gap-4 max-lg:gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
+        <div
+          className={cn(
+            "finance-mobile-tight flex flex-col lg:col-span-8",
+            showStitchChrome ? "gap-4 max-lg:gap-3 lg:gap-4" : "gap-6 max-lg:gap-5",
+          )}
+        >
           {showStitchChrome ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 max-lg:gap-2.5 md:grid-cols-2">
               <PaymentFrequencySelector
                 variant="card"
+                density="compact"
                 value={paymentFrequency}
                 onChange={props.onPaymentFrequencyChange!}
               />
-              <SectionCard title="Para Birimi ve Kur" variant="stitch">
-                <div className="flex flex-wrap items-end gap-4">
-                  <div className="flex rounded-lg border border-[#c3c6d7] bg-[#eff4ff] p-1">
+              <SectionCard
+                title="Para Birimi ve Kur"
+                variant="stitch"
+                density="compact"
+              >
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex rounded-lg border border-[#c3c6d7] bg-[#eff4ff] p-0.5">
                     <button
                       type="button"
-                      className={`rounded-md px-6 py-2 text-sm font-semibold shadow-sm ${
+                      className={`rounded-md px-4 py-1.5 text-sm font-semibold shadow-sm ${
                         props.pdfCurrency === "EUR"
                           ? "bg-[#004ac6] text-white"
                           : "text-[#565e74]"
@@ -249,7 +419,7 @@ export default function ForwardCalculatorLayout(props: {
                     </button>
                     <button
                       type="button"
-                      className={`rounded-md px-6 py-2 text-sm font-semibold ${
+                      className={`rounded-md px-4 py-1.5 text-sm font-semibold ${
                         props.pdfCurrency === "TRY"
                           ? "bg-[#004ac6] text-white shadow-sm"
                           : "text-[#565e74]"
@@ -260,12 +430,12 @@ export default function ForwardCalculatorLayout(props: {
                     </button>
                   </div>
                   <div className="min-w-[8rem] flex-1 space-y-1">
-                    <Label className="text-[15px] font-semibold text-[#434655] md:text-base">
+                    <Label className="text-sm font-semibold text-[#434655] md:text-[15px]">
                       Kur (₺ / €)
                     </Label>
                     <div className="flex gap-2">
                       <Input
-                        className="h-10 border-[#c3c6d7] bg-white text-base"
+                        className="h-8 border-[#c3c6d7] bg-white text-[13px] md:text-sm"
                         type="number"
                         step="0.01"
                         value={props.params.euroRate || ""}
@@ -280,7 +450,7 @@ export default function ForwardCalculatorLayout(props: {
                         type="button"
                         variant="outline"
                         size="icon"
-                        className="h-10 w-10 shrink-0 border-[#c3c6d7]"
+                        className="h-8 w-8 shrink-0 border-[#c3c6d7]"
                         onClick={() => props.handleRefreshEuroRate()}
                         title="Referans kur"
                       >
@@ -293,7 +463,11 @@ export default function ForwardCalculatorLayout(props: {
             </div>
           ) : null}
 
-          <SectionCard title="Hesaplama Yöntemi" variant={showStitchChrome ? "stitch" : "default"}>
+          <SectionCard
+            title="Hesaplama Yöntemi"
+            variant={showStitchChrome ? "stitch" : "default"}
+            density={showStitchChrome ? "compact" : "default"}
+          >
             <SegmentedControl
               options={tabOptions}
               value={props.activeTab}
@@ -301,12 +475,12 @@ export default function ForwardCalculatorLayout(props: {
               size="default"
               className={
                 showStitchChrome
-                  ? "border-[#c3c6d7] bg-[#eff4ff]/50 [&_button]:min-h-10 [&_button]:px-3 [&_button]:text-[15px] md:[&_button]:text-base"
+                  ? "border-[#c3c6d7] bg-[#eff4ff]/50 [&_button]:min-h-7 [&_button]:px-2 [&_button]:py-1 [&_button]:text-xs md:[&_button]:text-[13px]"
                   : undefined
               }
             />
             {showStitchChrome && isPlainTab ? (
-              <p className="mt-4 rounded-lg border border-[#004ac6]/20 bg-[#eff4ff] px-3 py-2.5 text-[15px] text-[#434655] md:text-base">
+              <p className="mt-3 rounded-lg border border-[#004ac6]/20 bg-[#eff4ff] px-3 py-2 text-sm text-[#434655] md:text-[15px]">
                 Makine ve finansman bilgilerini girin; opsiyonlar hemen altında,
                 sağdaki özet anında güncellenir.
               </p>
@@ -379,6 +553,13 @@ export default function ForwardCalculatorLayout(props: {
             title="Makine ve Finansman"
             description="KDV hariç tutarlar"
             variant={showStitchChrome ? "stitch" : "default"}
+            density={showStitchChrome ? "compact" : "default"}
+            action={
+              <SectionClearAction
+                onClick={props.handleClearMachineFinance}
+                label="Makine ve finansman alanlarını temizle"
+              />
+            }
           >
             <FinanceFieldGrid
               machineTitle="Makine Bilgileri"
@@ -416,12 +597,20 @@ export default function ForwardCalculatorLayout(props: {
               title="Ek Masraflar"
               description="(Kasko, Leasing, İthalat)"
               variant={showStitchChrome ? "stitch" : "default"}
+              density={showStitchChrome ? "compact" : "default"}
+              action={
+                <SectionClearAction
+                  onClick={props.handleClearExpenses}
+                  label="Ek masrafları temizle"
+                />
+              }
             >
               <ExpenseInputCard
                 expenses={props.expenses}
                 onChange={props.handleExpenseChange}
                 appearance="minimal"
                 comfortable={showStitchChrome}
+                compact={showStitchChrome}
                 variant={isAnnual ? "annual" : "monthly"}
               />
             </SectionCard>
@@ -453,160 +642,19 @@ export default function ForwardCalculatorLayout(props: {
           ) : null}
         </div>
 
-        <div
-          className={cn(
-            "flex flex-col gap-6",
-            showStitchChrome
-              ? "lg:col-span-4 lg:sticky lg:top-[5.5rem]"
-              : "xl:sticky xl:top-4",
-          )}
-        >
-          {props.activeTab === "advantage" ? (
-            <>
-              <SectionCard title="Kur Projeksiyonu" variant={showStitchChrome ? "stitch" : "default"}>
-                <RateProjectionInput
-                  baseRate={props.params.euroRate}
-                  monthlyGrowthPct={props.monthlyGrowthPct}
-                  onGrowthChange={props.setMonthlyGrowthPct}
-                  onReset={props.resetRates}
-                  months={
-                    props.rateProjectionMonths ??
-                    (Number(props.params.term) || 0)
-                  }
-                  computedRates={props.computedRates}
-                />
-              </SectionCard>
-              <CurrencyComparisonReport
-                scheduleEuro={props.calc.plainScheduleEuro}
-                scheduleTL={props.calc.plainScheduleTL}
-                projectedRates={props.calc.projRates}
-                euroRate={props.params.euroRate}
-                monthlyGrowthPct={props.monthlyGrowthPct}
-                downPaymentEuro={props.params.downPaymentEuro}
-                downPaymentTL={props.calc.downPaymentTL}
-                term={
-                  props.comparisonTerm ?? (Number(props.params.term) || 0)
-                }
-                paymentFrequency={paymentFrequency}
-              />
-            </>
-          ) : showStitchChrome ? (
-            <>
-              <SectionCard
-                title="Hesaplama Özeti"
-                variant="stitch"
-                accentBar
-                action={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-1.5 rounded-full border-[#c3c6d7] bg-white text-[15px] font-semibold text-[#004ac6] md:text-sm"
-                    onClick={props.handleOpenSummaryReport}
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    Özet Rapor
-                  </Button>
-                }
-              >
-                <CostSummaryPanel
-                  rows={summaryRows}
-                  currencySymbol={sym}
-                  layout="stitch"
-                  totalEuro={totalPrimary}
-                  monthlyInstallment={monthly}
-                  installmentLabel={
-                    isAnnual ? "Yıllık Taksit:" : "Aylık Taksit:"
-                  }
-                  stitchPrimaryTotalLabel={
-                    isTry ? "Toplam ödeme" : "Toplam (EUR)"
-                  }
-                />
-              </SectionCard>
+        <div className={cn("hidden lg:flex lg:col-span-4", summaryAsideClass)}>
+          {summaryColumnContent}
+        </div>
+        </div>
 
-              <SectionCard variant="stitch">
-                <CostDistributionChart
-                  segments={segments}
-                  totalLabel="Toplam Ödeme"
-                  totalValue={totalPrimary}
-                  currencySymbol={sym}
-                  large
-                />
-              </SectionCard>
+        {showStitchChrome && !isPlainTab ? (
+          <div className="finance-calc-stack__catalog">{catalogPage}</div>
+        ) : null}
 
-              <PaymentSchedulePanel
-                schedule={schedule}
-                currencySymbol={sym}
-                downPayment={downPayment}
-                interestRatePct={interestRate}
-                periodUnit={isAnnual ? "year" : "month"}
-                defaultExpanded={false}
-                comfortable={showStitchChrome}
-                totalPayment={totalPrimary}
-              />
-
-              <div className="flex flex-col gap-3">
-                <Button
-                  type="button"
-                  className="h-14 gap-2 rounded-xl bg-[#004ac6] text-lg font-semibold hover:bg-[#2563eb] shadow-md"
-                  onClick={props.handlePrint}
-                >
-                  <Printer className="h-5 w-5" />
-                  PDF Raporu Oluştur
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 gap-2 rounded-xl border-[#c3c6d7] font-semibold"
-                  onClick={props.handleNewCalculation}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Yeni Hesaplama
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <SectionCard
-                title="Hesaplama Özeti"
-                action={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 text-xs font-bold"
-                    onClick={props.handleOpenSummaryReport}
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    Özet Rapor
-                  </Button>
-                }
-              >
-                <CostSummaryPanel
-                  rows={summaryRows}
-                  currencySymbol={sym}
-                  totalLabel="Toplam ödeme"
-                  totalValue={totalPrimary}
-                  segments={segments}
-                  layout="split"
-                />
-              </SectionCard>
-
-              <PaymentSchedulePanel
-                schedule={schedule}
-                currencySymbol={sym}
-                downPayment={downPayment}
-                interestRatePct={interestRate}
-                periodUnit={isAnnual ? "year" : "month"}
-                defaultExpanded={false}
-                totalPayment={totalPrimary}
-              />
-            </>
-          )}
+        <div className="finance-calc-stack__summary flex flex-col gap-4 max-lg:gap-3 lg:hidden">
+          {summaryColumnContent}
         </div>
       </div>
-
-      {showStitchChrome && !isPlainTab ? catalogPage : null}
 
       {!showStitchChrome ? (
         <>

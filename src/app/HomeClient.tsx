@@ -85,7 +85,7 @@ async function checkAuthorizedAccess(
   const { data, error } = await supabase
     .from("authorized_users")
     .select("is_active, can_edit_catalog")
-    .eq("email", email)
+    .ilike("email", email)
     .maybeSingle();
 
   if (error) {
@@ -96,11 +96,19 @@ async function checkAuthorizedAccess(
     };
   }
 
-  if (!data?.is_active) {
+  if (!data) {
     return {
       allowed: false,
       reason:
-        "Bu hesap su anda aktif degil. Erisimi acmak veya tekrar etkinlestirmek icin yonetici panelinden izin ver.",
+        "Bu e-posta yetki listesinde yok. Supabase > Table Editor > authorized_users tablosuna ekleyin (is_active = true). Detay: SUPABASE_SETUP.md",
+    };
+  }
+
+  if (!data.is_active) {
+    return {
+      allowed: false,
+      reason:
+        "Bu hesap pasif. Supabase > authorized_users tablosunda is_active alanini true yapin.",
     };
   }
 
@@ -194,13 +202,13 @@ function CalculatorApp({
     <CatalogProvider>
     <div className="min-h-dvh bg-[#f8f9ff]">
       <header className="sticky top-0 z-50 border-b border-[#c3c6d7] bg-[#f8f9ff]">
-        <div className="app-shell py-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-              <h1 className="text-xl font-bold text-[#0b1c30]">
+        <div className="app-shell py-3 max-lg:py-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-base font-bold text-[#0b1c30] md:text-lg">
                 Finansman Hesaplayıcı
               </h1>
-              <span className="hidden text-sm font-medium text-[#434655] sm:inline">
+              <span className="hidden text-xs font-medium text-[#434655] sm:inline md:text-[13px]">
                 Makine Finansmanı Maliyet Analizi
               </span>
             </div>
@@ -210,7 +218,7 @@ function CalculatorApp({
                 <Button
                   type="button"
                   variant="outline"
-                  className="hidden h-9 border-[#c3c6d7] font-semibold text-[#565e74] md:inline-flex"
+                  className="hidden h-8 border-[#c3c6d7] text-xs font-semibold text-[#565e74] md:inline-flex"
                   onClick={() =>
                     setAppView((v) =>
                       v === "calculator" ? "catalog-admin" : "calculator",
@@ -222,13 +230,13 @@ function CalculatorApp({
                     : "Hesaplayıcıya dön"}
                 </Button>
               ) : null}
-              <span className="hidden items-center gap-2 rounded-full bg-[#eff4ff] px-3 py-1.5 text-xs font-semibold text-[#0b1c30] sm:inline-flex">
-                <UserCircle className="h-5 w-5 text-[#004ac6]" aria-hidden />
+              <span className="hidden items-center gap-2 rounded-full bg-[#eff4ff] px-2.5 py-1 text-[11px] font-semibold text-[#0b1c30] sm:inline-flex md:text-xs">
+                <UserCircle className="h-4 w-4 text-[#004ac6]" aria-hidden />
                 {userEmail}
               </span>
               <Button
                 type="button"
-                className="h-9 gap-2 bg-[#004ac6] font-semibold hover:bg-[#2563eb]"
+                className="h-8 gap-1.5 text-xs font-semibold bg-[#004ac6] hover:bg-[#2563eb]"
                 onClick={onSignOut}
                 disabled={isSigningOut}
               >
@@ -243,11 +251,11 @@ function CalculatorApp({
           </div>
 
           {appView === "calculator" ? (
-            <div className="mt-4 flex rounded-xl border border-[#c3c6d7] bg-white p-2 shadow-sm">
+            <div className="mt-3 flex rounded-xl border border-[#c3c6d7] bg-white p-1.5 shadow-sm max-lg:mt-2 max-lg:p-1.5">
               <button
                 type="button"
                 onClick={() => setMode("forward")}
-                className={`flex-1 rounded-lg px-3 py-3 text-sm font-semibold transition-colors ${
+                className={`flex-1 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors max-lg:px-2 max-lg:py-2 max-lg:text-xs ${
                   mode === "forward"
                     ? "bg-[#004ac6] text-white shadow-sm"
                     : "text-[#565e74] hover:bg-[#eff4ff]"
@@ -258,7 +266,7 @@ function CalculatorApp({
               <button
                 type="button"
                 onClick={() => setMode("reverse")}
-                className={`flex-1 rounded-lg px-3 py-3 text-sm font-semibold transition-colors ${
+                className={`flex-1 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors max-lg:px-2 max-lg:py-2 max-lg:text-xs ${
                   mode === "reverse"
                     ? "bg-[#004ac6] text-white shadow-sm"
                     : "text-[#565e74] hover:bg-[#eff4ff]"
@@ -278,7 +286,7 @@ function CalculatorApp({
         />
       ) : (
         <>
-      <main className="app-shell py-8 text-[15px] leading-relaxed md:text-base">
+      <main className="app-shell finance-main py-4 lg:py-5">
         {paymentFrequency === "monthly" ? (
           mode === "forward" ? (
             <ForwardCalculator {...stitchPaymentProps} />

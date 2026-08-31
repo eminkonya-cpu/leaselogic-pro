@@ -12,10 +12,12 @@ import {
 } from "@/lib/catalogPrices";
 import { useCatalogSelection } from "@/lib/useCatalogSelection";
 import { buildDetailedSummaryReportRows } from "@/lib/calculationSummaryReport";
+import { clearForwardMachineFinance } from "@/lib/financeFormClear";
 import { calculatePMT, generateAmortization } from "@/lib/financeCalculations";
 import { getForwardDisplayMetrics } from "@/lib/forwardDisplayMetrics";
 import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { usePersistentState } from "@/lib/usePersistentState";
+import { EMPTY_EXPENSES } from "@/components/finance/ExpenseInputCard";
 
 const FORWARD_STORAGE_PREFIX = "llp:v2:forward";
 
@@ -366,6 +368,13 @@ export default function ForwardCalculator(props: {
           },
         ];
 
+  const handleClearExpenses = () => setExpenses({ ...EMPTY_EXPENSES });
+  const handleClearMachineFinance = () =>
+    clearForwardMachineFinance(
+      handleParamChange,
+      financeFields.map((field) => field.key),
+    );
+
   const printMode =
     activeTab === "campaign"
       ? "campaign"
@@ -419,6 +428,8 @@ export default function ForwardCalculator(props: {
         handleExpenseChange={handleExpenseChange}
         handleCatalogToggle={handleCatalogToggle}
         handleCatalogClearAll={handleCatalogClearAll}
+        handleClearMachineFinance={handleClearMachineFinance}
+        handleClearExpenses={handleClearExpenses}
         handlePrint={handlePrint}
         handleOpenSummaryReport={() => setSummaryReportOpen(true)}
         handleNewCalculation={handleNewCalculation}

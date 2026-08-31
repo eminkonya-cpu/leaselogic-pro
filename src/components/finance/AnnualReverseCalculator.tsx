@@ -21,6 +21,8 @@ import {
 } from "@/lib/reverseFinanceCalc";
 import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { usePersistentState } from "@/lib/usePersistentState";
+import { clearReverseParameters } from "@/lib/financeFormClear";
+import { EMPTY_EXPENSES } from "@/components/finance/ExpenseInputCard";
 
 const REVERSE_STORAGE_PREFIX = "llp:v2:reverse";
 
@@ -200,6 +202,10 @@ export default function AnnualReverseCalculator(props: {
 
   const handleCatalogClearAll = () => setSelection(EMPTY_CATALOG_SELECTION);
 
+  const handleClearExpenses = () => setExpenses({ ...EMPTY_EXPENSES });
+  const handleClearMachineFinance = () =>
+    clearReverseParameters(handleParamChange);
+
   const handleRefreshEuroRate = () => {
     void fetchReferenceTryRates().then(({ eurTry }) => {
       if (eurTry != null && Number.isFinite(eurTry)) {
@@ -318,6 +324,8 @@ export default function AnnualReverseCalculator(props: {
         handleExpenseChange={handleExpenseChange}
         handleCatalogToggle={handleCatalogToggle}
         handleCatalogClearAll={handleCatalogClearAll}
+        handleClearMachineFinance={handleClearMachineFinance}
+        handleClearExpenses={handleClearExpenses}
         handlePrint={handlePrint}
         handleOpenSummaryReport={() => setSummaryReportOpen(true)}
         handleNewCalculation={handleNewCalculation}

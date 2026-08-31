@@ -133,6 +133,10 @@
   .app-shell {
     @apply mx-auto w-full max-w-[1920px] px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12;
   }
+  /* Hesaplayıcı: kompakt Stitch yoğunluk (%100 zoom) */
+  .finance-main {
+    @apply text-[13px] leading-snug text-[#0b1c30] md:text-sm;
+  }
   h1,
   h2,
   h3,
@@ -142,6 +146,67 @@
     font-family: var(--font-heading);
     letter-spacing: -0.02em;
     font-weight: 700;
+  }
+}
+
+/* Mobil hesaplayıcı: sıra + kompakt (lg ve üzeri etkilenmez) */
+@media (max-width: 1023px) {
+  main.app-shell.finance-main {
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
+
+  .finance-calc-stack {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .finance-calc-stack--with-catalog {
+    grid-template-areas:
+      "main"
+      "catalog"
+      "summary";
+  }
+
+  .finance-calc-stack:not(.finance-calc-stack--with-catalog) {
+    grid-template-areas:
+      "main"
+      "summary";
+  }
+
+  .finance-calc-stack__main {
+    grid-area: main;
+    min-width: 0;
+  }
+
+  .finance-calc-stack__catalog {
+    grid-area: catalog;
+    min-width: 0;
+  }
+
+  .finance-calc-stack__summary {
+    grid-area: summary;
+    min-width: 0;
+  }
+
+  .finance-mobile-tight .finance-field-grid {
+    gap: 0.625rem;
+  }
+
+  .finance-mobile-tight .finance-field-grid input {
+    height: 2.125rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .finance-calc-stack {
+    display: block;
+  }
+
+  .finance-calc-stack__catalog {
+    margin-top: 1rem;
   }
 }
 

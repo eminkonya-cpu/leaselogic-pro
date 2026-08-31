@@ -48,8 +48,8 @@ export default function PaymentSchedulePanel(props: {
     return installments + (props.downPayment ?? 0);
   }, [props.downPayment, props.schedule, props.totalPayment]);
 
-  const cell = roomy ? "text-[15px] sm:text-base" : "text-[10px] sm:text-[11px]";
-  const head = roomy ? "text-sm font-bold sm:text-base" : "text-[10px] font-bold";
+  const cell = roomy ? "text-xs sm:text-[13px]" : "text-[10px] sm:text-[11px]";
+  const head = roomy ? "text-[11px] font-bold sm:text-[13px]" : "text-[10px] font-bold";
 
   return (
     <div className="overflow-hidden rounded-xl border border-[#c3c6d7] bg-white shadow-sm">
@@ -59,7 +59,7 @@ export default function PaymentSchedulePanel(props: {
         aria-expanded={expanded}
         className={cn(
           "flex w-full items-center gap-3 text-left transition-colors hover:bg-[#eff4ff]/60",
-          roomy ? "px-4 py-4 sm:px-5" : "px-3 py-2.5 sm:px-4 sm:py-3",
+          roomy ? "px-3 py-2.5 sm:px-4" : "px-3 py-2.5 sm:px-4 sm:py-3",
         )}
       >
         <div className="min-w-0 flex-1">
@@ -67,7 +67,7 @@ export default function PaymentSchedulePanel(props: {
             <h3
               className={cn(
                 "font-bold text-[#0b1c30]",
-                roomy ? "text-base" : "text-sm",
+                roomy ? "text-xs" : "text-sm",
               )}
             >
               Ödeme Planı

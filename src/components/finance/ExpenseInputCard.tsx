@@ -28,6 +28,18 @@ export const expenseFieldLabels = Object.fromEntries(
   fieldsMonthly.map((f) => [f.key, f.label] as const),
 ) as Record<(typeof fieldsMonthly)[number]["key"], string>;
 
+export const EMPTY_EXPENSES: Record<
+  (typeof fieldsMonthly)[number]["key"],
+  number
+> = {
+  kasko1: 0,
+  kasko2: 0,
+  kasko3: 0,
+  kasko4: 0,
+  leasingCost: 0,
+  importCost: 0,
+};
+
 export default function ExpenseInputCard(props: {
   expenses: Record<string, number>;
   onChange: (key: string, value: number) => void;
@@ -35,33 +47,45 @@ export default function ExpenseInputCard(props: {
   variant?: "monthly" | "annual";
   appearance?: "legacy" | "minimal";
   comfortable?: boolean;
+  /** Stitch ek masraflar: daha sıkı grid ve input. */
+  compact?: boolean;
   className?: string;
 }) {
   const variant = props.variant ?? "monthly";
   const fields = variant === "annual" ? fieldsAnnual : fieldsMonthly;
   const minimal = props.appearance === "minimal";
   const roomy = props.comfortable ?? false;
+  const tight = roomy && (props.compact ?? false);
 
   const fieldList = (
     <div
       className={cn(
         minimal
-          ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          ? cn(
+              "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+              tight ? "gap-2 max-lg:gap-1.5" : "gap-3 max-lg:gap-2",
+            )
           : "space-y-2.5 lg:space-y-3",
       )}
     >
       {fields.map((f) => (
-        <div key={f.key} className="space-y-1">
+        <div key={f.key} className={cn(tight ? "space-y-0.5" : "space-y-1")}>
           <Label
             className={cn(
               "font-semibold text-slate-600",
-              roomy ? "text-[15px] text-[#434655] md:text-base" : "text-[11px] lg:text-xs",
+              roomy ? "text-sm text-[#434655] md:text-[15px]" : "text-[11px] lg:text-xs",
             )}
           >
             {f.label}
           </Label>
           <Input
-            className={cn(roomy ? "h-10 text-base md:text-[17px]" : "h-9")}
+            className={cn(
+              roomy
+                ? tight
+                  ? "h-8 text-sm md:text-[15px]"
+                  : "h-8 text-[13px] md:text-sm"
+                : "h-8",
+            )}
             value={String(props.expenses[f.key] ?? 0)}
             type="number"
             inputMode="decimal"
