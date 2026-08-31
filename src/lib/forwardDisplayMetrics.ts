@@ -21,6 +21,8 @@ export function sumCatalogExceptMaintenance(lines: CatalogLine[]) {
 type CalcSlice = {
   catalogLines: CatalogLine[];
   catalogTotalEuro: number;
+  machineWithCatalogEuro: number;
+  priceTL: number;
   netMachineEuro: number;
   totalExpenses: number;
   plainFinanceEuro: number;
@@ -55,6 +57,21 @@ type CalcSlice = {
 
 export type { CalcSlice };
 
+function normalizeTermMonths(term: number | string) {
+  const raw =
+    typeof term === "string"
+      ? Number(String(term).replace(",", "."))
+      : Number(term);
+  return Math.max(0, Math.trunc(Number.isFinite(raw) ? raw : 0));
+}
+
+export function isPlainCatalogOnlyMode(
+  activeTab: ForwardTabId,
+  term: number | string,
+) {
+  return activeTab === "plain" && normalizeTermMonths(term) <= 0;
+}
+
 export function getForwardDisplayMetrics(
   activeTab: ForwardTabId,
   calc: CalcSlice,
@@ -63,6 +80,7 @@ export function getForwardDisplayMetrics(
     euroRate: number;
     euroInterest: number;
     tlInterest: number;
+    term: number | string;
   },
 ) {
   const attachment = sumCatalogCategory(calc.catalogLines, "attachment");
@@ -90,6 +108,7 @@ export function getForwardDisplayMetrics(
       equipment,
       catalogOther,
       otherExpenses: calc.totalExpenses,
+      plainCatalogOnly: false,
     };
   }
 
@@ -113,6 +132,31 @@ export function getForwardDisplayMetrics(
       equipment,
       catalogOther,
       otherExpenses: calc.totalExpenses,
+      plainCatalogOnly: false,
+    };
+  }
+
+  if (isPlainCatalogOnlyMode(activeTab, params.term)) {
+    return {
+      monthlyEuro: 0,
+      monthlyTl: 0,
+      totalEuro: calc.machineWithCatalogEuro,
+      totalTl: calc.priceTL,
+      vadeFarkiEuro: 0,
+      vadeFarkiTl: 0,
+      scheduleEuro: [],
+      scheduleTl: [],
+      interestRateEuro: params.euroInterest,
+      interestRateTl: params.tlInterest,
+      financeEuro: calc.plainFinanceEuro,
+      financeTl: calc.plainFinanceTL,
+      includeExpenses: false,
+      attachment,
+      maintenance,
+      equipment,
+      catalogOther,
+      otherExpenses: 0,
+      plainCatalogOnly: true,
     };
   }
 
@@ -135,5 +179,6 @@ export function getForwardDisplayMetrics(
     equipment,
     catalogOther,
     otherExpenses: 0,
+    plainCatalogOnly: false,
   };
 }

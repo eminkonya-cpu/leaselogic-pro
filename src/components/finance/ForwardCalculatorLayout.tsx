@@ -201,6 +201,7 @@ export default function ForwardCalculatorLayout(props: {
 
   const showStitchChrome = Boolean(props.onPaymentFrequencyChange);
   const isPlainTab = props.activeTab === "plain";
+  const plainCatalogOnly = display.plainCatalogOnly ?? false;
 
   const catalogPage = (
     <div id={CATALOG_SECTION_ID} className="scroll-mt-24">
@@ -269,12 +270,18 @@ export default function ForwardCalculatorLayout(props: {
             currencySymbol={sym}
             layout="stitch"
             totalEuro={totalPrimary}
-            monthlyInstallment={monthly}
+            monthlyInstallment={
+              plainCatalogOnly && isPlainTab ? undefined : monthly
+            }
             installmentLabel={
               isAnnual ? "Yıllık Taksit:" : "Aylık Taksit:"
             }
             stitchPrimaryTotalLabel={
-              isTry ? "Toplam ödeme" : "Toplam (EUR)"
+              plainCatalogOnly && isPlainTab
+                ? "Toplam tutar"
+                : isTry
+                  ? "Toplam ödeme"
+                  : "Toplam (EUR)"
             }
           />
         </SectionCard>
@@ -282,23 +289,27 @@ export default function ForwardCalculatorLayout(props: {
         <SectionCard variant="stitch">
           <CostDistributionChart
             segments={segments}
-            totalLabel="Toplam Ödeme"
+            totalLabel={
+              plainCatalogOnly && isPlainTab ? "Toplam Tutar" : "Toplam Ödeme"
+            }
             totalValue={totalPrimary}
             currencySymbol={sym}
             large
           />
         </SectionCard>
 
-        <PaymentSchedulePanel
-          schedule={schedule}
-          currencySymbol={sym}
-          downPayment={downPayment}
-          interestRatePct={interestRate}
-          periodUnit={isAnnual ? "year" : "month"}
-          defaultExpanded={false}
-          comfortable={showStitchChrome}
-          totalPayment={totalPrimary}
-        />
+        {!(plainCatalogOnly && isPlainTab) ? (
+          <PaymentSchedulePanel
+            schedule={schedule}
+            currencySymbol={sym}
+            downPayment={downPayment}
+            interestRatePct={interestRate}
+            periodUnit={isAnnual ? "year" : "month"}
+            defaultExpanded={false}
+            comfortable={showStitchChrome}
+            totalPayment={totalPrimary}
+          />
+        ) : null}
 
         <div className="flex flex-col gap-3">
           <Button

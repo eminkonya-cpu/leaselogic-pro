@@ -167,12 +167,20 @@ export function PrintableCalculationSummaryContent(
           </span>
         </div>
         <div className="mt-2 flex items-center justify-between gap-3 border-t border-blue-200/60 pt-2">
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-600">
-            {props.installmentLabel}
-          </span>
-          <span className="text-base font-extrabold tabular-nums">
-            {formatNumber(monthly, { noDecimals: true })} {sym}
-          </span>
+          {!(props.activeTab === "plain" && props.term <= 0) ? (
+            <>
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                {props.installmentLabel}
+              </span>
+              <span className="text-base font-extrabold tabular-nums">
+                {formatNumber(monthly, { noDecimals: true })} {sym}
+              </span>
+            </>
+          ) : (
+            <span className="text-xs font-semibold text-slate-600">
+              Vade girildiğinde taksit ve finansman maliyeti hesaplanır.
+            </span>
+          )}
         </div>
       </div>
 
