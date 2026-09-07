@@ -354,8 +354,8 @@ export function PrintablePDFPreviewModal(
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] overflow-auto bg-[#5b616a] p-3 sm:p-4">
-      <div className="sticky top-3 z-10 mb-3 flex justify-end sm:top-4 sm:mb-4">
+    <div className="finance-print-portal fixed inset-0 z-[9999] overflow-auto bg-[#5b616a] p-3 sm:p-4">
+      <div className="no-print sticky top-3 z-10 mb-3 flex justify-end sm:top-4 sm:mb-4">
         <Button
           type="button"
           variant="outline"
@@ -367,7 +367,7 @@ export function PrintablePDFPreviewModal(
         </Button>
       </div>
 
-      <div className="mx-auto w-full max-w-[210mm]">
+      <div className="finance-print-portal-sheet mx-auto w-full max-w-[210mm]">
         <div className="min-h-[calc(100vh-6rem)] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.28)]">
           <PrintablePDFContent
             {...props}

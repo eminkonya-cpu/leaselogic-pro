@@ -215,12 +215,36 @@
     margin: 4mm 8mm 6mm 8mm;
   }
 
-  body > * {
+  body > *:not(.finance-print-portal):not(#pdf-print-area) {
     display: none !important;
   }
 
+  body > .finance-print-portal,
   #pdf-print-area {
     display: block !important;
+  }
+
+  .finance-print-portal {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  .finance-print-portal-sheet,
+  .finance-print-portal-sheet > div {
+    min-height: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #pdf-print-area {
     position: static !important;
     width: 100%;
     background: #fff;
