@@ -14,11 +14,13 @@ import {
   type CatalogLine,
 } from "@/lib/catalogPrices";
 import { useCatalogSelection } from "@/lib/useCatalogSelection";
+import { reverseSummaryReportFinancing } from "@/lib/financingSupportReport";
 import { buildDetailedReverseReportRows } from "@/lib/reverseSummaryReport";
 import {
-  computeReverseFinanceLeg,
+  computeReverseBothLegs,
   type ReverseFinanceLeg,
 } from "@/lib/reverseFinanceCalc";
+import { sumForwardExtraExpenses } from "@/lib/forwardCalculatorCore";
 import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { clearReverseParameters } from "@/lib/financeFormClear";
@@ -32,42 +34,6 @@ type ReverseCalcBundle = {
   euro: ReverseFinanceLeg;
   tl: ReverseFinanceLeg;
 };
-
-function computeBothLegs(
-  params: {
-    allInTotalEuro: number;
-    downPaymentEuro: number;
-    euroRate: number;
-    euroInterest: number;
-    tlInterest: number;
-    term: number;
-  },
-  totalExpensesEuro: number,
-  catalogTotalEuro: number,
-  paymentMode: "monthly" | "annual",
-) {
-  const rate = params.euroRate;
-  return {
-    euro: computeReverseFinanceLeg({
-      allInTotal: params.allInTotalEuro,
-      downPayment: params.downPaymentEuro,
-      annualRatePct: params.euroInterest,
-      term: params.term,
-      totalExpenses: totalExpensesEuro,
-      catalogTotal: catalogTotalEuro,
-      paymentMode,
-    }),
-    tl: computeReverseFinanceLeg({
-      allInTotal: params.allInTotalEuro * rate,
-      downPayment: params.downPaymentEuro * rate,
-      annualRatePct: params.tlInterest,
-      term: params.term,
-      totalExpenses: totalExpensesEuro * rate,
-      catalogTotal: catalogTotalEuro * rate,
-      paymentMode,
-    }),
-  };
-}
 
 function buildReverseSummaryProps(args: {
   firma: string;
@@ -85,13 +51,23 @@ function buildReverseSummaryProps(args: {
   catalogLines: CatalogLine[];
   expenses: Record<string, number>;
   calc: ReverseCalcBundle;
+  baselineCalc?: ReverseCalcBundle;
+  financingSupportEuro: number;
 }): PrintableReverseSummaryProps {
   const isTry = args.pdfCurrency === "TRY";
   const rate = args.euroRate;
   const leg = isTry ? args.calc.tl : args.calc.euro;
+  const baselineLeg = isTry ? args.baselineCalc?.tl : args.baselineCalc?.euro;
   const catalogAmount = (line: CatalogLine) =>
     isTry ? line.priceEuro * rate : line.priceEuro;
   const expenseAmount = (v: number) => (isTry ? v * rate : v);
+  const financing = reverseSummaryReportFinancing({
+    financingSupportEuro: args.financingSupportEuro,
+    baselineLeg,
+    leg,
+    currencyIsTry: isTry,
+    euroRate: rate,
+  });
 
   return {
     firma: args.firma,
@@ -107,18 +83,23 @@ function buildReverseSummaryProps(args: {
     termUnit: args.termUnit,
     planInterest: isTry ? args.tlInterest : args.euroInterest,
     euroRate: args.euroRate,
-    interestDiff: leg.interestDiff,
+    interestDiff: financing.interestDiffDisplay,
     displayNetMachine: leg.displayNetMachine,
     detailRows: buildDetailedReverseReportRows({
       catalogLines: args.catalogLines,
       expenses: args.expenses,
-      interestDiff: leg.interestDiff,
+      interestDiff: financing.interestDiffDisplay,
       catalogAmount,
       expenseAmount,
     }),
     totalPayment: leg.total,
     installment: leg.installment,
     installmentLabel: args.installmentLabel,
+    financingSupportDisplay: financing.financingSupportDisplay,
+    supportCompare: financing.compare,
+    netMachineTotalLabel: financing.compare
+      ? "Net makine bedeli (destekli)"
+      : undefined,
   };
 }
 
@@ -138,6 +119,7 @@ export default function ReverseCalculator(props: {
       allInTotalEuro: 100_000,
       euroRate: 50.5,
       downPaymentEuro: 0,
+      financingSupportEuro: 0,
       euroInterest: 6.5,
       tlInterest: 42,
       firma: "",
@@ -150,14 +132,7 @@ export default function ReverseCalculator(props: {
   );
   const [expenses, setExpenses] = usePersistentState(
     `${REVERSE_STORAGE_PREFIX}:shared:expenses`,
-    {
-      kasko1: 0,
-      kasko2: 0,
-      kasko3: 0,
-      kasko4: 0,
-      leasingCost: 0,
-      importCost: 0,
-    },
+    { ...EMPTY_EXPENSES },
   );
 
   const { selection: catalogSelection, toggle: handleCatalogToggle, setSelection } =
@@ -210,20 +185,14 @@ export default function ReverseCalculator(props: {
       allInTotalEuro: 100_000,
       euroRate: 50.5,
       downPaymentEuro: 0,
+      financingSupportEuro: 0,
       euroInterest: 6.5,
       tlInterest: 42,
       firma: "",
       makine: "",
     });
     setTerm(0);
-    setExpenses({
-      kasko1: 0,
-      kasko2: 0,
-      kasko3: 0,
-      kasko4: 0,
-      leasingCost: 0,
-      importCost: 0,
-    });
+    setExpenses({ ...EMPTY_EXPENSES });
     setSelection(EMPTY_CATALOG_SELECTION);
     setPdfCurrency("EUR");
   };
@@ -233,15 +202,41 @@ export default function ReverseCalculator(props: {
       catalogSelection,
       catalogCategories,
     );
-    const totalExpensesEuro = Object.values(expenses).reduce(
-      (s, v) => s + (v || 0),
-      0,
-    );
+    const totalExpensesEuro = sumForwardExtraExpenses(expenses);
     const termMonths = Number(params.term) || 0;
-    const legs = computeBothLegs(
+    const legs = computeReverseBothLegs(
       {
         allInTotalEuro: params.allInTotalEuro,
         downPaymentEuro: params.downPaymentEuro,
+        financingSupportEuro: params.financingSupportEuro,
+        euroRate: params.euroRate,
+        euroInterest: params.euroInterest,
+        tlInterest: params.tlInterest,
+        term: termMonths,
+      },
+      totalExpensesEuro,
+      catalog.totalEuro,
+      "monthly",
+    );
+    return {
+      catalogLines: catalog.lines,
+      totalExpensesEuro,
+      ...legs,
+    };
+  }, [params, expenses, catalogSelection, catalogCategories]);
+
+  const baselineCalc = useMemo((): ReverseCalcBundle => {
+    const catalog = resolveCatalogSelection(
+      catalogSelection,
+      catalogCategories,
+    );
+    const totalExpensesEuro = sumForwardExtraExpenses(expenses);
+    const termMonths = Number(params.term) || 0;
+    const legs = computeReverseBothLegs(
+      {
+        allInTotalEuro: params.allInTotalEuro,
+        downPaymentEuro: params.downPaymentEuro,
+        financingSupportEuro: 0,
         euroRate: params.euroRate,
         euroInterest: params.euroInterest,
         tlInterest: params.tlInterest,
@@ -278,8 +273,10 @@ export default function ReverseCalculator(props: {
         catalogLines: calc.catalogLines,
         expenses,
         calc,
+        baselineCalc,
+        financingSupportEuro: Number(params.financingSupportEuro) || 0,
       }),
-    [calc, expenses, params, pdfCurrency, termMonths],
+    [baselineCalc, calc, expenses, params, pdfCurrency, termMonths],
   );
 
   const printPayload = useMemo((): PrintableReversePdfProps => {
@@ -313,10 +310,12 @@ export default function ReverseCalculator(props: {
         setPdfCurrency={setPdfCurrency}
         params={params}
         calc={calc}
+        baselineCalc={baselineCalc}
         expenses={expenses}
         catalogSelection={catalogSelection}
         handleParamChange={handleParamChange}
         handleExpenseChange={handleExpenseChange}
+        onExpensesReplace={setExpenses}
         handleCatalogToggle={handleCatalogToggle}
         handleCatalogClearAll={handleCatalogClearAll}
         handleClearMachineFinance={handleClearMachineFinance}
@@ -327,15 +326,13 @@ export default function ReverseCalculator(props: {
         handleRefreshEuroRate={handleRefreshEuroRate}
       />
 
-      {!summaryReportOpen ? (
-        <PrintableReversePDF {...printPayload} />
-      ) : null}
       <FinanceDocumentPreviewModal
         open={summaryReportOpen}
         onClose={() => setSummaryReportOpen(false)}
         variant="reverse-summary"
         reverseSummary={reverseSummary}
       />
+      <PrintableReversePDF {...printPayload} />
     </>
   );
 }

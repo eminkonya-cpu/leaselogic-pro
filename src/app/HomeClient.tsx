@@ -8,8 +8,13 @@ import ForwardCalculator from "@/components/finance/ForwardCalculator";
 import {
   type PaymentFrequency,
 } from "@/components/finance/PaymentFrequencySelector";
+import LeasingPaymentPlanCalculator from "@/components/finance/LeasingPaymentPlanCalculator";
 import ReverseCalculator from "@/components/finance/ReverseCalculator";
 import LoginRatesBar from "@/components/finance/LoginRatesBar";
+import {
+  BankUiProvider,
+  BankUiThemeToggle,
+} from "@/components/finance/ui/BankUiProvider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +33,7 @@ import { usePersistentState } from "@/lib/usePersistentState";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import {
   LoaderCircle,
+  Landmark,
   LogOut,
   ShieldAlert,
   UserCircle,
@@ -179,7 +185,7 @@ function CalculatorApp({
   onSignOut: () => Promise<void>;
   isSigningOut: boolean;
 }) {
-  const [mode, setMode] = usePersistentState<"forward" | "reverse">(
+  const [mode, setMode] = usePersistentState<"forward" | "reverse" | "paymentPlan">(
     "llp:home:mode",
     "forward"
   );
@@ -198,22 +204,33 @@ function CalculatorApp({
     onPaymentFrequencyChange: setPaymentFrequency,
   };
 
+  const modeTabClass = (active: boolean) =>
+    `flex-1 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors max-lg:px-2 max-lg:py-2 max-lg:text-xs ${
+      active
+        ? "bg-[#004ac6] text-white shadow-sm"
+        : "text-[#565e74] hover:bg-[#eff4ff]"
+    }`;
+
   return (
     <CatalogProvider>
-    <div className="min-h-dvh bg-[#f8f9ff]">
-      <header className="sticky top-0 z-50 border-b border-[#c3c6d7] bg-[#f8f9ff]">
+    <BankUiProvider>
+      <header className="llp-app-header sticky top-0 z-50 border-b border-[#c3c6d7] bg-[#f8f9ff]">
         <div className="app-shell py-3 max-lg:py-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className="llp-brand-mark hidden" aria-hidden>
+                <Landmark className="h-4 w-4" />
+              </span>
               <h1 className="text-base font-bold text-[#0b1c30] md:text-lg">
                 Finansman Hesaplayıcı
               </h1>
-              <span className="hidden text-xs font-medium text-[#434655] sm:inline md:text-[13px]">
+              <span className="llp-app-tagline hidden text-xs font-medium text-[#434655] sm:inline md:text-[13px]">
                 Makine Finansmanı Maliyet Analizi
               </span>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 text-xs sm:justify-end">
+              <BankUiThemeToggle className="max-md:order-last max-md:w-full max-md:justify-center" />
               {canEditCatalog ? (
                 <Button
                   type="button"
@@ -230,13 +247,13 @@ function CalculatorApp({
                     : "Hesaplayıcıya dön"}
                 </Button>
               ) : null}
-              <span className="hidden items-center gap-2 rounded-full bg-[#eff4ff] px-2.5 py-1 text-[11px] font-semibold text-[#0b1c30] sm:inline-flex md:text-xs">
+              <span className="llp-user-chip hidden items-center gap-2 rounded-full bg-[#eff4ff] px-2.5 py-1 text-[11px] font-semibold text-[#0b1c30] sm:inline-flex md:text-xs">
                 <UserCircle className="h-4 w-4 text-[#004ac6]" aria-hidden />
                 {userEmail}
               </span>
               <Button
                 type="button"
-                className="h-8 gap-1.5 text-xs font-semibold bg-[#004ac6] hover:bg-[#2563eb]"
+                className="llp-signout h-8 gap-1.5 text-xs font-semibold bg-[#004ac6] hover:bg-[#2563eb]"
                 onClick={onSignOut}
                 disabled={isSigningOut}
               >
@@ -251,28 +268,30 @@ function CalculatorApp({
           </div>
 
           {appView === "calculator" ? (
-            <div className="mt-3 flex rounded-xl border border-[#c3c6d7] bg-white p-1.5 shadow-sm max-lg:mt-2 max-lg:p-1.5">
+            <div className="llp-mode-tabs mt-3 flex rounded-xl border border-[#c3c6d7] bg-white p-1.5 shadow-sm max-lg:mt-2 max-lg:p-1.5">
               <button
                 type="button"
+                data-active={mode === "forward" ? "true" : "false"}
                 onClick={() => setMode("forward")}
-                className={`flex-1 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors max-lg:px-2 max-lg:py-2 max-lg:text-xs ${
-                  mode === "forward"
-                    ? "bg-[#004ac6] text-white shadow-sm"
-                    : "text-[#565e74] hover:bg-[#eff4ff]"
-                }`}
+                className={modeTabClass(mode === "forward")}
               >
                 İleri Hesaplama
               </button>
               <button
                 type="button"
+                data-active={mode === "reverse" ? "true" : "false"}
                 onClick={() => setMode("reverse")}
-                className={`flex-1 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors max-lg:px-2 max-lg:py-2 max-lg:text-xs ${
-                  mode === "reverse"
-                    ? "bg-[#004ac6] text-white shadow-sm"
-                    : "text-[#565e74] hover:bg-[#eff4ff]"
-                }`}
+                className={modeTabClass(mode === "reverse")}
               >
                 Geri Hesaplama
+              </button>
+              <button
+                type="button"
+                data-active={mode === "paymentPlan" ? "true" : "false"}
+                onClick={() => setMode("paymentPlan")}
+                className={modeTabClass(mode === "paymentPlan")}
+              >
+                3 Ay Ödemesiz & Balon
               </button>
             </div>
           ) : null}
@@ -287,7 +306,9 @@ function CalculatorApp({
       ) : (
         <>
       <main className="app-shell finance-main py-4 lg:py-5">
-        {paymentFrequency === "monthly" ? (
+        {mode === "paymentPlan" ? (
+          <LeasingPaymentPlanCalculator />
+        ) : paymentFrequency === "monthly" ? (
           mode === "forward" ? (
             <ForwardCalculator {...stitchPaymentProps} />
           ) : (
@@ -304,7 +325,7 @@ function CalculatorApp({
       <AppFooter />
         </>
       )}
-    </div>
+    </BankUiProvider>
     </CatalogProvider>
   );
 }

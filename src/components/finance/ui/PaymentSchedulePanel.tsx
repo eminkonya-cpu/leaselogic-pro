@@ -48,8 +48,12 @@ export default function PaymentSchedulePanel(props: {
     return installments + (props.downPayment ?? 0);
   }, [props.downPayment, props.schedule, props.totalPayment]);
 
-  const cell = roomy ? "text-xs sm:text-[13px]" : "text-[10px] sm:text-[11px]";
-  const head = roomy ? "text-[11px] font-bold sm:text-[13px]" : "text-[10px] font-bold";
+  const cell = roomy
+    ? "text-[13px] sm:text-sm"
+    : "text-[10px] sm:text-[11px]";
+  const head = roomy
+    ? "text-xs font-semibold text-[#434655] sm:text-[13px]"
+    : "text-[10px] font-bold";
 
   return (
     <div className="overflow-hidden rounded-xl border border-[#c3c6d7] bg-white shadow-sm">
@@ -121,7 +125,7 @@ export default function PaymentSchedulePanel(props: {
 
       {expanded ? (
         <div className="border-t border-[#c3c6d7]/60">
-          <div className="max-h-[min(280px,45vh)] overflow-auto overscroll-contain">
+          <div className="max-h-[min(360px,52vh)] overflow-auto overscroll-contain">
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-[#eff4ff]/95 backdrop-blur-sm">
                 <TableRow className="hover:bg-transparent">

@@ -1,6 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  FORWARD_DEFAULT_ACTIVE_TAB,
+  normalizeForwardActiveTab,
+} from "@/lib/forwardCalculatorFeatures";
+import {
+  migrateLegacyForwardTermInParams,
+  normalizeForwardTermMonths,
+} from "@/lib/forwardTerm";
+import { useEffect, useMemo, useState } from "react";
 import ForwardCalculatorLayout from "@/components/finance/ForwardCalculatorLayout";
 import { FinanceDocumentPreviewModal } from "@/components/finance/FinanceDocumentPreviewModal";
 import PrintablePDF, { PrintablePDFPreviewModal } from "@/components/finance/PrintablePDF";
@@ -12,8 +20,9 @@ import {
 } from "@/lib/catalogPrices";
 import { useCatalogSelection } from "@/lib/useCatalogSelection";
 import { buildDetailedSummaryReportRows } from "@/lib/calculationSummaryReport";
+import { forwardSummaryReportFinancing } from "@/lib/financingSupportReport";
 import { clearForwardMachineFinance } from "@/lib/financeFormClear";
-import { calculatePMT, generateAmortization } from "@/lib/financeCalculations";
+import { computeMonthlyForwardCalc } from "@/lib/forwardCalculatorCore";
 import { getForwardDisplayMetrics } from "@/lib/forwardDisplayMetrics";
 import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { usePersistentState } from "@/lib/usePersistentState";
@@ -31,8 +40,13 @@ export default function ForwardCalculator(props: {
     "campaign" | "plain" | "allin" | "advantage"
   >(
     `${FORWARD_STORAGE_PREFIX}:shared:active-tab`,
-    "campaign",
+    FORWARD_DEFAULT_ACTIVE_TAB,
   );
+
+  useEffect(() => {
+    const normalized = normalizeForwardActiveTab(activeTab);
+    if (normalized !== activeTab) setActiveTab(normalized);
+  }, [activeTab, setActiveTab]);
   const [pdfCurrency, setPdfCurrency] = usePersistentState<"EUR" | "TRY">(
     `${FORWARD_STORAGE_PREFIX}:shared:pdf-currency`,
     "EUR",
@@ -40,27 +54,21 @@ export default function ForwardCalculator(props: {
   const [sharedParams, setSharedParams] = usePersistentState(
     `${FORWARD_STORAGE_PREFIX}:shared:params`,
     {
-    euroRate: 51.5,
-    dollarRate: 42,
-    firma: "Maats Makia A.Ş.",
-    makine: "MT 1840-100",
-    machinePriceEuro: 0,
-    euroInterest: 6.8,
-    tlInterest: 42,
-    downPaymentEuro: 0,
+      euroRate: 51.5,
+      dollarRate: 42,
+      firma: "Maats Makia A.Ş.",
+      makine: "MT 1840-100",
+      machinePriceEuro: 0,
+      euroInterest: 6.8,
+      tlInterest: 42,
+      downPaymentEuro: 0,
+      financingSupportEuro: 0,
+      term: 0,
     },
   );
-  const [term, setTerm] = usePersistentState(`${FORWARD_STORAGE_PREFIX}:term-monthly`, 0);
   const [expenses, setExpenses] = usePersistentState(
     `${FORWARD_STORAGE_PREFIX}:shared:expenses`,
-    {
-    kasko1: 0,
-    kasko2: 0,
-    kasko3: 0,
-    kasko4: 0,
-    leasingCost: 0,
-    importCost: 0,
-    },
+    { ...EMPTY_EXPENSES },
   );
   const [monthlyGrowthPct, setMonthlyGrowthPct] = usePersistentState(
     `${FORWARD_STORAGE_PREFIX}:shared:monthly-growth-pct`,
@@ -70,11 +78,18 @@ export default function ForwardCalculator(props: {
     useCatalogSelection();
   const { categories: catalogCategories } = useCatalogCategories();
 
-  const params = useMemo(() => ({ ...sharedParams, term }), [sharedParams, term]);
+  const params = sharedParams;
+
+  useEffect(() => {
+    migrateLegacyForwardTermInParams(setSharedParams);
+  }, [setSharedParams]);
 
   const handleParamChange = (key: string, value: string | number) => {
     if (key === "term") {
-      setTerm(Number(value));
+      setSharedParams((prev) => ({
+        ...prev,
+        term: normalizeForwardTermMonths(value),
+      }));
       return;
     }
 
@@ -108,19 +123,13 @@ export default function ForwardCalculator(props: {
       euroInterest: 6.8,
       tlInterest: 42,
       downPaymentEuro: 0,
+      financingSupportEuro: 0,
+      term: 0,
     });
-    setTerm(0);
-    setExpenses({
-      kasko1: 0,
-      kasko2: 0,
-      kasko3: 0,
-      kasko4: 0,
-      leasingCost: 0,
-      importCost: 0,
-    });
+    setExpenses({ ...EMPTY_EXPENSES });
     setSelection(EMPTY_CATALOG_SELECTION);
     setMonthlyGrowthPct(1.5);
-    setActiveTab("campaign");
+    setActiveTab(FORWARD_DEFAULT_ACTIVE_TAB);
     setPdfCurrency("EUR");
   };
 
@@ -139,121 +148,61 @@ export default function ForwardCalculator(props: {
     const {
       machinePriceEuro,
       euroRate,
-      term,
       euroInterest,
       tlInterest,
       downPaymentEuro,
+      financingSupportEuro,
     } = params;
+    const termMonths = normalizeForwardTermMonths(params.term);
     const catalog = resolveCatalogSelection(
       catalogSelection,
       catalogCategories,
     );
-    const machineWithCatalogEuro = machinePriceEuro + catalog.totalEuro;
-    const priceTL = machineWithCatalogEuro * euroRate;
-    const baseMachineTL = machinePriceEuro * euroRate;
-    const downPaymentTL = downPaymentEuro * euroRate;
-    const plainFinanceEuro = machineWithCatalogEuro - downPaymentEuro;
-    const plainFinanceTL = priceTL - downPaymentTL;
-    const plainMonthlyEuro = calculatePMT(plainFinanceEuro, euroInterest, term);
-    const plainMonthlyTL = calculatePMT(plainFinanceTL, tlInterest, term);
-    const plainTotalEuro = plainMonthlyEuro * term + downPaymentEuro;
-    const plainTotalTL = plainMonthlyTL * term + downPaymentTL;
-    const plainDiffEuro = plainTotalEuro - machineWithCatalogEuro;
-    const plainDiffTL = plainTotalTL - priceTL;
-    const plainScheduleEuro = generateAmortization(
-      plainFinanceEuro,
+    const core = computeMonthlyForwardCalc({
+      machinePriceEuro,
+      euroRate,
+      termMonths,
       euroInterest,
-      term,
-    );
-    const plainScheduleTL = generateAmortization(
-      plainFinanceTL,
       tlInterest,
-      term,
-    );
-    const totalExpenses = Object.values(expenses).reduce(
-      (s, v) => s + (v || 0),
-      0,
-    );
-    const totalExpensesTL = totalExpenses * euroRate;
-    const allInBaseEuro = machineWithCatalogEuro + totalExpenses;
-    const allInBaseTL = priceTL + totalExpensesTL;
-    const allInFinanceEuro = Math.max(0, allInBaseEuro - downPaymentEuro);
-    const allInFinanceTL = Math.max(0, allInBaseTL - downPaymentTL);
-    const allInMonthlyEuro = calculatePMT(allInFinanceEuro, euroInterest, term);
-    const allInMonthlyTL = calculatePMT(allInFinanceTL, tlInterest, term);
-    const allInTotalEuro = allInMonthlyEuro * term + downPaymentEuro;
-    const allInTotalTL = allInMonthlyTL * term + downPaymentTL;
-    const allInDiffEuro = allInTotalEuro - allInBaseEuro;
-    const allInDiffTL = allInTotalTL - allInBaseTL;
-    const allInScheduleEuro = generateAmortization(
-      allInFinanceEuro,
-      euroInterest,
-      term,
-    );
-    const allInScheduleTL = generateAmortization(
-      allInFinanceTL,
-      tlInterest,
-      term,
-    );
-    const campaignRemainingEuro = Math.max(0, allInBaseEuro - downPaymentEuro);
-    const campaignRemainingTL = Math.max(0, allInBaseTL - downPaymentTL);
-    const campaignMonthlyEuro = calculatePMT(campaignRemainingEuro, 0, term);
-    const campaignMonthlyTL = calculatePMT(campaignRemainingTL, 0, term);
-    const campaignScheduleEuro = generateAmortization(
-      campaignRemainingEuro,
-      0,
-      term,
-    );
-    const campaignScheduleTL = generateAmortization(
-      campaignRemainingTL,
-      0,
-      term,
-    );
-    const netMachineEuro = machinePriceEuro;
-    const projRates = computedRates
-      .slice(0, term)
-      .map((r, i) => ({ month: i + 1, rate: r }));
-
-    return {
-      catalogLines: catalog.lines,
+      downPaymentEuro,
+      financingSupportEuro: Number(financingSupportEuro) || 0,
       catalogTotalEuro: catalog.totalEuro,
-      machineWithCatalogEuro,
-      baseMachineTL,
-      priceTL,
-      downPaymentTL,
-      plainFinanceEuro,
-      plainFinanceTL,
-      plainMonthlyEuro,
-      plainMonthlyTL,
-      plainTotalEuro,
-      plainTotalTL,
-      plainDiffEuro,
-      plainDiffTL,
-      plainScheduleEuro,
-      plainScheduleTL,
-      allInMonthlyEuro,
-      allInMonthlyTL,
-      allInScheduleEuro,
-      allInScheduleTL,
-      totalExpenses,
-      totalExpensesTL,
-      allInBaseEuro,
-      allInBaseTL,
-      allInFinanceEuro,
-      allInFinanceTL,
-      campaignRemainingEuro,
-      campaignRemainingTL,
-      campaignMonthlyEuro,
-      campaignMonthlyTL,
-      campaignScheduleEuro,
-      campaignScheduleTL,
-      allInTotalEuro,
-      allInTotalTL,
-      allInDiffEuro,
-      allInDiffTL,
-      netMachineEuro,
-      projRates,
+      catalogLines: catalog.lines,
+      expenses,
+      computedRates,
+    });
+    return {
+      ...core,
+      baseMachineTL: core.baseMachineTL,
     };
+  }, [params, expenses, computedRates, catalogSelection, catalogCategories]);
+
+  const baselineCalc = useMemo(() => {
+    const {
+      machinePriceEuro,
+      euroRate,
+      euroInterest,
+      tlInterest,
+      downPaymentEuro,
+    } = params;
+    const termMonths = normalizeForwardTermMonths(params.term);
+    const catalog = resolveCatalogSelection(
+      catalogSelection,
+      catalogCategories,
+    );
+    return computeMonthlyForwardCalc({
+      machinePriceEuro,
+      euroRate,
+      termMonths,
+      euroInterest,
+      tlInterest,
+      downPaymentEuro,
+      financingSupportEuro: 0,
+      catalogTotalEuro: catalog.totalEuro,
+      catalogLines: catalog.lines,
+      expenses,
+      computedRates,
+    });
   }, [params, expenses, computedRates, catalogSelection, catalogCategories]);
 
   const handlePrint = () => {
@@ -287,11 +236,26 @@ export default function ForwardCalculator(props: {
       activeTab === "campaign"
         ? "Kampanyalı makine bedeli"
         : "Makine bedeli";
+    const financing = forwardSummaryReportFinancing({
+      financingSupportEuro: Number(params.financingSupportEuro) || 0,
+      activeTab,
+      baselineCalc,
+      params: {
+        downPaymentEuro: Number(params.downPaymentEuro ?? 0),
+        euroRate: rate,
+        euroInterest: Number(params.euroInterest ?? 0),
+        tlInterest: Number(params.tlInterest ?? 0),
+        term: Number(params.term ?? 0),
+      },
+      display,
+      currencyIsTry: isTry,
+    });
     const baseRows = buildDetailedSummaryReportRows({
       catalogLines: calc.catalogLines,
       expenses,
       includeExpenses: display.includeExpenses,
-      vadeFarkiEuro: isTry ? display.vadeFarkiTl : display.vadeFarkiEuro,
+      vadeFarkiEuro: financing.vadeFarkiDisplay,
+      financingSupport: financing.financingSupportDisplay,
     });
     return {
       firma: String(params.firma ?? ""),
@@ -310,10 +274,17 @@ export default function ForwardCalculator(props: {
       rows: baseRows.map((row) => ({
         ...row,
         valueEuro:
-          isTry && row.label === "Finansman maliyeti (vade farkı)"
+          isTry &&
+          (row.label === "Finansman maliyeti (vade farkı)" ||
+            row.label === "Finansman desteği")
             ? row.valueEuro
             : scale(row.valueEuro),
       })),
+      financingSupportDisplay: financing.financingSupportDisplay,
+      supportCompare: financing.compare,
+      primaryTotalLabel: financing.compare
+        ? "Müşteri toplam ödemesi (destekli)"
+        : undefined,
       totalEuro: display.totalEuro,
       totalTl: display.totalTl,
       monthlyInstallmentEuro: display.monthlyEuro,
@@ -323,9 +294,11 @@ export default function ForwardCalculator(props: {
     };
   }, [
     activeTab,
+    baselineCalc,
     calc.catalogLines,
     display,
     expenses,
+    params.financingSupportEuro,
     params.downPaymentEuro,
     params.euroInterest,
     params.euroRate,
@@ -348,22 +321,22 @@ export default function ForwardCalculator(props: {
   const financeFields =
     activeTab === "campaign"
       ? [
-          { key: "downPaymentEuro", label: "Peşinat (€)", placeholder: "20000" },
-          { key: "term", label: "Vade (Ay)", placeholder: "24" },
+          { key: "downPaymentEuro", label: "Peşinat (€)" },
+          { key: "financingSupportEuro", label: "Finansman desteği (€)" },
+          { key: "term", label: "Vade (Ay)" },
         ]
       : [
-          { key: "downPaymentEuro", label: "Peşinat (€)", placeholder: "20000" },
-          { key: "term", label: "Vade (Ay)", placeholder: "24" },
+          { key: "downPaymentEuro", label: "Peşinat (€)" },
+          { key: "financingSupportEuro", label: "Finansman desteği (€)" },
+          { key: "term", label: "Vade (Ay)" },
           {
             key: "euroInterest",
             label: "Euro Faiz Oranı (%)",
-            placeholder: "6.5",
             step: "0.1",
           },
           {
             key: "tlInterest",
             label: "TL Faiz Oranı (%)",
-            placeholder: "38",
             step: "0.1",
           },
         ];
@@ -422,10 +395,12 @@ export default function ForwardCalculator(props: {
         setPdfCurrency={setPdfCurrency}
         params={params}
         calc={calc}
+        baselineCalc={baselineCalc}
         expenses={expenses}
         catalogSelection={catalogSelection}
         handleParamChange={handleParamChange}
         handleExpenseChange={handleExpenseChange}
+        onExpensesReplace={setExpenses}
         handleCatalogToggle={handleCatalogToggle}
         handleCatalogClearAll={handleCatalogClearAll}
         handleClearMachineFinance={handleClearMachineFinance}

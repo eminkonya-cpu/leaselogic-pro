@@ -19,7 +19,10 @@ export function buildDetailedSummaryReportRows(args: {
   catalogLines: CatalogLine[];
   expenses: Record<string, number>;
   includeExpenses: boolean;
+  /** Görüntüleme para biriminde tam vade farkı (destekten bağımsız referans). */
   vadeFarkiEuro: number;
+  /** Aynı birimde; finansman maliyetinden ayrı bilgi satırı. */
+  financingSupport?: number;
 }): SummaryReportRow[] {
   const rows: SummaryReportRow[] = [];
 
@@ -60,6 +63,14 @@ export function buildDetailedSummaryReportRows(args: {
   const fin = Math.max(0, args.vadeFarkiEuro);
   if (fin > 0) {
     rows.push({ label: "Finansman maliyeti (vade farkı)", valueEuro: fin });
+  }
+
+  const support = Math.max(0, args.financingSupport ?? 0);
+  if (support > 0) {
+    rows.push({
+      label: "Finansman desteği",
+      valueEuro: -support,
+    });
   }
 
   return rows;

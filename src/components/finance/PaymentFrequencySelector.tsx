@@ -7,11 +7,52 @@ export type PaymentFrequency = "monthly" | "annual";
 export function PaymentFrequencySelector(props: {
   value: PaymentFrequency;
   onChange: (v: PaymentFrequency) => void;
-  variant?: "bar" | "card";
+  variant?: "bar" | "card" | "segment";
   density?: "default" | "compact";
 }) {
   const card = props.variant === "card";
+  const segment = props.variant === "segment";
   const compact = props.density === "compact";
+
+  if (segment) {
+    return (
+      <div className="space-y-1" role="tablist" aria-label="Ödeme sıklığı">
+        <p className="text-xs font-semibold text-[#434655] md:text-[13px]">
+          Ödeme sıklığı
+        </p>
+        <div className="llp-segment inline-flex w-auto max-w-full rounded-lg border border-[#c3c6d7] bg-[#f8f9ff] p-0.5">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={props.value === "monthly"}
+            onClick={() => props.onChange("monthly")}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm",
+              props.value === "monthly"
+                ? "bg-[#004ac6] text-white shadow-sm"
+                : "text-[#565e74] hover:bg-white",
+            )}
+          >
+            Aylık ödeme
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={props.value === "annual"}
+            onClick={() => props.onChange("annual")}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm",
+              props.value === "annual"
+                ? "bg-[#004ac6] text-white shadow-sm"
+                : "text-[#565e74] hover:bg-white",
+            )}
+          >
+            Yılda bir
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (card) {
     return (

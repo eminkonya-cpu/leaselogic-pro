@@ -1,5 +1,6 @@
 "use client";
 
+import DecimalTextInput from "@/components/finance/DecimalTextInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -22,8 +23,11 @@ export default function FinanceFieldGrid(props: {
   machineTitle?: string;
   financeTitle?: string;
   comfortable?: boolean;
+  /** split: yan yana sütunlar; stack: makine üstte, finansman altta */
+  layout?: "split" | "stack";
 }) {
   const roomy = props.comfortable;
+  const stacked = props.layout === "stack";
   const renderField = (f: Field) => {
     const type = f.type ?? "number";
     const raw = props.values[f.key];
@@ -35,6 +39,8 @@ export default function FinanceFieldGrid(props: {
           : String(raw);
     const listId =
       type === "text" && f.options?.length ? `list-${f.key}` : undefined;
+    const numericValue =
+      type === "number" ? Number(raw ?? 0) : 0;
 
     return (
       <div key={f.key} className="space-y-0.5">
@@ -46,24 +52,27 @@ export default function FinanceFieldGrid(props: {
         >
           {f.label}
         </Label>
+        {type === "number" ? (
+          <DecimalTextInput
+            className={cn(
+              roomy ? "h-8 text-[13px] md:text-sm max-lg:h-8 max-lg:text-sm" : "h-8 text-sm max-lg:h-8",
+            )}
+            placeholder={f.placeholder}
+            value={Number.isFinite(numericValue) ? numericValue : 0}
+            onValueChange={(next) => props.onChange(f.key, next)}
+          />
+        ) : (
         <Input
           className={cn(roomy ? "h-8 text-[13px] md:text-sm max-lg:h-8 max-lg:text-sm" : "h-8 text-sm max-lg:h-8")}
           value={value}
           type={type}
           list={listId}
-          inputMode={type === "number" ? "decimal" : undefined}
-          step={f.step}
           placeholder={f.placeholder}
           onChange={(e) => {
-            const next =
-              type === "text"
-                ? e.target.value
-                : e.target.value === ""
-                  ? 0
-                  : Number(e.target.value.replace(",", "."));
-            props.onChange(f.key, next);
+            props.onChange(f.key, e.target.value);
           }}
         />
+        )}
         {listId ? (
           <datalist id={listId}>
             {f.options?.map((option) => (
@@ -76,7 +85,12 @@ export default function FinanceFieldGrid(props: {
   };
 
   return (
-    <div className="finance-field-grid grid grid-cols-1 gap-3 max-lg:gap-2.5 sm:grid-cols-2">
+    <div
+      className={cn(
+        "finance-field-grid grid grid-cols-1 gap-3 max-lg:gap-2.5",
+        !stacked && "sm:grid-cols-2",
+      )}
+    >
       <div className="space-y-2">
         <p
           className={cn(

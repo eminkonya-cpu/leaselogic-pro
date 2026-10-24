@@ -2,9 +2,17 @@
 
 import {
   DEFAULT_CATALOG_CATEGORIES,
-  parseCatalogCategories,
   type CatalogCategory,
 } from "@/lib/catalogPrices";
+import {
+  buildCatalogConfigDocument,
+  parseCatalogConfigFromStorage,
+  writeLocalServiceFees,
+} from "@/lib/catalogConfigDocument";
+import {
+  DEFAULT_CATALOG_SERVICE_FEES,
+  type CatalogServiceFees,
+} from "@/lib/catalogServiceFees";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import {
   createContext,
@@ -18,12 +26,14 @@ import {
 
 type CatalogContextValue = {
   categories: CatalogCategory[];
+  serviceFees: CatalogServiceFees;
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
   saveCategories: (
     next: CatalogCategory[],
     updatedByEmail: string,
+    nextServiceFees?: CatalogServiceFees,
   ) => Promise<{ ok: true } | { ok: false; message: string }>;
 };
 
@@ -33,40 +43,73 @@ export function CatalogProvider(props: { children: ReactNode }) {
   const [categories, setCategories] = useState<CatalogCategory[]>(
     DEFAULT_CATALOG_CATEGORIES,
   );
+  const [serviceFees, setServiceFees] = useState<CatalogServiceFees>(
+    DEFAULT_CATALOG_SERVICE_FEES,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchFromSupabase = useCallback(async (showLoadingSpinner: boolean) => {
+  const applyLoaded = useCallback(
+    (categoriesColumn: unknown, serviceFeesColumn?: unknown) => {
+      const parsed = parseCatalogConfigFromStorage(
+        categoriesColumn,
+        serviceFeesColumn,
+      );
+      setCategories(parsed.categories);
+      setServiceFees(parsed.serviceFees);
+    },
+    [],
+  );
+
+  const loadConfig = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      setCategories(DEFAULT_CATALOG_CATEGORIES);
-      setLoading(false);
+      applyLoaded(null);
       setError(null);
       return;
     }
 
-    if (showLoadingSpinner) {
-      setLoading(true);
-    }
+    let data: { categories?: unknown; service_fees?: unknown } | null = null;
+    let fetchError: { message: string } | null = null;
 
-    const { data, error: fetchError } = await supabase
+    const withFees = await supabase
       .from("catalog_config")
-      .select("categories")
+      .select("categories, service_fees")
       .eq("id", 1)
       .maybeSingle();
 
+    if (withFees.error?.message?.includes("service_fees")) {
+      const fallback = await supabase
+        .from("catalog_config")
+        .select("categories")
+        .eq("id", 1)
+        .maybeSingle();
+      data = fallback.data;
+      fetchError = fallback.error;
+    } else {
+      data = withFees.data;
+      fetchError = withFees.error;
+    }
+
     if (fetchError) {
       setError(fetchError.message);
-      setCategories(DEFAULT_CATALOG_CATEGORIES);
-    } else if (data?.categories) {
-      setError(null);
-      setCategories(parseCatalogCategories(data.categories));
+      applyLoaded(null);
     } else {
       setError(null);
-      setCategories(DEFAULT_CATALOG_CATEGORIES);
+      applyLoaded(data?.categories, data?.service_fees);
     }
-    setLoading(false);
-  }, []);
+  }, [applyLoaded]);
+
+  const fetchFromSupabase = useCallback(
+    async (showLoadingSpinner: boolean) => {
+      if (showLoadingSpinner) {
+        setLoading(true);
+      }
+      await loadConfig();
+      setLoading(false);
+    },
+    [loadConfig],
+  );
 
   const refresh = useCallback(async () => {
     await fetchFromSupabase(true);
@@ -75,64 +118,59 @@ export function CatalogProvider(props: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const supabase = getSupabaseBrowserClient();
-      if (!supabase) {
-        if (!cancelled) {
-          setCategories(DEFAULT_CATALOG_CATEGORIES);
-          setLoading(false);
-          setError(null);
-        }
-        return;
+      await loadConfig();
+      if (!cancelled) {
+        setLoading(false);
       }
-
-      const { data, error: fetchError } = await supabase
-        .from("catalog_config")
-        .select("categories")
-        .eq("id", 1)
-        .maybeSingle();
-
-      if (cancelled) {
-        return;
-      }
-
-      if (fetchError) {
-        setError(fetchError.message);
-        setCategories(DEFAULT_CATALOG_CATEGORIES);
-      } else if (data?.categories) {
-        setError(null);
-        setCategories(parseCatalogCategories(data.categories));
-      } else {
-        setError(null);
-        setCategories(DEFAULT_CATALOG_CATEGORIES);
-      }
-      setLoading(false);
     })();
-
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadConfig]);
 
   const saveCategories = useCallback(
     async (
       next: CatalogCategory[],
       updatedByEmail: string,
+      nextServiceFees?: CatalogServiceFees,
     ): Promise<{ ok: true } | { ok: false; message: string }> => {
       const supabase = getSupabaseBrowserClient();
+      const fees = nextServiceFees ?? serviceFees;
+      writeLocalServiceFees(fees);
+
       if (!supabase) {
-        return { ok: false, message: "Supabase baglantisi yok." };
+        setCategories(next);
+        setServiceFees(fees);
+        setError(null);
+        return { ok: true };
       }
 
+      const document = buildCatalogConfigDocument(next, fees);
       const payload = {
         id: 1,
-        categories: next,
+        categories: document,
+        service_fees: fees,
         updated_at: new Date().toISOString(),
         updated_by: updatedByEmail,
       };
 
-      const { error: upsertError } = await supabase
-        .from("catalog_config")
-        .upsert(payload, { onConflict: "id" });
+      let upsertError = (
+        await supabase.from("catalog_config").upsert(payload, { onConflict: "id" })
+      ).error;
+
+      if (upsertError?.message?.includes("service_fees")) {
+        upsertError = (
+          await supabase.from("catalog_config").upsert(
+            {
+              id: 1,
+              categories: document,
+              updated_at: payload.updated_at,
+              updated_by: updatedByEmail,
+            },
+            { onConflict: "id" },
+          )
+        ).error;
+      }
 
       if (upsertError) {
         return {
@@ -144,21 +182,23 @@ export function CatalogProvider(props: { children: ReactNode }) {
       }
 
       setCategories(next);
+      setServiceFees(fees);
       setError(null);
       return { ok: true };
     },
-    [],
+    [serviceFees],
   );
 
   const value = useMemo(
     () => ({
       categories,
+      serviceFees,
       loading,
       error,
       refresh,
       saveCategories,
     }),
-    [categories, loading, error, refresh, saveCategories],
+    [categories, serviceFees, loading, error, refresh, saveCategories],
   );
 
   return (

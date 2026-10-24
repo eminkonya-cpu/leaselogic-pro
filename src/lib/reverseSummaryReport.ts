@@ -33,7 +33,9 @@ const SEGMENT_COLORS = [
 export function buildReverseStitchSummaryRows(args: {
   allInTotal: number;
   totalExpenses: number;
+  /** Tam vade farkı (destekten bağımsız referans); destek varken desteksiz senaryo. */
   interestDiff: number;
+  financingSupport?: number;
   catalogLines: CatalogLine[];
   catalogAmount: (line: CatalogLine) => number;
   displayNetMachine: number;
@@ -60,6 +62,14 @@ export function buildReverseStitchSummaryRows(args: {
       label: `${line.categoryTitle}: ${line.itemLabel}`,
       value: -args.catalogAmount(line),
       tone: "negative",
+    });
+  }
+  const support = Math.max(0, args.financingSupport ?? 0);
+  if (support > 0) {
+    rows.push({
+      label: "Finansman desteği",
+      value: support,
+      tone: "positive",
     });
   }
   rows.push({

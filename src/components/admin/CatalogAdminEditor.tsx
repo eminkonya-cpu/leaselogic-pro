@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCatalogCategories } from "@/contexts/CatalogContext";
+import type { CatalogServiceFees } from "@/lib/catalogServiceFees";
 import {
   newCatalogItemId,
   type CatalogCategory,
@@ -174,6 +175,7 @@ function CatalogItemRow(props: {
 
 function CatalogAdminEditorForm(props: {
   initialCategories: CatalogCategory[];
+  initialServiceFees: CatalogServiceFees;
   userEmail: string;
   onBack: () => void;
 }) {
@@ -181,6 +183,9 @@ function CatalogAdminEditorForm(props: {
   const [draft, setDraft] = useState(() =>
     cloneCategories(props.initialCategories),
   );
+  const [draftFees, setDraftFees] = useState<CatalogServiceFees>(() => ({
+    ...props.initialServiceFees,
+  }));
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dragState, setDragState] = useState<{
@@ -277,10 +282,12 @@ function CatalogAdminEditorForm(props: {
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
-    const result = await saveCategories(draft, props.userEmail);
+    const result = await saveCategories(draft, props.userEmail, draftFees);
     setSaving(false);
     if (result.ok) {
-      setMessage("Kaydedildi. Tum kullanicilar guncel listeyi gorur.");
+      setMessage(
+        "Kaydedildi. Opsiyon listesi ve otomatik maliyet ayarlari tum kullanicilara yansir.",
+      );
       await refresh();
     } else {
       setMessage(result.message);
@@ -289,6 +296,7 @@ function CatalogAdminEditorForm(props: {
 
   const handleResetDraft = () => {
     setDraft(cloneCategories(props.initialCategories));
+    setDraftFees({ ...props.initialServiceFees });
     setMessage(null);
   };
 
@@ -333,6 +341,73 @@ function CatalogAdminEditorForm(props: {
           {message}
         </p>
       ) : null}
+
+      <section className="rounded-2xl border border-[#c3c6d7] bg-white/90 p-4 shadow-md">
+        <h2 className="text-sm font-extrabold text-[#114a72]">
+          Otomatik maliyet kalemleri
+        </h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label className="text-xs font-bold text-slate-700">
+              Kasko maliyeti (% makine bedeli)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              step={0.01}
+              value={draftFees.kaskoPercentOfMachine}
+              onChange={(e) =>
+                setDraftFees((prev) => ({
+                  ...prev,
+                  kaskoPercentOfMachine: Math.max(
+                    0,
+                    Number(e.target.value.replace(",", ".")) || 0,
+                  ),
+                }))
+              }
+              className="h-9 text-sm font-semibold tabular-nums"
+              placeholder="1.3"
+            />
+            <p className="text-[10px] text-slate-500">Örnek: 1,3 = %1,3</p>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-bold text-slate-700">
+              Dosya masrafı (€, KDV hariç)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              value={draftFees.fileFeeEuro}
+              onChange={(e) =>
+                setDraftFees((prev) => ({
+                  ...prev,
+                  fileFeeEuro: Math.max(0, Number(e.target.value) || 0),
+                }))
+              }
+              className="h-9 text-sm font-semibold tabular-nums"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-bold text-slate-700">
+              İthalat maliyeti (€, KDV hariç)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              value={draftFees.importCostEuro}
+              onChange={(e) =>
+                setDraftFees((prev) => ({
+                  ...prev,
+                  importCostEuro: Math.max(0, Number(e.target.value) || 0),
+                }))
+              }
+              className="h-9 text-sm font-semibold tabular-nums"
+            />
+          </div>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {draft.map((category) => (
@@ -400,7 +475,7 @@ export default function CatalogAdminEditor(props: {
   userEmail: string;
   onBack: () => void;
 }) {
-  const { categories, loading } = useCatalogCategories();
+  const { categories, serviceFees, loading } = useCatalogCategories();
 
   if (loading) {
     return (
@@ -411,14 +486,20 @@ export default function CatalogAdminEditor(props: {
     );
   }
 
-  const formKey = categories
-    .map((c) => `${c.id}:${c.items.map((i) => `${i.id}-${i.priceEuro}`).join(",")}`)
-    .join("|");
+  const formKey = [
+    categories
+      .map((c) => `${c.id}:${c.items.map((i) => `${i.id}-${i.priceEuro}`).join(",")}`)
+      .join("|"),
+    serviceFees.kaskoPercentOfMachine,
+    serviceFees.fileFeeEuro,
+    serviceFees.importCostEuro,
+  ].join(";");
 
   return (
     <CatalogAdminEditorForm
       key={formKey}
       initialCategories={categories}
+      initialServiceFees={serviceFees}
       userEmail={props.userEmail}
       onBack={props.onBack}
     />

@@ -1,5 +1,6 @@
 import type { CatalogLine } from "@/lib/catalogPrices";
 import type { AmortizationRow } from "@/lib/financeCalculations";
+import { normalizeForwardTermMonths } from "@/lib/forwardTerm";
 
 export type ForwardTabId = "campaign" | "plain" | "allin" | "advantage";
 
@@ -57,19 +58,11 @@ type CalcSlice = {
 
 export type { CalcSlice };
 
-function normalizeTermMonths(term: number | string) {
-  const raw =
-    typeof term === "string"
-      ? Number(String(term).replace(",", "."))
-      : Number(term);
-  return Math.max(0, Math.trunc(Number.isFinite(raw) ? raw : 0));
-}
-
 export function isPlainCatalogOnlyMode(
   activeTab: ForwardTabId,
   term: number | string,
 ) {
-  return activeTab === "plain" && normalizeTermMonths(term) <= 0;
+  return activeTab === "plain" && normalizeForwardTermMonths(term) <= 0;
 }
 
 export function getForwardDisplayMetrics(

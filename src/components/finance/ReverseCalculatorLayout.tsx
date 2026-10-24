@@ -1,11 +1,9 @@
 "use client";
 
 import CatalogSelector from "@/components/finance/CatalogSelector";
-import ExpenseInputCard from "@/components/finance/ExpenseInputCard";
-import {
-  PaymentFrequencySelector,
-  type PaymentFrequency,
-} from "@/components/finance/PaymentFrequencySelector";
+import FinanceCatalogExpensePanel from "@/components/finance/FinanceCatalogExpensePanel";
+import type { FinanceExpenses } from "@/lib/financeExpenseCatalog";
+import type { PaymentFrequency } from "@/components/finance/PaymentFrequencySelector";
 import CostSummaryPanel, {
   CostDistributionChart,
 } from "@/components/finance/ui/CostSummaryPanel";
@@ -16,16 +14,18 @@ import PaymentSchedulePanel from "@/components/finance/ui/PaymentSchedulePanel";
 import SectionCard from "@/components/finance/ui/SectionCard";
 import SectionClearAction from "@/components/finance/ui/SectionClearAction";
 import { CATALOG_SECTION_ID } from "@/components/finance/ui/CatalogScrollRail";
+import FinanceContextBar from "@/components/finance/ui/FinanceContextBar";
+import FinanceKpiStrip, {
+  type FinanceKpiItem,
+} from "@/components/finance/ui/FinanceKpiStrip";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { ReverseFinanceLeg } from "@/lib/reverseFinanceCalc";
 import type { CatalogLine, CatalogSelection } from "@/lib/catalogPrices";
 import {
   buildReverseDistributionSegments,
   buildReverseStitchSummaryRows,
 } from "@/lib/reverseSummaryReport";
-import { RefreshCw, RotateCcw, Printer, FileText } from "lucide-react";
+import { RotateCcw, Printer, FileText } from "lucide-react";
 import { useMemo } from "react";
 
 export type ReverseCalcSlice = {
@@ -46,15 +46,19 @@ export default function ReverseCalculatorLayout(props: {
     allInTotalEuro: number;
     euroRate: number;
     downPaymentEuro: number;
+    financingSupportEuro?: number;
     euroInterest: number;
     tlInterest: number;
     term: number | string;
   };
   calc: ReverseCalcSlice;
+  /** Desteksiz senaryo (finansman desteği = 0). */
+  baselineCalc?: ReverseCalcSlice;
   expenses: Record<string, number>;
   catalogSelection: CatalogSelection;
   handleParamChange: (key: string, value: string | number) => void;
   handleExpenseChange: (key: string, value: number) => void;
+  onExpensesReplace: (next: FinanceExpenses) => void;
   handleCatalogToggle: (
     categoryId: keyof CatalogSelection,
     itemId: string,
@@ -89,12 +93,42 @@ export default function ReverseCalculatorLayout(props: {
     ? props.params.tlInterest
     : props.params.euroInterest;
 
+  const financingSupportAmount = Math.max(
+    0,
+    Number(props.params.financingSupportEuro) || 0,
+  );
+  const baselineLeg = isTry
+    ? props.baselineCalc?.tl
+    : props.baselineCalc?.euro;
+
+  const interestDiffForSummary = useMemo(() => {
+    if (financingSupportAmount <= 0 || !baselineLeg) return leg.interestDiff;
+    return baselineLeg.interestDiff;
+  }, [baselineLeg, financingSupportAmount, leg.interestDiff]);
+
+  const financingSupportCompare = useMemo(() => {
+    if (financingSupportAmount <= 0 || !baselineLeg) return null;
+    const without = baselineLeg.displayNetMachine;
+    const current = leg.displayNetMachine;
+    const delta = current - without;
+    if (delta <= 0.005) return null;
+    return {
+      baselineLabel: "Net makine bedeli (desteksiz)",
+      baselineValue: without,
+      deltaLabel: "Destek etkisi (fark)",
+      deltaValue: delta,
+    };
+  }, [baselineLeg, financingSupportAmount, leg.displayNetMachine]);
+
   const summaryRows = useMemo(
     () =>
       buildReverseStitchSummaryRows({
         allInTotal,
         totalExpenses: leg.totalExpenses,
-        interestDiff: leg.interestDiff,
+        interestDiff: interestDiffForSummary,
+        financingSupport: isTry
+          ? financingSupportAmount * rate
+          : financingSupportAmount,
         catalogLines: props.calc.catalogLines,
         catalogAmount,
         displayNetMachine: leg.displayNetMachine,
@@ -102,8 +136,11 @@ export default function ReverseCalculatorLayout(props: {
     [
       allInTotal,
       catalogAmount,
+      financingSupportAmount,
+      interestDiffForSummary,
+      isTry,
+      rate,
       leg.displayNetMachine,
-      leg.interestDiff,
       leg.totalExpenses,
       props.calc.catalogLines,
     ],
@@ -123,16 +160,58 @@ export default function ReverseCalculatorLayout(props: {
 
   const netMachineDisplay = leg.displayNetMachine;
 
+  const reverseKpiItems = useMemo((): FinanceKpiItem[] => {
+    const vadeFarki = leg.interestDiff;
+    return [
+      {
+        label: isAnnual ? "Yıllık taksit" : "Aylık taksit",
+        value: installment,
+        hint: "Seçilen para biriminde",
+        currencySymbol: sym,
+        accent: "blue",
+        noDecimals: true,
+      },
+      {
+        label: "Net makine bedeli",
+        value: netMachineDisplay,
+        hint: "KDV hariç",
+        currencySymbol: sym,
+        accent: "navy",
+      },
+      {
+        label: "Toplam ödeme",
+        value: totalPrimary,
+        hint: "Peşinat dahil",
+        currencySymbol: sym,
+        accent: "green",
+        noDecimals: true,
+      },
+      {
+        label: "Vade farkı",
+        value: vadeFarki,
+        hint: "Faiz maliyeti",
+        currencySymbol: sym,
+        accent: "purple",
+        noDecimals: true,
+      },
+    ];
+  }, [
+    isAnnual,
+    installment,
+    sym,
+    netMachineDisplay,
+    totalPrimary,
+    leg.interestDiff,
+  ]);
+
   const termField = isAnnual
     ? {
         key: "term",
         label: "Vade (Yıl) — en fazla 3",
-        placeholder: "3",
       }
     : {
         key: "term",
         label: "Vade (Ay)",
-        placeholder: "24",
       };
 
   const reverseSummaryContent = (
@@ -159,14 +238,15 @@ export default function ReverseCalculatorLayout(props: {
           currencySymbol={sym}
           layout="stitch"
           totalEuro={netMachineDisplay}
-          monthlyInstallment={installment}
           amountDecimals={2}
-          installmentLabel={
-            isAnnual ? "Yıllık Taksit:" : "Aylık Taksit:"
-          }
           stitchPrimaryTotalLabel={
-            isTry ? "Net makine bedeli" : "Net makine bedeli (EUR)"
+            financingSupportCompare
+              ? "Net makine bedeli (destekli)"
+              : isTry
+                ? "Net makine bedeli"
+                : "Net makine bedeli (EUR)"
           }
+          stitchCompare={financingSupportCompare ?? undefined}
         />
       </SectionCard>
 
@@ -187,7 +267,7 @@ export default function ReverseCalculatorLayout(props: {
         downPayment={downPayment}
         interestRatePct={planInterest}
         periodUnit={isAnnual ? "year" : "month"}
-        defaultExpanded={false}
+        defaultExpanded
         comfortable
         totalPayment={totalPrimary}
         amountDecimals={2}
@@ -227,79 +307,21 @@ export default function ReverseCalculatorLayout(props: {
         </p>
       )}
 
+      <FinanceContextBar
+        paymentFrequency={props.paymentFrequency}
+        onPaymentFrequencyChange={props.onPaymentFrequencyChange}
+        pdfCurrency={props.pdfCurrency}
+        setPdfCurrency={props.setPdfCurrency}
+        euroRate={props.params.euroRate}
+        onEuroRateChange={(value) => props.handleParamChange("euroRate", value)}
+        onRefreshEuroRate={props.handleRefreshEuroRate}
+      />
+
+      <FinanceKpiStrip items={reverseKpiItems} />
+
       <div className="finance-calc-stack finance-calc-stack--with-catalog">
         <div className="finance-calc-stack__main grid grid-cols-1 gap-4 max-lg:gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
-        <div className="finance-mobile-tight flex flex-col gap-4 max-lg:gap-3 lg:col-span-8 lg:gap-4">
-          <div className="grid grid-cols-1 gap-3 max-lg:gap-2.5 md:grid-cols-2">
-            <PaymentFrequencySelector
-              variant="card"
-              density="compact"
-              value={props.paymentFrequency}
-              onChange={props.onPaymentFrequencyChange}
-            />
-            <SectionCard
-              title="Para Birimi ve Kur"
-              variant="stitch"
-              density="compact"
-            >
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="flex rounded-lg border border-[#c3c6d7] bg-[#eff4ff] p-0.5">
-                  <button
-                    type="button"
-                    className={`rounded-md px-4 py-1.5 text-sm font-semibold shadow-sm ${
-                      props.pdfCurrency === "EUR"
-                        ? "bg-[#004ac6] text-white"
-                        : "text-[#565e74]"
-                    }`}
-                    onClick={() => props.setPdfCurrency("EUR")}
-                  >
-                    EUR
-                  </button>
-                  <button
-                    type="button"
-                    className={`rounded-md px-4 py-1.5 text-sm font-semibold ${
-                      props.pdfCurrency === "TRY"
-                        ? "bg-[#004ac6] text-white shadow-sm"
-                        : "text-[#565e74]"
-                    }`}
-                    onClick={() => props.setPdfCurrency("TRY")}
-                  >
-                    TL
-                  </button>
-                </div>
-                <div className="min-w-[8rem] flex-1 space-y-1">
-                  <Label className="text-sm font-semibold text-[#434655] md:text-[15px]">
-                    Kur (₺ / €)
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      className="h-8 border-[#c3c6d7] bg-white text-[13px] md:text-sm"
-                      type="number"
-                      step="0.01"
-                      value={props.params.euroRate || ""}
-                      onChange={(e) =>
-                        props.handleParamChange(
-                          "euroRate",
-                          Number(e.target.value.replace(",", ".")) || 0,
-                        )
-                      }
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 shrink-0 border-[#c3c6d7]"
-                      onClick={() => props.handleRefreshEuroRate()}
-                      title="Referans kur"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
-          </div>
-
+        <div className="finance-mobile-tight flex flex-col gap-4 max-lg:gap-3 lg:col-span-5 lg:gap-4">
           <SectionCard
             title="Geri Hesaplama Parametreleri"
             description="KDV hariç tutarlar"
@@ -312,6 +334,7 @@ export default function ReverseCalculatorLayout(props: {
             }
           >
             <FinanceFieldGrid
+              layout="stack"
               machineTitle="Müşteri ve makine"
               financeTitle="Finansman"
               machineFields={[
@@ -338,7 +361,10 @@ export default function ReverseCalculatorLayout(props: {
                 {
                   key: "downPaymentEuro",
                   label: "Peşinat (€)",
-                  placeholder: "30000",
+                },
+                {
+                  key: "financingSupportEuro",
+                  label: "Finansman desteği (€)",
                 },
                 termField,
                 {
@@ -372,18 +398,20 @@ export default function ReverseCalculatorLayout(props: {
               />
             }
           >
-            <ExpenseInputCard
-              expenses={props.expenses}
-              onChange={props.handleExpenseChange}
-              appearance="minimal"
-              comfortable
-              compact
-              variant={isAnnual ? "annual" : "monthly"}
+            <FinanceCatalogExpensePanel
+              hideTitle
+              modesStorageKey="llp:v3:reverse:fee-modes"
+              machinePriceEuro={Number(props.params.allInTotalEuro) || 0}
+              term={Number(props.params.term) || 0}
+              paymentFrequency={props.paymentFrequency}
+              expenses={props.expenses as FinanceExpenses}
+              onExpensesChange={props.onExpensesReplace}
+              inputClassName="h-8 border-[#c3c6d7] bg-white text-[13px] md:text-sm"
             />
           </SectionCard>
         </div>
 
-        <div className="hidden lg:flex lg:col-span-4 lg:sticky lg:top-[4.75rem] flex-col gap-4">
+        <div className="hidden lg:flex lg:col-span-7 lg:sticky lg:top-[4.75rem] flex-col gap-4">
           {reverseSummaryContent}
         </div>
         </div>

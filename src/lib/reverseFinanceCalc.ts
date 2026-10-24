@@ -9,6 +9,7 @@ import {
 function totalPayment(
   grossBase: number,
   downPayment: number,
+  financingSupport: number,
   annualRatePct: number,
   term: number,
   paymentMode: "monthly" | "annual",
@@ -16,7 +17,7 @@ function totalPayment(
   if (term <= 0) {
     return Math.max(0, grossBase);
   }
-  const financed = Math.max(0, grossBase - downPayment);
+  const financed = Math.max(0, grossBase - downPayment - financingSupport);
   const pmt =
     paymentMode === "annual"
       ? calculateAnnualPMT(financed, annualRatePct, term)
@@ -27,13 +28,15 @@ function totalPayment(
 export function solveNetMachineFromAllInTotal(args: {
   allInTotal: number;
   downPayment: number;
+  financingSupport?: number;
   annualRatePct: number;
   term: number;
   totalExpenses: number;
   paymentMode: "monthly" | "annual";
 }) {
+  const support = Math.max(0, args.financingSupport ?? 0);
   const targetTotal = Math.max(0, args.allInTotal);
-  let lo = Math.max(0, args.downPayment);
+  let lo = Math.max(0, args.downPayment + support);
   let hi = Math.max(lo + 1, args.allInTotal);
   for (
     let i = 0;
@@ -41,6 +44,7 @@ export function solveNetMachineFromAllInTotal(args: {
     totalPayment(
       hi + args.totalExpenses,
       args.downPayment,
+      support,
       args.annualRatePct,
       args.term,
       args.paymentMode,
@@ -54,6 +58,7 @@ export function solveNetMachineFromAllInTotal(args: {
     const total = totalPayment(
       mid + args.totalExpenses,
       args.downPayment,
+      support,
       args.annualRatePct,
       args.term,
       args.paymentMode,
@@ -79,22 +84,25 @@ export type ReverseFinanceLeg = {
 export function computeReverseFinanceLeg(args: {
   allInTotal: number;
   downPayment: number;
+  financingSupport?: number;
   annualRatePct: number;
   term: number;
   totalExpenses: number;
   catalogTotal: number;
   paymentMode: "monthly" | "annual";
 }): ReverseFinanceLeg {
+  const support = Math.max(0, args.financingSupport ?? 0);
   const netMachine = solveNetMachineFromAllInTotal({
     allInTotal: args.allInTotal,
     downPayment: args.downPayment,
+    financingSupport: support,
     annualRatePct: args.annualRatePct,
     term: args.term,
     totalExpenses: args.totalExpenses,
     paymentMode: args.paymentMode,
   });
   const grossBase = netMachine + args.totalExpenses;
-  const financed = Math.max(0, grossBase - args.downPayment);
+  const financed = Math.max(0, grossBase - args.downPayment - support);
   const installment =
     args.term > 0
       ? args.paymentMode === "annual"
@@ -124,5 +132,49 @@ export function computeReverseFinanceLeg(args: {
     interestDiff,
     schedule,
     totalExpenses: args.totalExpenses,
+  };
+}
+
+export function computeReverseBothLegs(
+  params: {
+    allInTotalEuro: number;
+    downPaymentEuro: number;
+    financingSupportEuro?: number;
+    euroRate: number;
+    euroInterest: number;
+    tlInterest: number;
+    term: number;
+  },
+  totalExpensesEuro: number,
+  catalogTotalEuro: number,
+  paymentMode: "monthly" | "annual",
+) {
+  const rate = params.euroRate;
+  const support = Math.max(0, params.financingSupportEuro ?? 0);
+  const legArgs = {
+    downPayment: params.downPaymentEuro,
+    financingSupport: support,
+    annualRatePct: params.euroInterest,
+    term: params.term,
+    totalExpenses: totalExpensesEuro,
+    catalogTotal: catalogTotalEuro,
+    paymentMode,
+  };
+  return {
+    euro: computeReverseFinanceLeg({
+      allInTotal: params.allInTotalEuro,
+      ...legArgs,
+      annualRatePct: params.euroInterest,
+    }),
+    tl: computeReverseFinanceLeg({
+      allInTotal: params.allInTotalEuro * rate,
+      downPayment: params.downPaymentEuro * rate,
+      financingSupport: support * rate,
+      annualRatePct: params.tlInterest,
+      term: params.term,
+      totalExpenses: totalExpensesEuro * rate,
+      catalogTotal: catalogTotalEuro * rate,
+      paymentMode,
+    }),
   };
 }

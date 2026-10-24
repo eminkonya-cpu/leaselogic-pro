@@ -3,10 +3,17 @@
 import { formatNumber } from "@/components/finance/format";
 import { cn } from "@/lib/utils";
 
+export type CostSummarySubRow = {
+  label: string;
+  value: number;
+};
+
 export type CostSummaryRow = {
   label: string;
   value: number;
-  tone?: "default" | "subtotal" | "negative" | "emphasis";
+  tone?: "default" | "subtotal" | "negative" | "emphasis" | "positive";
+  /** Seçili opsiyon / masraf kalemleri (stitch özet). */
+  subRows?: CostSummarySubRow[];
 };
 
 function rowClass(tone: CostSummaryRow["tone"]) {
@@ -28,11 +35,26 @@ function formatMoney(value: number, amountDecimals?: number) {
     : formatNumber(value, { noDecimals: true });
 }
 
+function formatStitchAmount(
+  value: number,
+  tone: CostSummaryRow["tone"],
+  amountDecimals?: number,
+) {
+  const abs = formatMoney(Math.abs(value), amountDecimals);
+  if (value < 0 || tone === "negative") {
+    return `−${abs}`;
+  }
+  if (tone === "positive" && value > 0) {
+    return `+${abs}`;
+  }
+  return abs;
+}
+
 export function CostDistributionChart(props: {
   segments: { label: string; value: number; color: string }[];
   totalLabel?: string;
   totalValue?: number;
-  currencySymbol: "€" | "₺";
+  currencySymbol: "€" | "₺" | "$";
   large?: boolean;
   /** Verilirse tutarlarda bu kadar ondalık (ör. geri hesaplama: 2). */
   amountDecimals?: number;
@@ -137,7 +159,7 @@ export function CostDistributionChart(props: {
 
 export default function CostSummaryPanel(props: {
   rows: CostSummaryRow[];
-  currencySymbol: "€" | "₺";
+  currencySymbol: "€" | "₺" | "$";
   totalLabel?: string;
   totalValue?: number;
   segments?: { label: string; value: number; color: string }[];
@@ -149,6 +171,13 @@ export default function CostSummaryPanel(props: {
   /** Stitch mavi kutu başlığı (geri hesaplama vb.) */
   stitchPrimaryTotalLabel?: string;
   amountDecimals?: number;
+  /** Finansman desteği: desteksiz tutar ve fark (sadece stitch). */
+  stitchCompare?: {
+    baselineLabel: string;
+    baselineValue: number;
+    deltaLabel: string;
+    deltaValue: number;
+  };
 }) {
   const stitch = props.layout === "stitch";
   const split = props.layout === "split";
@@ -159,23 +188,50 @@ export default function CostSummaryPanel(props: {
 
   if (stitch) {
     return (
-      <div className="flex flex-col gap-2 text-[13px] text-[#0b1c30] md:text-sm">
+      <div className="llp-cost-panel flex flex-col gap-2 text-[13px] text-[#0b1c30] md:text-sm">
         {lineRows.map((row, index) => (
           <div
-            key={row.label}
+            key={`${row.label}-${index}`}
             className={cn(
-              "flex items-end justify-between border-[#c3c6d7]/50 pb-1.5",
+              "border-[#c3c6d7]/50 pb-1.5",
               index < lineRows.length - 1 ? "border-b" : "",
             )}
           >
-            <span className="text-xs text-[#434655] md:text-[13px]">{row.label}</span>
-            <span className="text-xs font-semibold tabular-nums md:text-[13px]">
-              {formatMoney(row.value, props.amountDecimals)}{" "}
-              {props.currencySymbol}
-            </span>
+            <div className="flex items-end justify-between gap-2">
+              <span className="min-w-0 text-xs text-[#434655] md:text-[13px]">
+                {row.label}
+              </span>
+              <span
+                className={cn(
+                  "shrink-0 text-xs font-semibold tabular-nums md:text-[13px]",
+                  row.tone === "negative" || row.value < 0
+                    ? "text-red-600"
+                    : row.tone === "positive"
+                      ? "text-emerald-700"
+                      : "",
+                )}
+              >
+                {formatStitchAmount(row.value, row.tone, props.amountDecimals)}{" "}
+                {props.currencySymbol}
+              </span>
+            </div>
+            {row.subRows?.map((sub, subIndex) => (
+              <div
+                key={`${sub.label}-${subIndex}`}
+                className="mt-1 flex items-end justify-between gap-2 pl-3"
+              >
+                <span className="min-w-0 text-[11px] font-medium leading-snug text-[#565e74] md:text-xs">
+                  {sub.label}
+                </span>
+                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-[#434655] md:text-xs">
+                  {formatMoney(sub.value, props.amountDecimals)}{" "}
+                  {props.currencySymbol}
+                </span>
+              </div>
+            ))}
           </div>
         ))}
-        <div className="mt-1 rounded-lg border border-[#2563eb]/20 bg-[#eff4ff] p-3 max-lg:p-2.5">
+        <div className="llp-cost-total-box mt-1 rounded-lg border border-[#2563eb]/20 bg-[#eff4ff] p-3 max-lg:p-2.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-bold text-[#0b1c30] max-lg:text-xs">
               {props.stitchPrimaryTotalLabel ?? "Toplam (EUR)"}
@@ -185,6 +241,39 @@ export default function CostSummaryPanel(props: {
               {props.currencySymbol}
             </span>
           </div>
+          {props.stitchCompare ? (
+            <div className="mt-2.5 grid grid-cols-2 gap-2 border-t border-[#2563eb]/15 pt-2.5 text-xs md:text-[13px]">
+              <div className="rounded-md bg-white/70 px-2 py-1.5">
+                <p className="font-semibold text-[#565e74]">
+                  {props.stitchCompare.baselineLabel}
+                </p>
+                <p className="mt-0.5 font-bold tabular-nums text-[#434655] line-through decoration-[#8b93a7]/80">
+                  {formatMoney(props.stitchCompare.baselineValue, props.amountDecimals)}{" "}
+                  {props.currencySymbol}
+                </p>
+              </div>
+              <div className="rounded-md bg-white/70 px-2 py-1.5">
+                <p className="font-semibold text-[#565e74]">
+                  {props.stitchCompare.deltaLabel}
+                </p>
+                <p
+                  className={cn(
+                    "mt-0.5 font-bold tabular-nums",
+                    props.stitchCompare.deltaValue >= 0
+                      ? "text-emerald-700"
+                      : "text-emerald-700",
+                  )}
+                >
+                  {props.stitchCompare.deltaValue >= 0 ? "+" : "−"}
+                  {formatMoney(
+                    Math.abs(props.stitchCompare.deltaValue),
+                    props.amountDecimals,
+                  )}{" "}
+                  {props.currencySymbol}
+                </p>
+              </div>
+            </div>
+          ) : null}
           {props.monthlyInstallment != null ? (
             <div className="mt-2 flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-[#565e74] md:text-[13px]">

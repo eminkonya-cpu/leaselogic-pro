@@ -1,0 +1,292 @@
+/**
+ * Banka görünümü — yalnızca [data-llp-ui="bank"] altında çalışır.
+ * Bu dosya katmansız (unlayered) import edilir; Tailwind utility katmanını
+ * !important olmadan geçer. Kaldırmak için globals.css’teki import’u silmek yeterli.
+ */
+
+[data-llp-ui="bank"] {
+  --bank-navy-950: #071631;
+  --bank-navy-900: #0b1f44;
+  --bank-navy-800: #12305f;
+  --bank-navy-700: #1b4285;
+  --bank-gold: #d6a93a;
+  --bank-page: #eef1f6;
+  --bank-surface: #ffffff;
+  --bank-line: #dde3ec;
+  --bank-ink: #0b1a33;
+  --bank-muted: #5b6b82;
+  --bank-radius: 16px;
+  --bank-shadow: 0 1px 2px rgb(11 31 68 / 0.05), 0 10px 30px rgb(11 31 68 / 0.07);
+}
+
+/* ——— Sayfa ——— */
+
+html[data-llp-ui="bank"] body,
+[data-llp-ui="bank"].llp-ui-root {
+  background:
+    radial-gradient(1200px 380px at 50% -120px, rgb(27 66 133 / 0.10), transparent 70%),
+    var(--bank-page);
+  color: var(--bank-ink);
+}
+
+/* ——— Header ——— */
+
+[data-llp-ui="bank"] .llp-app-header {
+  background: linear-gradient(135deg, var(--bank-navy-950) 0%, var(--bank-navy-900) 55%, var(--bank-navy-800) 100%);
+  border-bottom: 2px solid var(--bank-gold);
+  box-shadow: 0 8px 24px rgb(7 22 49 / 0.25);
+}
+
+[data-llp-ui="bank"] .llp-app-header h1 {
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+[data-llp-ui="bank"] .llp-app-tagline,
+[data-llp-ui="bank"] .llp-theme-label {
+  color: #a9b8d0;
+}
+
+[data-llp-ui="bank"] .llp-brand-mark {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--bank-gold), #f1d27a);
+  color: var(--bank-navy-950);
+  box-shadow: 0 2px 8px rgb(214 169 58 / 0.35);
+}
+
+[data-llp-ui="bank"] .llp-user-chip {
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  color: #e6ecf5;
+}
+
+[data-llp-ui="bank"] .llp-user-chip svg {
+  color: var(--bank-gold);
+}
+
+[data-llp-ui="bank"] .llp-app-header .llp-signout {
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  color: #ffffff;
+}
+
+[data-llp-ui="bank"] .llp-app-header .llp-signout:hover {
+  background: rgb(255 255 255 / 0.1);
+}
+
+[data-llp-ui="bank"] .llp-app-header button[data-slot="button"]:not(.llp-signout) {
+  background: rgb(255 255 255 / 0.06);
+  border-color: rgb(255 255 255 / 0.2);
+  color: #e6ecf5;
+}
+
+/* Tema anahtarı (koyu zemin) */
+[data-llp-ui="bank"] .llp-theme-toggle {
+  background: rgb(255 255 255 / 0.08);
+  border-color: rgb(255 255 255 / 0.18);
+}
+
+[data-llp-ui="bank"] .llp-theme-toggle button[data-active="false"] {
+  color: #c7d2e3;
+}
+
+[data-llp-ui="bank"] .llp-theme-toggle button[data-active="false"]:hover {
+  background: rgb(255 255 255 / 0.1);
+}
+
+[data-llp-ui="bank"] .llp-theme-toggle button[data-active="true"] {
+  background: #ffffff;
+  color: var(--bank-navy-900);
+}
+
+/* Mod sekmeleri */
+[data-llp-ui="bank"] .llp-mode-tabs {
+  border-radius: 9999px;
+  border-color: rgb(255 255 255 / 0.14);
+  background: rgb(255 255 255 / 0.07);
+  padding: 4px;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.2);
+}
+
+[data-llp-ui="bank"] .llp-mode-tabs button {
+  border-radius: 9999px;
+  color: #c7d2e3;
+}
+
+[data-llp-ui="bank"] .llp-mode-tabs button[data-active="false"]:hover {
+  background: rgb(255 255 255 / 0.08);
+  color: #ffffff;
+}
+
+[data-llp-ui="bank"] .llp-mode-tabs button[data-active="true"] {
+  background: #ffffff;
+  color: var(--bank-navy-900);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.25);
+}
+
+/* ——— İçerik ——— */
+
+[data-llp-ui="bank"] .finance-main {
+  color: var(--bank-ink);
+}
+
+[data-llp-ui="bank"] .finance-context-bar,
+[data-llp-ui="bank"] .llp-section-card {
+  border-radius: var(--bank-radius);
+  border-color: var(--bank-line);
+  background: var(--bank-surface);
+  box-shadow: var(--bank-shadow);
+}
+
+[data-llp-ui="bank"] .llp-section-card h2 {
+  color: var(--bank-navy-900);
+  letter-spacing: -0.01em;
+}
+
+[data-llp-ui="bank"] .llp-section-card > div:not([aria-hidden]):first-of-type {
+  border-color: var(--bank-line);
+}
+
+[data-llp-ui="bank"] .llp-section-card > div[aria-hidden] {
+  width: 4px;
+  background: linear-gradient(180deg, var(--bank-gold), var(--bank-navy-700));
+}
+
+/* Segment kontroller (ödeme sıklığı, para birimi) */
+[data-llp-ui="bank"] .llp-segment {
+  border-radius: 9999px;
+  border-color: var(--bank-line);
+  background: #f1f4f9;
+}
+
+[data-llp-ui="bank"] .llp-segment button {
+  border-radius: 9999px;
+}
+
+/* Birincil renk → lacivert */
+[data-llp-ui="bank"] .finance-main .bg-\[\#004ac6\],
+[data-llp-ui="bank"] .finance-context-bar .bg-\[\#004ac6\] {
+  background-color: var(--bank-navy-800);
+}
+
+[data-llp-ui="bank"] .finance-main .text-\[\#004ac6\] {
+  color: var(--bank-navy-700);
+}
+
+/* Form alanları */
+[data-llp-ui="bank"] .finance-main input:not([type="checkbox"]):not([type="radio"]),
+[data-llp-ui="bank"] .finance-context-bar input {
+  border-radius: 10px;
+  border-color: var(--bank-line);
+  background: #fbfcfe;
+}
+
+[data-llp-ui="bank"] .finance-main input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+[data-llp-ui="bank"] .finance-context-bar input:focus-visible {
+  border-color: var(--bank-navy-700);
+  box-shadow: 0 0 0 3px rgb(27 66 133 / 0.15);
+  background: #ffffff;
+}
+
+/* ——— KPI şeridi ——— */
+
+[data-llp-ui="bank"] .finance-kpi-strip {
+  gap: 0.875rem;
+}
+
+[data-llp-ui="bank"] .llp-kpi-card {
+  border-radius: var(--bank-radius);
+  border: 1px solid var(--bank-line);
+  border-left-width: 1px;
+  background: var(--bank-surface);
+  box-shadow: var(--bank-shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-llp-ui="bank"] .llp-kpi-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--bank-line);
+}
+
+[data-llp-ui="bank"] .llp-kpi-card > p:first-child {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10.5px;
+  color: var(--bank-muted);
+}
+
+[data-llp-ui="bank"] .llp-kpi-card > p:nth-child(2) {
+  letter-spacing: -0.03em;
+}
+
+/* İlk KPI: koyu “hero” kart */
+[data-llp-ui="bank"] .finance-kpi-strip > .llp-kpi-card:first-child {
+  border-color: var(--bank-navy-900);
+  background: linear-gradient(140deg, var(--bank-navy-950) 0%, var(--bank-navy-800) 100%);
+  box-shadow: 0 12px 28px rgb(11 31 68 / 0.28);
+}
+
+[data-llp-ui="bank"] .finance-kpi-strip > .llp-kpi-card:first-child::before {
+  background: var(--bank-gold);
+}
+
+[data-llp-ui="bank"] .finance-kpi-strip > .llp-kpi-card:first-child > p:first-child,
+[data-llp-ui="bank"] .finance-kpi-strip > .llp-kpi-card:first-child > p:nth-child(3) {
+  color: #a9b8d0;
+}
+
+[data-llp-ui="bank"] .finance-kpi-strip > .llp-kpi-card:first-child > p:nth-child(2),
+[data-llp-ui="bank"] .finance-kpi-strip > .llp-kpi-card:first-child > p:nth-child(2) span {
+  color: #ffffff;
+}
+
+/* ——— Maliyet özeti toplam kutusu ——— */
+
+[data-llp-ui="bank"] .llp-cost-total-box {
+  border-radius: 14px;
+  border: 0;
+  border-top: 3px solid var(--bank-gold);
+  background: linear-gradient(140deg, var(--bank-navy-950) 0%, var(--bank-navy-800) 100%);
+  box-shadow: 0 10px 24px rgb(11 31 68 / 0.22);
+  color: #e6ecf5;
+}
+
+[data-llp-ui="bank"] .llp-cost-total-box span,
+[data-llp-ui="bank"] .llp-cost-total-box p {
+  color: #c7d2e3;
+}
+
+[data-llp-ui="bank"] .llp-cost-total-box > div:first-child span:last-child {
+  color: #ffffff;
+}
+
+[data-llp-ui="bank"] .llp-cost-total-box > div:first-child span:first-child {
+  color: #ffffff;
+}
+
+[data-llp-ui="bank"] .llp-cost-total-box .grid {
+  border-color: rgb(255 255 255 / 0.12);
+}
+
+[data-llp-ui="bank"] .llp-cost-total-box .grid > div {
+  background: rgb(255 255 255 / 0.07);
+  border: 1px solid rgb(255 255 255 / 0.08);
+}
+
+[data-llp-ui="bank"] .llp-cost-total-box .line-through {
+  color: #a9b8d0;
+  text-decoration-color: rgb(169 184 208 / 0.7);
+}
+
+[data-llp-ui="bank"] .llp-cost-total-box .text-emerald-700 {
+  color: #6ee7b7;
+}

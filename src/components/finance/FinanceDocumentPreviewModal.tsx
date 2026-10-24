@@ -7,6 +7,10 @@ import {
   type PrintableCalculationSummaryProps,
 } from "@/components/finance/PrintableCalculationSummary";
 import {
+  PrintableGraceBalloonSummaryContent,
+  type PrintableGraceBalloonSummaryProps,
+} from "@/components/finance/PrintableGraceBalloonSummary";
+import {
   PrintableReverseSummaryContent,
   type PrintableReverseSummaryProps,
 } from "@/components/finance/PrintableReverseSummary";
@@ -19,7 +23,8 @@ import { Printer, X } from "lucide-react";
 export type FinancePreviewVariant =
   | "payment-plan"
   | "calculation-summary"
-  | "reverse-summary";
+  | "reverse-summary"
+  | "grace-balloon-summary";
 
 export function FinanceDocumentPreviewModal(props: {
   open: boolean;
@@ -28,6 +33,7 @@ export function FinanceDocumentPreviewModal(props: {
   paymentPlan?: PrintablePdfProps;
   calculationSummary?: PrintableCalculationSummaryProps;
   reverseSummary?: PrintableReverseSummaryProps;
+  graceBalloonSummary?: PrintableGraceBalloonSummaryProps;
 }) {
   if (!props.open || typeof document === "undefined") {
     return null;
@@ -78,6 +84,13 @@ export function FinanceDocumentPreviewModal(props: {
           {props.variant === "reverse-summary" && props.reverseSummary ? (
             <PrintableReverseSummaryContent
               {...props.reverseSummary}
+              className="w-full p-3 sm:p-4 md:p-[10mm]"
+            />
+          ) : null}
+          {props.variant === "grace-balloon-summary" &&
+          props.graceBalloonSummary ? (
+            <PrintableGraceBalloonSummaryContent
+              {...props.graceBalloonSummary}
               className="w-full p-3 sm:p-4 md:p-[10mm]"
             />
           ) : null}

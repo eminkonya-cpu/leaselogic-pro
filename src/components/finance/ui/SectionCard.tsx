@@ -22,7 +22,7 @@ export default function SectionCard(props: {
       className={cn(
         stitch
           ? cn(
-              "relative overflow-hidden rounded-xl border border-[#c3c6d7] bg-white shadow-sm",
+              "llp-section-card relative overflow-hidden rounded-xl border border-[#c3c6d7] bg-white shadow-sm",
               compact ? "p-3 md:p-4 max-lg:p-3" : "p-4 md:p-5 max-lg:p-3.5",
             )
           : "rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4 max-lg:p-3",
