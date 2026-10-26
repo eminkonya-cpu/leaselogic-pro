@@ -20,3 +20,12 @@ export function formatNumber(
     maximumFractionDigits: decimals,
   });
 }
+
+/** Tutar + para birimi; arada kırılmayan boşluk (mobilde € alt satıra düşmesin). */
+export function formatMoneyWithSymbol(
+  value: number,
+  symbol: string,
+  decimals = 2,
+) {
+  return `${formatNumber(value, { decimals })}\u00a0${symbol}`;
+}

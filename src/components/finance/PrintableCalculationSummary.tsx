@@ -1,6 +1,6 @@
 "use client";
 
-import { formatNumber } from "@/components/finance/format";
+import { formatMoneyWithSymbol, formatNumber } from "@/components/finance/format";
 import {
   ReportDocument,
   ReportKeyValues,
@@ -58,7 +58,8 @@ function ExecutiveCalculationSummary(
   const isTry = props.currency === "TRY";
   const sym = isTry ? "₺" : "€";
   const rate = props.euroRate;
-  const money = (v: number) => `${formatNumber(v, { noDecimals: true })} ${sym}`;
+  const money = (v: number) =>
+    formatMoneyWithSymbol(v, sym, 0);
   const pct = (v: number) => `%${formatNumber(v, { decimals: 1 })}`;
 
   const machinePrice = isTry ? props.machinePriceEuro * rate : props.machinePriceEuro;

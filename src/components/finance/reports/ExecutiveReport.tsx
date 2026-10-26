@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 export type ReportTone = "default" | "positive" | "negative" | "muted";
 
@@ -107,20 +107,24 @@ export type ReportMetric = {
 export function ReportMetricStrip(props: { items: ReportMetric[] }) {
   return (
     <div
-      className="grid gap-px overflow-hidden rounded-lg border border-[#cbd5e1] bg-[#cbd5e1] break-inside-avoid"
-      style={{ gridTemplateColumns: `repeat(${props.items.length}, minmax(0, 1fr))` }}
+      className="llp-metric-strip grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-[#cbd5e1] bg-[#cbd5e1] break-inside-avoid min-[1025px]:grid-cols-[repeat(var(--llp-metric-cols),minmax(0,1fr))] print:grid-cols-[repeat(var(--llp-metric-cols),minmax(0,1fr))]"
+      style={
+        {
+          "--llp-metric-cols": props.items.length,
+        } as CSSProperties
+      }
     >
       {props.items.map((item) => (
         <div
           key={item.label}
           className={cn(
-            "px-3 py-2.5 print:px-2 print:py-1.5",
+            "min-w-0 px-2.5 py-2 max-[1024px]:px-2 max-[1024px]:py-2 min-[1025px]:px-3 min-[1025px]:py-2.5 print:px-2 print:py-1.5",
             item.emphasis ? "bg-[#0f172a] text-white" : "bg-white",
           )}
         >
           <p
             className={cn(
-              "text-[10px] font-bold uppercase tracking-[0.1em] print:text-[7.5px]",
+              "text-[9px] font-bold uppercase leading-snug tracking-[0.08em] max-[1024px]:tracking-[0.06em] min-[1025px]:text-[10px] min-[1025px]:tracking-[0.1em] print:text-[7.5px]",
               item.emphasis ? "text-[#99f6e4]" : "text-[#64748b]",
             )}
           >
@@ -128,7 +132,7 @@ export function ReportMetricStrip(props: { items: ReportMetric[] }) {
           </p>
           <p
             className={cn(
-              "mt-1 text-[15px] font-bold tabular-nums leading-tight tracking-tight print:text-[11.5px]",
+              "mt-1 text-[13px] font-bold tabular-nums leading-tight tracking-tight whitespace-nowrap max-[1024px]:text-[12.5px] min-[1025px]:text-[15px] print:text-[11.5px]",
               item.emphasis ? "text-white" : "text-[#0f172a]",
             )}
           >
@@ -181,14 +185,19 @@ export type ReportKeyValue = { label: string; value: string };
 
 export function ReportKeyValues(props: { items: ReportKeyValue[] }) {
   return (
-    <dl className="grid grid-cols-2 gap-x-8 text-[12.5px] print:gap-x-6 print:text-[9.5px]">
+    <dl className="text-[12.5px] print:text-[9.5px]">
       {props.items.map((item) => (
         <div
           key={item.label}
-          className="flex items-baseline justify-between gap-3 border-b border-dotted border-[#e2e8f0] py-1.5 print:py-1"
+          className="grid gap-x-3 gap-y-0.5 border-b border-dotted border-[#e2e8f0] py-1.5 max-[1024px]:grid-cols-1 min-[1025px]:grid-cols-[minmax(0,1fr)_auto] min-[1025px]:items-baseline print:py-1"
         >
           <dt className="min-w-0 font-medium text-[#64748b]">{item.label}</dt>
-          <dd className="shrink-0 text-right font-semibold tabular-nums text-[#0f172a]">
+          <dd
+            className={cn(
+              "min-w-0 font-semibold text-[#0f172a] max-[1024px]:text-left max-[1024px]:text-[12px] max-[1024px]:leading-snug min-[1025px]:text-right min-[1025px]:tabular-nums",
+              item.label === "Plan süresi" && "whitespace-normal",
+            )}
+          >
             {item.value}
           </dd>
         </div>
@@ -329,7 +338,7 @@ export function ReportResult(props: {
         <span className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#99f6e4] print:text-[9px]">
           {props.label}
         </span>
-        <span className="text-2xl font-bold tabular-nums tracking-tight print:text-[17px]">
+        <span className="text-xl font-bold tabular-nums tracking-tight whitespace-nowrap max-[1024px]:text-lg min-[1025px]:text-2xl print:text-[17px]">
           {props.value}
         </span>
       </div>

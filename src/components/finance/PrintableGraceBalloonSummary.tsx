@@ -1,6 +1,6 @@
 "use client";
 
-import { formatNumber } from "@/components/finance/format";
+import { formatMoneyWithSymbol, formatNumber } from "@/components/finance/format";
 import {
   ReportDocument,
   ReportKeyValues,
@@ -54,7 +54,7 @@ function ExecutiveGraceBalloonSummary(
   props: PrintableGraceBalloonSummaryProps & { className?: string },
 ) {
   const sym = props.currencySymbol;
-  const money = (v: number) => `${formatNumber(v, { decimals: 2 })} ${sym}`;
+  const money = (v: number) => formatMoneyWithSymbol(v, sym);
   const support = Math.max(0, props.financingSupport);
   const isReverse = props.direction === "reverse";
   const hasTarget = isReverse && props.targetCustomerTotal != null;
@@ -90,7 +90,7 @@ function ExecutiveGraceBalloonSummary(
     <ReportDocument
       kind={`3 Ay Ödemesiz & Balon · ${isReverse ? "Geri hesaplama" : "İleri hesaplama"}`}
       title="Balon Planı Özeti"
-      tags={[props.planTermLabel, "KDV hariç"]}
+      tags={["KDV hariç"]}
       className={props.className}
       footnote="Ödeme planı ayrı alınır. Peşinat, taksitler, balonlar ve peşin ek maliyetler müşteri toplamına dahildir."
     >

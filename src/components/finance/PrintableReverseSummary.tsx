@@ -1,6 +1,6 @@
 "use client";
 
-import { formatAmount, formatNumber } from "@/components/finance/format";
+import { formatAmount, formatMoneyWithSymbol, formatNumber } from "@/components/finance/format";
 import {
   ReportDocument,
   ReportKeyValues,
@@ -56,7 +56,7 @@ function ExecutiveReverseSummary(
   props: PrintableReverseSummaryProps & { className?: string },
 ) {
   const sym = props.currencySymbol;
-  const money = (v: number) => `${formatAmount(v)} ${sym}`;
+  const money = (v: number) => formatMoneyWithSymbol(v, sym);
   const kalemlerToplam = sumReverseDetailRows(props.detailRows);
   const financingSupport = Math.max(0, props.financingSupportDisplay ?? 0);
   const netSatis = Math.max(0, props.displayNetMachine);
