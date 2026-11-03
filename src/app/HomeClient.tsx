@@ -500,20 +500,23 @@ export function HomeClient() {
       }
 
       if (!session) {
-        if (event === "SIGNED_OUT" || event === "INITIAL_SESSION") {
+        const keepOpen =
+          authStateRef.current === "authenticated" ||
+          Boolean(readAuthHint()) ||
+          hasStoredSupabaseSession();
+
+        // Yalnızca gerçek çıkış giriş ekranına düşürsün.
+        // INITIAL_SESSION/token yenileme sırasında session kısa süre boş gelebiliyor.
+        if (event === "SIGNED_OUT") {
           applySignedOut();
           return;
         }
 
-        if (event) {
+        if (keepOpen) {
           return;
         }
 
-        if (authStateRef.current === "authenticated" || readAuthHint()) {
-          return;
-        }
-
-        applySignedOut();
+        setAuthState("signed_out");
         return;
       }
 
@@ -521,12 +524,14 @@ export function HomeClient() {
 
       if (
         alreadyIn &&
-        (event === "TOKEN_REFRESHED" || event === "USER_UPDATED")
+        (event === "TOKEN_REFRESHED" ||
+          event === "USER_UPDATED" ||
+          event === "INITIAL_SESSION")
       ) {
         return;
       }
 
-      if (!alreadyIn) {
+      if (!alreadyIn && !readAuthHint()) {
         setAuthState("loading");
       }
 
@@ -608,9 +613,29 @@ export function HomeClient() {
       void syncSession(session, event);
     });
 
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+      void supabase.auth.getSession().then(({ data }) => {
+        if (!isMounted) {
+          return;
+        }
+        if (data.session) {
+          if (authStateRef.current === "authenticated") {
+            return;
+          }
+          void syncSession(data.session);
+        }
+      });
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 

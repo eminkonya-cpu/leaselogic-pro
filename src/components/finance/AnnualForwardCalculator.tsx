@@ -22,6 +22,7 @@ import { clearForwardMachineFinance } from "@/lib/financeFormClear";
 import { getForwardDisplayMetrics } from "@/lib/forwardDisplayMetrics";
 import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { usePersistentState } from "@/lib/usePersistentState";
+import { parseEuroRate, useSharedEuroRate } from "@/lib/useSharedEuroRate";
 import { EMPTY_EXPENSES } from "@/components/finance/ExpenseInputCard";
 
 const FORWARD_STORAGE_PREFIX = "llp:v2:forward";
@@ -47,6 +48,7 @@ export default function AnnualForwardCalculator(props: {
     `${FORWARD_STORAGE_PREFIX}:shared:pdf-currency`,
     "EUR",
   );
+  const [euroRate, setEuroRate] = useSharedEuroRate();
   const [sharedParams, setSharedParams] = usePersistentState(
     `${FORWARD_STORAGE_PREFIX}:shared:params`,
     {
@@ -77,9 +79,18 @@ export default function AnnualForwardCalculator(props: {
     useCatalogSelection();
   const { categories: catalogCategories } = useCatalogCategories();
 
-  const params = useMemo(() => ({ ...sharedParams, term }), [sharedParams, term]);
+  const params = useMemo(
+    () => ({ ...sharedParams, euroRate, term }),
+    [sharedParams, euroRate, term],
+  );
 
   const handleParamChange = (key: string, value: string | number) => {
+    if (key === "euroRate") {
+      const next = parseEuroRate(value);
+      setEuroRate(next);
+      setSharedParams((prev) => ({ ...prev, euroRate: next }));
+      return;
+    }
     if (key === "term") {
       setTerm(String(clampAnnualTermYears(value)));
       return;
@@ -107,7 +118,7 @@ export default function AnnualForwardCalculator(props: {
 
   const handleNewCalculation = () => {
     setSharedParams({
-      euroRate: 51.5,
+      euroRate,
       dollarRate: 42,
       firma: "Maats Makia A.Ş.",
       makine: "MT 1840-100",

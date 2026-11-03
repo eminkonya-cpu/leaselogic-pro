@@ -4,12 +4,9 @@ export type LlpUiTheme = "classic" | "bank";
 
 export const LLP_UI_THEME_STORAGE_KEY = "llp:ui-theme";
 
-/** `.env.local`: NEXT_PUBLIC_BANK_MODERN_UI=true → varsayılan Banka */
+/** Her açılışta Banka görünümü. Klasik yalnızca o oturumda seçilirse. */
 export function getDefaultUiTheme(): LlpUiTheme {
-  if (process.env.NEXT_PUBLIC_BANK_MODERN_UI === "true") {
-    return "bank";
-  }
-  return "classic";
+  return "bank";
 }
 
 export function isValidUiTheme(value: string | null): value is LlpUiTheme {

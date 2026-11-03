@@ -1,42 +1,40 @@
 "use client";
 
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from "react";
 
 export function usePersistentState<T>(key: string, defaultValue: T) {
-  const [state, setState] = useState<T>(() => {
-    if (typeof window === "undefined") {
-      return defaultValue;
-    }
+  const [state, setState] = useState<T>(defaultValue);
+  const [hydrated, setHydrated] = useState(false);
 
+  useLayoutEffect(() => {
     try {
       const rawValue = window.localStorage.getItem(key);
-
       if (rawValue != null) {
-        return JSON.parse(rawValue) as T;
+        setState(JSON.parse(rawValue) as T);
       }
     } catch {
       // Ignore malformed or unavailable localStorage entries.
     }
-
-    return defaultValue;
-  });
-  const isFirstPersistRef = useRef(true);
+    setHydrated(true);
+  }, [key]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!hydrated) {
       return;
     }
 
     try {
-      if (isFirstPersistRef.current) {
-        isFirstPersistRef.current = false;
-      }
-
       window.localStorage.setItem(key, JSON.stringify(state));
     } catch {
       // Ignore write failures such as private mode quota errors.
     }
-  }, [key, state]);
+  }, [hydrated, key, state]);
 
   return [state, setState] as [T, Dispatch<SetStateAction<T>>];
 }

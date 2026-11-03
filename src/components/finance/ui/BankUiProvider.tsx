@@ -3,7 +3,6 @@
 import {
   getDefaultUiTheme,
   persistUiTheme,
-  readStoredUiTheme,
   type LlpUiTheme,
 } from "@/lib/bankUiTheme";
 import { cn } from "@/lib/utils";
@@ -39,7 +38,7 @@ export function BankUiProvider(props: {
   forceTheme?: LlpUiTheme;
 }) {
   const [theme, setThemeState] = useState<LlpUiTheme>(
-    props.forceTheme ?? "classic",
+    props.forceTheme ?? getDefaultUiTheme(),
   );
 
   useEffect(() => {
@@ -47,7 +46,9 @@ export function BankUiProvider(props: {
       setThemeState(props.forceTheme);
       return;
     }
-    setThemeState(readStoredUiTheme() ?? getDefaultUiTheme());
+    const next = getDefaultUiTheme();
+    setThemeState(next);
+    persistUiTheme(next);
   }, [props.forceTheme]);
 
   useEffect(() => {

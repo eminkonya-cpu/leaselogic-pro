@@ -24,6 +24,7 @@ import {
 import { sumForwardExtraExpenses } from "@/lib/forwardCalculatorCore";
 import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { usePersistentState } from "@/lib/usePersistentState";
+import { parseEuroRate, useSharedEuroRate } from "@/lib/useSharedEuroRate";
 import { clearReverseParameters } from "@/lib/financeFormClear";
 import { EMPTY_EXPENSES } from "@/components/finance/ExpenseInputCard";
 
@@ -124,6 +125,7 @@ export default function AnnualReverseCalculator(props: {
     "EUR",
   );
 
+  const [euroRate, setEuroRate] = useSharedEuroRate();
   const [sharedParams, setSharedParams] = usePersistentState(
     `${REVERSE_STORAGE_PREFIX}:shared:params`,
     {
@@ -150,10 +152,19 @@ export default function AnnualReverseCalculator(props: {
     useCatalogSelection();
   const { categories: catalogCategories } = useCatalogCategories();
 
-  const params = useMemo(() => ({ ...sharedParams, term }), [sharedParams, term]);
+  const params = useMemo(
+    () => ({ ...sharedParams, euroRate, term }),
+    [sharedParams, euroRate, term],
+  );
   const termYears = clampTermYears(params.term);
 
   const handleParamChange = (key: string, value: string | number) => {
+    if (key === "euroRate") {
+      const next = parseEuroRate(value);
+      setEuroRate(next);
+      setSharedParams((prev) => ({ ...prev, euroRate: next }));
+      return;
+    }
     if (key === "term") {
       setTerm(String(value));
       return;
@@ -195,7 +206,7 @@ export default function AnnualReverseCalculator(props: {
   const handleNewCalculation = () => {
     setSharedParams({
       allInTotalEuro: 100_000,
-      euroRate: 50.5,
+      euroRate,
       downPaymentEuro: 0,
       financingSupportEuro: 0,
       euroInterest: 6.5,

@@ -26,6 +26,7 @@ import { computeMonthlyForwardCalc } from "@/lib/forwardCalculatorCore";
 import { getForwardDisplayMetrics } from "@/lib/forwardDisplayMetrics";
 import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { usePersistentState } from "@/lib/usePersistentState";
+import { parseEuroRate, useSharedEuroRate } from "@/lib/useSharedEuroRate";
 import { EMPTY_EXPENSES } from "@/components/finance/ExpenseInputCard";
 
 const FORWARD_STORAGE_PREFIX = "llp:v2:forward";
@@ -51,6 +52,7 @@ export default function ForwardCalculator(props: {
     `${FORWARD_STORAGE_PREFIX}:shared:pdf-currency`,
     "EUR",
   );
+  const [euroRate, setEuroRate] = useSharedEuroRate();
   const [sharedParams, setSharedParams] = usePersistentState(
     `${FORWARD_STORAGE_PREFIX}:shared:params`,
     {
@@ -78,13 +80,19 @@ export default function ForwardCalculator(props: {
     useCatalogSelection();
   const { categories: catalogCategories } = useCatalogCategories();
 
-  const params = sharedParams;
+  const params = { ...sharedParams, euroRate };
 
   useEffect(() => {
     migrateLegacyForwardTermInParams(setSharedParams);
   }, [setSharedParams]);
 
   const handleParamChange = (key: string, value: string | number) => {
+    if (key === "euroRate") {
+      const next = parseEuroRate(value);
+      setEuroRate(next);
+      setSharedParams((prev) => ({ ...prev, euroRate: next }));
+      return;
+    }
     if (key === "term") {
       setSharedParams((prev) => ({
         ...prev,
@@ -115,7 +123,7 @@ export default function ForwardCalculator(props: {
 
   const handleNewCalculation = () => {
     setSharedParams({
-      euroRate: 51.5,
+      euroRate,
       dollarRate: 42,
       firma: "Maats Makia A.Ş.",
       makine: "MT 1840-100",
