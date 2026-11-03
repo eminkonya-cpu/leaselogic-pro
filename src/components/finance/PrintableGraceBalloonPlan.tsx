@@ -2,15 +2,14 @@
 
 import { formatNumber } from "@/components/finance/format";
 const DOCUMENT_TITLE = "3 Ay Ödemesiz & Balon Hesaplama";
-import { Button } from "@/components/ui/button";
+import PreviewDocumentActions from "@/components/finance/PreviewDocumentActions";
 import type {
   LeasingPlanRow,
   LeasingPlanSummary,
   PaymentMonthMode,
 } from "@/lib/leasingPaymentPlan";
+import { financePdfFileName } from "@/lib/saveFinanceDocumentPdf";
 import { cn } from "@/lib/utils";
-import { printFinanceDocument } from "@/lib/printFinanceDocument";
-import { Printer, X } from "lucide-react";
 import { createPortal } from "react-dom";
 
 export type PrintableGraceBalloonProps = {
@@ -188,25 +187,10 @@ export function PrintableGraceBalloonPreviewModal(
 
   return createPortal(
     <div className="finance-print-portal fixed inset-0 z-[9999] overflow-auto bg-[#5b616a] p-3 sm:p-4">
-      <div className="no-print sticky top-3 z-10 mb-3 flex justify-end gap-2 sm:top-4">
-        <Button
-          type="button"
-          className="h-9 gap-1.5 bg-[#004ac6] text-xs font-bold"
-          onClick={() => printFinanceDocument("preview")}
-        >
-          <Printer className="h-4 w-4" aria-hidden />
-          Yazdır / PDF
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 gap-1.5 border-slate-300 bg-white/95 text-xs font-bold"
-          onClick={props.onClose}
-        >
-          <X className="h-4 w-4" aria-hidden />
-          Kapat
-        </Button>
-      </div>
+      <PreviewDocumentActions
+        fileName={financePdfFileName(["Odeme-plani", props.firma])}
+        onClose={props.onClose}
+      />
       <div className="finance-print-portal-sheet mx-auto w-full max-w-[210mm]">
         <div className="min-h-[calc(100vh-6rem)] bg-white shadow-lg print:min-h-0 print:h-auto print:shadow-none">
           <PrintableGraceBalloonContent

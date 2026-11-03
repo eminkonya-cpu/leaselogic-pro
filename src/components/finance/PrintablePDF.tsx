@@ -1,13 +1,12 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatNumber } from "@/components/finance/format";
 import type { AmortizationRow } from "@/lib/financeCalculations";
 import { cn } from "@/lib/utils";
-import { printFinanceDocument } from "@/lib/printFinanceDocument";
-import { Printer, X } from "lucide-react";
+import PreviewDocumentActions from "@/components/finance/PreviewDocumentActions";
+import { financePdfFileName } from "@/lib/saveFinanceDocumentPdf";
 
 export type PrintablePdfProps = {
   params: {
@@ -208,26 +207,10 @@ export function PrintablePDFPreviewModal(
 
   return createPortal(
     <div className="finance-print-portal fixed inset-0 z-[9999] overflow-auto bg-[#5b616a] p-3 sm:p-4">
-      <div className="no-print sticky top-3 z-10 mb-3 flex justify-end gap-2 sm:top-4 sm:mb-4">
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 gap-1.5 border-slate-300 bg-white/95 px-3 text-xs font-bold text-slate-900 shadow-sm backdrop-blur"
-          onClick={() => printFinanceDocument("preview")}
-        >
-          <Printer className="h-4 w-4" aria-hidden />
-          Yazdır
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 gap-1.5 border-slate-300 bg-white/95 px-3 text-xs font-bold text-slate-900 shadow-sm backdrop-blur"
-          onClick={props.onClose}
-        >
-          <X className="h-4 w-4" aria-hidden />
-          Kapat
-        </Button>
-      </div>
+      <PreviewDocumentActions
+        fileName={financePdfFileName(["Odeme-plani", props.params.firma])}
+        onClose={props.onClose}
+      />
 
       <div className="finance-print-portal-sheet mx-auto w-full max-w-[210mm]">
         <div className="min-h-[calc(100vh-6rem)] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.28)] print:min-h-0 print:h-auto print:shadow-none">
