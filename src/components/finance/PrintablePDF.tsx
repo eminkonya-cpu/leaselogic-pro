@@ -208,7 +208,7 @@ export function PrintablePDFPreviewModal(
   return createPortal(
     <div className="finance-print-portal fixed inset-0 z-[9999] overflow-auto bg-[#5b616a] p-3 sm:p-4">
       <PreviewDocumentActions
-        fileName={financePdfFileName(["Odeme-plani", props.params.firma])}
+        fileName={financePdfFileName(props.params.firma)}
         onClose={props.onClose}
       />
 

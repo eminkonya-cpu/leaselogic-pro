@@ -188,7 +188,7 @@ export function PrintableGraceBalloonPreviewModal(
   return createPortal(
     <div className="finance-print-portal fixed inset-0 z-[9999] overflow-auto bg-[#5b616a] p-3 sm:p-4">
       <PreviewDocumentActions
-        fileName={financePdfFileName(["Odeme-plani", props.firma])}
+        fileName={financePdfFileName(props.firma)}
         onClose={props.onClose}
       />
       <div className="finance-print-portal-sheet mx-auto w-full max-w-[210mm]">

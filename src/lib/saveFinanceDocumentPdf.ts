@@ -12,17 +12,14 @@ function printSource(): HTMLElement | null {
   );
 }
 
-export function financePdfFileName(parts: Array<string | undefined | null>) {
+export function financePdfFileName(customer?: string | null) {
   const day = new Date().toISOString().slice(0, 10);
-  const tokens = [...parts.map((p) => (p ?? "").trim()), day]
-    .filter(Boolean)
-    .map((p) =>
-      p
-        .replace(/[\\/:*?"<>|]+/g, "-")
-        .replace(/\s+/g, "-")
-        .slice(0, 48),
-    );
-  return tokens.join("_") || `rapor-${day}`;
+  const name = (customer ?? "")
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, "-")
+    .slice(0, 48);
+  return name ? `${name}_${day}` : day;
 }
 
 /** Önizlemedeki belgeyi yazıcı diyaloğu olmadan PDF olarak indirir. */

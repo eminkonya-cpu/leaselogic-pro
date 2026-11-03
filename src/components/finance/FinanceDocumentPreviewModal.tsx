@@ -39,19 +39,12 @@ export function FinanceDocumentPreviewModal(props: {
     return null;
   }
 
-  const fileName = financePdfFileName([
-    props.variant === "payment-plan"
-      ? "Odeme-plani"
-      : props.variant === "reverse-summary"
-        ? "Geri-hesaplama-ozeti"
-        : props.variant === "grace-balloon-summary"
-          ? "Balon-plani-ozeti"
-          : "Ozet-rapor",
+  const fileName = financePdfFileName(
     props.paymentPlan?.params.firma ??
       props.calculationSummary?.firma ??
       props.reverseSummary?.firma ??
       props.graceBalloonSummary?.firma,
-  ]);
+  );
 
   return createPortal(
     <div className="finance-print-portal fixed inset-0 z-[9999] overflow-auto bg-[#5b616a] p-3 sm:p-4">
