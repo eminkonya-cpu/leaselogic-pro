@@ -47,14 +47,14 @@ export function PrintableReversePDFContent(
       id="pdf-print-area"
       className={cn("pdf-print-root bg-white", props.className)}
     >
-      <div className="text-base font-extrabold leading-tight text-slate-900 print:text-[14px]">
+      <div className="text-base font-extrabold leading-tight text-slate-900 print:text-[16px]">
         Geri Hesaplama Raporu
       </div>
-      <p className="mt-1 text-xs font-semibold text-slate-600 print:text-[10px]">
+      <p className="mt-1 text-xs font-semibold text-slate-600 print:text-[12px]">
         {s.frequencyLabel} · KDV hariç · Ön bilgilendirme
       </p>
       <Separator className="my-2 print:my-0.5" />
-      <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm font-semibold print:text-[10px]">
+      <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm font-semibold print:text-[12px]">
         <div className="text-slate-600">Müşteri</div>
         <div className="text-right font-bold">{s.firma ?? "—"}</div>
         <div className="text-slate-600">Makine</div>

@@ -264,6 +264,7 @@
   .finance-print-portal-sheet,
   .finance-print-portal-sheet > div {
     min-height: 0 !important;
+    height: auto !important;
     max-width: none !important;
     margin: 0 !important;
     box-shadow: none !important;

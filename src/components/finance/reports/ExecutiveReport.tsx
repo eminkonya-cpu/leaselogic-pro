@@ -42,17 +42,17 @@ export function ReportDocument(props: {
         <div className="flex min-w-0 gap-3">
           <div className="w-1.5 shrink-0 rounded-full bg-[#0f766e]" aria-hidden />
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0f766e] print:text-[8px]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0f766e] print:text-[10px]">
               {props.kind}
             </p>
-            <h1 className="mt-0.5 font-serif text-xl font-bold leading-tight tracking-tight text-[#0f172a] print:text-[16px]">
+            <h1 className="mt-0.5 font-serif text-xl font-bold leading-tight tracking-tight text-[#0f172a] print:text-[18px]">
               {props.title}
             </h1>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {props.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded border border-[#cbd5e1] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569] print:text-[8px]"
+                  className="rounded border border-[#cbd5e1] px-1.5 py-0.5 text-[10px] font-semibold text-[#475569] print:text-[10px]"
                 >
                   {tag}
                 </span>
@@ -60,35 +60,35 @@ export function ReportDocument(props: {
             </div>
           </div>
         </div>
-        <div className="shrink-0 text-right text-[11px] font-medium leading-relaxed text-[#475569] print:text-[9px]">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#94a3b8] print:text-[8px]">
+        <div className="shrink-0 text-right text-[11px] font-medium leading-relaxed text-[#475569] print:text-[11px]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#94a3b8] print:text-[10px]">
             Rapor tarihi
           </p>
           <p className="font-semibold text-[#0f172a]">{today}</p>
-          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#94a3b8] print:text-[8px]">
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#94a3b8] print:text-[10px]">
             Gizlilik
           </p>
           <p className="font-semibold text-[#0f172a]">Yönetim / iç kullanım</p>
         </div>
       </header>
 
-      <div className="mt-4 space-y-4 print:mt-2.5 print:space-y-2.5">
+      <div className="mt-4 space-y-4 print:mt-3 print:space-y-3">
         {props.children}
       </div>
 
-      <footer className="mt-6 break-inside-avoid print:mt-4">
+      <footer className="mt-6 break-inside-avoid print:mt-5">
         <div className="grid grid-cols-3 gap-4 print:gap-3">
           {["Hazırlayan", "Kontrol eden", "Onaylayan"].map((role) => (
             <div key={role} className="border-t border-[#94a3b8] pt-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#64748b] print:text-[8px]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#64748b] print:text-[10px]">
                 {role}
               </p>
-              <div className="h-8 print:h-6" />
+              <div className="h-8 print:h-7" />
             </div>
           ))}
         </div>
         {props.footnote ? (
-          <p className="mt-3 text-[11px] font-medium leading-snug text-[#64748b] print:mt-2 print:text-[8.5px]">
+          <p className="mt-3 text-[11px] font-medium leading-snug text-[#64748b] print:mt-2.5 print:text-[10.5px]">
             {props.footnote}
           </p>
         ) : null}
@@ -118,13 +118,13 @@ export function ReportMetricStrip(props: { items: ReportMetric[] }) {
         <div
           key={item.label}
           className={cn(
-            "min-w-0 px-2.5 py-2 max-[1024px]:px-2 max-[1024px]:py-2 min-[1025px]:px-3 min-[1025px]:py-2.5 print:px-2 print:py-1.5",
+            "min-w-0 px-2.5 py-2 max-[1024px]:px-2 max-[1024px]:py-2 min-[1025px]:px-3 min-[1025px]:py-2.5 print:px-2.5 print:py-2",
             item.emphasis ? "bg-[#0f172a] text-white" : "bg-white",
           )}
         >
           <p
             className={cn(
-              "text-[9px] font-bold uppercase leading-snug tracking-[0.08em] max-[1024px]:tracking-[0.06em] min-[1025px]:text-[10px] min-[1025px]:tracking-[0.1em] print:text-[7.5px]",
+              "text-[9px] font-bold uppercase leading-snug tracking-[0.08em] max-[1024px]:tracking-[0.06em] min-[1025px]:text-[10px] min-[1025px]:tracking-[0.1em] print:text-[9px]",
               item.emphasis ? "text-[#99f6e4]" : "text-[#64748b]",
             )}
           >
@@ -132,7 +132,7 @@ export function ReportMetricStrip(props: { items: ReportMetric[] }) {
           </p>
           <p
             className={cn(
-              "mt-1 text-[13px] font-bold tabular-nums leading-tight tracking-tight whitespace-nowrap max-[1024px]:text-[12.5px] min-[1025px]:text-[15px] print:text-[11.5px]",
+              "mt-1 text-[13px] font-bold tabular-nums leading-tight tracking-tight whitespace-nowrap max-[1024px]:text-[12.5px] min-[1025px]:text-[15px] print:text-[14px]",
               item.emphasis ? "text-white" : "text-[#0f172a]",
             )}
           >
@@ -141,7 +141,7 @@ export function ReportMetricStrip(props: { items: ReportMetric[] }) {
           {item.sub ? (
             <p
               className={cn(
-                "mt-0.5 text-[10px] font-medium leading-snug print:text-[7.5px]",
+                "mt-0.5 text-[10px] font-medium leading-snug print:text-[9px]",
                 item.emphasis ? "text-[#cbd5e1]" : "text-[#64748b]",
               )}
             >
@@ -164,14 +164,14 @@ export function ReportSection(props: {
   return (
     <section className={cn("break-inside-avoid", props.className)}>
       <div className="mb-1.5 flex items-baseline justify-between gap-3 border-b border-[#e2e8f0] pb-1">
-        <h2 className="flex items-baseline gap-2 text-[13px] font-bold text-[#0f172a] print:text-[10.5px]">
-          <span className="tabular-nums text-[11px] font-bold text-[#0f766e] print:text-[9px]">
+        <h2 className="flex items-baseline gap-2 text-[13px] font-bold text-[#0f172a] print:text-[13px]">
+          <span className="tabular-nums text-[11px] font-bold text-[#0f766e] print:text-[11px]">
             {String(props.index).padStart(2, "0")}
           </span>
           {props.title}
         </h2>
         {props.aside ? (
-          <span className="text-[10px] font-semibold text-[#94a3b8] print:text-[8px]">
+          <span className="text-[10px] font-semibold text-[#94a3b8] print:text-[10px]">
             {props.aside}
           </span>
         ) : null}
@@ -185,7 +185,7 @@ export type ReportKeyValue = { label: string; value: string };
 
 export function ReportKeyValues(props: { items: ReportKeyValue[] }) {
   return (
-    <dl className="text-[12.5px] print:text-[9.5px]">
+    <dl className="text-[12.5px] print:text-[12px]">
       {props.items.map((item) => (
         <div
           key={item.label}
@@ -222,14 +222,14 @@ export function ReportLineTable(props: {
   totals?: ReportLine[];
 }) {
   return (
-    <table className="w-full border-collapse text-[12.5px] print:text-[9.5px]">
+    <table className="w-full border-collapse text-[12.5px] print:text-[12px]">
       {props.head ? (
         <thead>
           <tr className="bg-[#f1f5f9] text-left">
-            <th className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#64748b] print:py-1 print:text-[7.5px]">
+            <th className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#64748b] print:py-1.5 print:text-[10px]">
               {props.head[0]}
             </th>
-            <th className="px-2.5 py-1.5 text-right text-[10px] font-bold uppercase tracking-[0.1em] text-[#64748b] print:py-1 print:text-[7.5px]">
+            <th className="px-2.5 py-1.5 text-right text-[10px] font-bold uppercase tracking-[0.1em] text-[#64748b] print:py-1.5 print:text-[10px]">
               {props.head[1]}
             </th>
           </tr>
@@ -318,7 +318,7 @@ export function ReportResult(props: {
   return (
     <div className="overflow-hidden rounded-lg border border-[#0f172a] break-inside-avoid">
       {props.lines?.length ? (
-        <div className="space-y-1 bg-[#f8fafc] px-3.5 py-2.5 text-[12.5px] print:px-2.5 print:py-1.5 print:text-[9.5px]">
+        <div className="space-y-1 bg-[#f8fafc] px-3.5 py-2.5 text-[12.5px] print:px-3 print:py-2 print:text-[12px]">
           {props.lines.map((line) => (
             <div key={line.label} className="flex items-baseline justify-between gap-3">
               <span className="font-medium text-[#475569]">{line.label}</span>
@@ -335,15 +335,15 @@ export function ReportResult(props: {
         </div>
       ) : null}
       <div className="flex items-center justify-between gap-4 bg-[#0f172a] px-3.5 py-3 text-white print:px-2.5 print:py-2">
-        <span className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#99f6e4] print:text-[9px]">
+        <span className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#99f6e4] print:text-[11px]">
           {props.label}
         </span>
-        <span className="text-xl font-bold tabular-nums tracking-tight whitespace-nowrap max-[1024px]:text-lg min-[1025px]:text-2xl print:text-[17px]">
+        <span className="text-xl font-bold tabular-nums tracking-tight whitespace-nowrap max-[1024px]:text-lg min-[1025px]:text-2xl print:text-[20px]">
           {props.value}
         </span>
       </div>
       {props.note ? (
-        <p className="bg-[#f8fafc] px-3.5 py-1.5 text-[11px] font-medium text-[#64748b] print:px-2.5 print:text-[8.5px]">
+        <p className="bg-[#f8fafc] px-3.5 py-1.5 text-[11px] font-medium text-[#64748b] print:px-3 print:text-[10.5px]">
           {props.note}
         </p>
       ) : null}
@@ -381,7 +381,7 @@ export function ReportSupportCompare(props: {
       <div className="space-y-2 print:space-y-1.5">
         {bars.map((bar) => (
           <div key={bar.label}>
-            <div className="flex items-baseline justify-between gap-3 text-[12px] print:text-[9.5px]">
+            <div className="flex items-baseline justify-between gap-3 text-[12px] print:text-[12px]">
               <span className="font-medium text-[#475569]">{bar.label}</span>
               <span className={cn("font-bold tabular-nums", bar.text)}>
                 {props.format(bar.value)}
@@ -396,7 +396,7 @@ export function ReportSupportCompare(props: {
           </div>
         ))}
       </div>
-      <div className="mt-2.5 flex items-center justify-between gap-3 rounded-md bg-[#f0fdfa] px-2.5 py-1.5 text-[12px] print:mt-1.5 print:text-[9.5px]">
+      <div className="mt-2.5 flex items-center justify-between gap-3 rounded-md bg-[#f0fdfa] px-2.5 py-1.5 text-[12px] print:mt-2 print:text-[12px]">
         <span className="font-semibold text-[#115e59]">{props.deltaLabel}</span>
         <span className="font-bold tabular-nums text-[#0f766e]">{props.deltaText}</span>
       </div>

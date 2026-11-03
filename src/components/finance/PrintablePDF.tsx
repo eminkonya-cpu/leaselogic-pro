@@ -64,7 +64,7 @@ export function PaymentScheduleTable(props: {
         {paymentMode === "annual" ? " — Yılda bir taksit" : ""}
       </div>
       <div className="px-0 py-0 print:break-inside-auto">
-        <table className="w-full text-xs print:text-[10px]">
+        <table className="w-full text-xs print:text-[11px]">
           <thead className="bg-slate-100">
             <tr className="border-b font-bold">
               <th className="p-2 text-left print:px-1.5 print:py-1">Ay</th>
@@ -177,11 +177,11 @@ export function PrintablePaymentPlanContent(
       id="pdf-print-area"
       className={cn("pdf-print-root bg-white", props.className)}
     >
-      <div className="text-base font-extrabold leading-tight text-slate-900 print:text-[14px]">
+      <div className="text-base font-extrabold leading-tight text-slate-900 print:text-[16px]">
         Ödeme Planı
       </div>
       <Separator className="my-2 print:my-0.5" />
-      <div className="mb-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm font-semibold print:text-[10px]">
+      <div className="mb-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm font-semibold print:text-[12px]">
         <div className="text-slate-600">Müşteri</div>
         <div className="text-right font-bold">{firma}</div>
         <div className="text-slate-600">Makine</div>
@@ -230,7 +230,7 @@ export function PrintablePDFPreviewModal(
       </div>
 
       <div className="finance-print-portal-sheet mx-auto w-full max-w-[210mm]">
-        <div className="min-h-[calc(100vh-6rem)] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.28)]">
+        <div className="min-h-[calc(100vh-6rem)] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.28)] print:min-h-0 print:h-auto print:shadow-none">
           <PrintablePaymentPlanContent
             {...props}
             className="w-full p-3 sm:p-4 md:p-[10mm]"

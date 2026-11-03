@@ -69,7 +69,7 @@ export function FinanceDocumentPreviewModal(props: {
       </div>
 
       <div className="finance-print-portal-sheet mx-auto w-full max-w-[210mm]">
-        <div className="min-h-[calc(100vh-6rem)] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.28)]">
+        <div className="min-h-[calc(100vh-6rem)] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.28)] print:min-h-0 print:h-auto print:shadow-none">
           {props.variant === "payment-plan" && props.paymentPlan ? (
             <PrintablePaymentPlanContent
               {...props.paymentPlan}

@@ -46,12 +46,12 @@ export function PrintableGraceBalloonContent(
     <div
       id="pdf-print-area"
       className={cn(
-        "text-[#0b1c30] print:text-[11px]",
+        "text-[#0b1c30] print:text-[12px]",
         props.className,
       )}
     >
       <div className="border-b-2 border-[#004ac6] pb-2 print:pb-1.5">
-        <h1 className="text-lg font-extrabold tracking-tight print:text-[15px]">
+        <h1 className="text-lg font-extrabold tracking-tight print:text-[17px]">
           {DOCUMENT_TITLE}
         </h1>
         <p className="mt-0.5 text-xs text-slate-600 print:text-[10px]">
@@ -136,7 +136,7 @@ export function PrintableGraceBalloonContent(
         <div className="border-b border-slate-200 bg-slate-100 px-2 py-1.5 text-sm font-extrabold print:py-1 print:text-[11px]">
           Ödeme planı
         </div>
-        <table className="w-full text-xs print:text-[9px]">
+        <table className="w-full text-xs print:text-[11px]">
           <thead className="bg-slate-50">
             <tr className="border-b font-bold">
               <th className="px-1.5 py-1 text-left">Ay</th>
@@ -208,7 +208,7 @@ export function PrintableGraceBalloonPreviewModal(
         </Button>
       </div>
       <div className="finance-print-portal-sheet mx-auto w-full max-w-[210mm]">
-        <div className="min-h-[calc(100vh-6rem)] bg-white shadow-lg">
+        <div className="min-h-[calc(100vh-6rem)] bg-white shadow-lg print:min-h-0 print:h-auto print:shadow-none">
           <PrintableGraceBalloonContent
             {...props}
             className="w-full p-4 md:p-[10mm]"
