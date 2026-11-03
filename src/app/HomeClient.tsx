@@ -36,7 +36,11 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase";
 import { usePersistentState } from "@/lib/usePersistentState";
-import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import type {
+  AuthChangeEvent,
+  Session,
+  SupabaseClient,
+} from "@supabase/supabase-js";
 import {
   LoaderCircle,
   Landmark,
@@ -44,7 +48,7 @@ import {
   ShieldAlert,
   UserCircle,
 } from "lucide-react";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 type AuthState =
   | "loading"
@@ -65,7 +69,80 @@ type AccessCheckResult =
   | {
       allowed: false;
       reason: string;
+      transient?: boolean;
     };
+
+type AuthHint = {
+  email: string;
+  canEditCatalog: boolean;
+};
+
+const AUTH_HINT_KEY = "llp:auth:hint";
+
+function readAuthHint(): AuthHint | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(AUTH_HINT_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<AuthHint>;
+    if (typeof parsed.email === "string" && parsed.email.includes("@")) {
+      return {
+        email: parsed.email,
+        canEditCatalog: Boolean(parsed.canEditCatalog),
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function writeAuthHint(hint: AuthHint) {
+  try {
+    window.localStorage.setItem(AUTH_HINT_KEY, JSON.stringify(hint));
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+function clearAuthHint() {
+  try {
+    window.localStorage.removeItem(AUTH_HINT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function hasStoredSupabaseSession() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (!key?.startsWith("sb-") || !key.includes("auth-token")) {
+        continue;
+      }
+
+      const raw = window.localStorage.getItem(key);
+      if (raw && raw !== "null" && raw !== "{}") {
+        return true;
+      }
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
 
 function isRecoverableSessionError(error: unknown) {
   if (!(error instanceof Error)) {
@@ -103,6 +180,7 @@ async function checkAuthorizedAccess(
   if (error) {
     return {
       allowed: false,
+      transient: true,
       reason:
         "Yetki tablosu okunamadi. Once `SUPABASE_SETUP.md` icindeki SQL adimini tamamla.",
     };
@@ -344,10 +422,22 @@ export function CalculatorApp({
   );
 }
 
+function SessionRestoringScreen() {
+  return (
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-gradient-to-b from-sky-50 via-white to-blue-50">
+      <LoaderCircle className="h-8 w-8 animate-spin text-[#004ac6]" aria-hidden />
+      <span className="text-sm font-semibold text-slate-500">
+        Oturum kontrol ediliyor
+      </span>
+    </div>
+  );
+}
+
 export function HomeClient() {
   const [authState, setAuthState] = useState<AuthState>(
     isSupabaseConfigured ? "loading" : "not_configured"
   );
+  const [bootstrapped, setBootstrapped] = useState(!isSupabaseConfigured);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState(
@@ -357,6 +447,29 @@ export function HomeClient() {
   const [canEditCatalog, setCanEditCatalog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const authStateRef = useRef(authState);
+
+  authStateRef.current = authState;
+
+  useLayoutEffect(() => {
+    if (!isSupabaseConfigured) {
+      setBootstrapped(true);
+      return;
+    }
+
+    const hint = readAuthHint();
+    if (hint) {
+      setSessionEmail(hint.email);
+      setCanEditCatalog(hint.canEditCatalog);
+      setAuthState("authenticated");
+    } else if (hasStoredSupabaseSession()) {
+      setAuthState("loading");
+    } else {
+      setAuthState("signed_out");
+    }
+
+    setBootstrapped(true);
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -371,34 +484,92 @@ export function HomeClient() {
 
     let isMounted = true;
 
-    const syncSession = async (session: Session | null) => {
+    const applySignedOut = () => {
+      clearAuthHint();
+      setAuthState("signed_out");
+      setSessionEmail("");
+      setCanEditCatalog(false);
+    };
+
+    const syncSession = async (
+      session: Session | null,
+      event?: AuthChangeEvent,
+    ) => {
       if (!isMounted) {
         return;
       }
 
       if (!session) {
-        setAuthState("signed_out");
-        setSessionEmail("");
-        setCanEditCatalog(false);
+        if (event === "SIGNED_OUT" || event === "INITIAL_SESSION") {
+          applySignedOut();
+          return;
+        }
+
+        if (event) {
+          return;
+        }
+
+        if (authStateRef.current === "authenticated" || readAuthHint()) {
+          return;
+        }
+
+        applySignedOut();
         return;
       }
 
-      setAuthState("loading");
+      const alreadyIn = authStateRef.current === "authenticated";
 
-      const access = await checkAuthorizedAccess(supabase, session);
+      if (
+        alreadyIn &&
+        (event === "TOKEN_REFRESHED" || event === "USER_UPDATED")
+      ) {
+        return;
+      }
+
+      if (!alreadyIn) {
+        setAuthState("loading");
+      }
+
+      const access = await Promise.race([
+        checkAuthorizedAccess(supabase, session).then((result) => ({
+          ...result,
+          timedOut: false as const,
+        })),
+        new Promise<{ timedOut: true }>((resolve) =>
+          setTimeout(() => resolve({ timedOut: true }), 8000),
+        ),
+      ]);
 
       if (!isMounted) {
         return;
       }
 
-      if (access.allowed) {
-        setAuthState("authenticated");
-        setMessage("");
-        setSessionEmail(access.email ?? session.user.email ?? "");
-        setCanEditCatalog(access.canEditCatalog);
+      if (access.timedOut) {
+        if (alreadyIn || readAuthHint()) {
+          setAuthState("authenticated");
+        }
         return;
       }
 
+      if (access.allowed) {
+        const hint: AuthHint = {
+          email: access.email ?? session.user.email ?? "",
+          canEditCatalog: access.canEditCatalog,
+        };
+        writeAuthHint(hint);
+        setAuthState("authenticated");
+        setMessage("");
+        setSessionEmail(hint.email);
+        setCanEditCatalog(hint.canEditCatalog);
+        return;
+      }
+
+      if (access.transient && (alreadyIn || readAuthHint())) {
+        setAuthState("authenticated");
+        return;
+      }
+
+      clearAuthHint();
       setAuthState("inactive");
       setSessionEmail("");
       setCanEditCatalog(false);
@@ -414,8 +585,12 @@ export function HomeClient() {
       if (error) {
         if (isRecoverableSessionError(error)) {
           void supabase.auth.signOut({ scope: "local" });
-          setAuthState("signed_out");
+          applySignedOut();
           setMessage("");
+          return;
+        }
+
+        if (authStateRef.current === "authenticated" || readAuthHint()) {
           return;
         }
 
@@ -429,8 +604,8 @@ export function HomeClient() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      void syncSession(session);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      void syncSession(session, event);
     });
 
     return () => {
@@ -476,11 +651,15 @@ export function HomeClient() {
     }
 
     setIsSigningOut(true);
+    clearAuthHint();
     await supabase.auth.signOut();
     setIsSigningOut(false);
   };
 
-  if (authState === "authenticated") {
+  if (
+    authState === "authenticated" ||
+    (authState === "loading" && Boolean(sessionEmail))
+  ) {
     return (
       <CalculatorApp
         userEmail={sessionEmail}
@@ -489,6 +668,10 @@ export function HomeClient() {
         isSigningOut={isSigningOut}
       />
     );
+  }
+
+  if (!bootstrapped || authState === "loading") {
+    return <SessionRestoringScreen />;
   }
 
   return (
@@ -574,9 +757,9 @@ export function HomeClient() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isSubmitting || authState === "loading"}
+                  disabled={isSubmitting}
                 >
-                  {isSubmitting || authState === "loading" ? (
+                  {isSubmitting ? (
                     <LoaderCircle className="animate-spin" aria-hidden />
                   ) : null}
                   Giris Yap

@@ -72,18 +72,18 @@ export function ReportDocument(props: {
         </div>
       </header>
 
-      <div className="mt-4 space-y-4 print:mt-3 print:space-y-3">
+      <div className="mt-3 space-y-3 print:mt-2.5 print:space-y-2.5">
         {props.children}
       </div>
 
-      <footer className="mt-6 break-inside-avoid print:mt-5">
+      <footer className="mt-4 break-inside-avoid print:mt-3">
         <div className="grid grid-cols-3 gap-4 print:gap-3">
           {["Hazırlayan", "Kontrol eden", "Onaylayan"].map((role) => (
             <div key={role} className="border-t border-[#94a3b8] pt-1.5">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#64748b] print:text-[10px]">
                 {role}
               </p>
-              <div className="h-8 print:h-7" />
+              <div className="h-6 print:h-5" />
             </div>
           ))}
         </div>

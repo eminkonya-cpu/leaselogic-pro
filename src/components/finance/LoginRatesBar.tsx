@@ -1,30 +1,9 @@
 "use client";
 
+import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { useEffect, useState } from "react";
 
 type Rates = { eurTry: number | null; usdTry: number | null };
-
-async function fetchDisplayRates(): Promise<Rates> {
-  try {
-    const res = await fetch(
-      "https://api.frankfurter.app/latest?from=EUR&to=TRY,USD",
-      { cache: "no-store" },
-    );
-    if (!res.ok) {
-      return { eurTry: null, usdTry: null };
-    }
-    const data = (await res.json()) as {
-      rates?: { TRY?: number; USD?: number };
-    };
-    const eurTry = data.rates?.TRY ?? null;
-    const eurUsd = data.rates?.USD;
-    const usdTry =
-      eurTry != null && eurUsd != null && eurUsd > 0 ? eurTry / eurUsd : null;
-    return { eurTry, usdTry };
-  } catch {
-    return { eurTry: null, usdTry: null };
-  }
-}
 
 function formatTry(value: number | null) {
   if (value == null || !Number.isFinite(value)) {
@@ -42,7 +21,7 @@ export default function LoginRatesBar() {
 
   useEffect(() => {
     let active = true;
-    void fetchDisplayRates().then((next) => {
+    void fetchReferenceTryRates().then((next) => {
       if (active) {
         setRates(next);
       }

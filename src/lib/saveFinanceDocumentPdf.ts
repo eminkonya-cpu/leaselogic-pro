@@ -43,15 +43,21 @@ export async function saveFinanceDocumentPdf(fileName: string) {
   const imgH = (canvas.height * pageW) / canvas.width;
   const img = canvas.toDataURL("image/jpeg", 0.93);
 
-  let heightLeft = imgH;
-  let position = 0;
-  pdf.addImage(img, "JPEG", 0, position, imgW, imgH);
-  heightLeft -= pageH;
-  while (heightLeft > 0.8) {
-    position -= pageH;
-    pdf.addPage();
+  // Kısa taşma ikinci boş sayfa açmasın; biraz küçültüp tek A4'e sığdır.
+  if (imgH <= pageH * 1.18) {
+    const scale = imgH <= pageH ? 1 : pageH / imgH;
+    pdf.addImage(img, "JPEG", 0, 0, imgW * scale, imgH * scale);
+  } else {
+    let heightLeft = imgH;
+    let position = 0;
     pdf.addImage(img, "JPEG", 0, position, imgW, imgH);
     heightLeft -= pageH;
+    while (heightLeft > 0.8) {
+      position -= pageH;
+      pdf.addPage();
+      pdf.addImage(img, "JPEG", 0, position, imgW, imgH);
+      heightLeft -= pageH;
+    }
   }
 
   pdf.save(`${fileName.replace(/\.pdf$/i, "")}.pdf`);
