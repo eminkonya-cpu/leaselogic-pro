@@ -18,6 +18,7 @@ import {
   PrintablePaymentPlanContent,
   type PrintablePdfProps,
 } from "@/components/finance/PrintablePDF";
+import { printFinanceDocument } from "@/lib/printFinanceDocument";
 import { Printer, X } from "lucide-react";
 
 export type FinancePreviewVariant =
@@ -40,7 +41,7 @@ export function FinanceDocumentPreviewModal(props: {
   }
 
   const handlePrint = () => {
-    window.print();
+    printFinanceDocument("preview");
   };
 
   return createPortal(
@@ -59,6 +60,7 @@ export function FinanceDocumentPreviewModal(props: {
           type="button"
           variant="outline"
           className="h-9 gap-1.5 border-slate-300 bg-white/95 px-3 text-xs font-bold text-slate-900 shadow-sm backdrop-blur"
+          data-promo-action="modal-close"
           onClick={props.onClose}
         >
           <X className="h-4 w-4" aria-hidden />

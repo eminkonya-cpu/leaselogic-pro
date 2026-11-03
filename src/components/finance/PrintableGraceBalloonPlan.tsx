@@ -9,6 +9,7 @@ import type {
   PaymentMonthMode,
 } from "@/lib/leasingPaymentPlan";
 import { cn } from "@/lib/utils";
+import { printFinanceDocument } from "@/lib/printFinanceDocument";
 import { Printer, X } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -180,7 +181,7 @@ export function PrintableGraceBalloonPreviewModal(
   props: PrintableGraceBalloonProps & {
     open: boolean;
     onClose: () => void;
-    onPrint: () => void;
+    onPrint?: () => void;
   },
 ) {
   if (!props.open || typeof document === "undefined") return null;
@@ -191,7 +192,7 @@ export function PrintableGraceBalloonPreviewModal(
         <Button
           type="button"
           className="h-9 gap-1.5 bg-[#004ac6] text-xs font-bold"
-          onClick={props.onPrint}
+          onClick={() => printFinanceDocument("preview")}
         >
           <Printer className="h-4 w-4" aria-hidden />
           Yazdır / PDF
@@ -224,7 +225,7 @@ export default function PrintableGraceBalloonPlan(props: PrintableGraceBalloonPr
   return createPortal(
     <PrintableGraceBalloonContent
       {...props}
-      className="hidden print:block print:bg-white print:px-3 print:pb-2 print:pt-0"
+      className="llp-print-sheet hidden print:bg-white print:px-3 print:pb-2 print:pt-0"
     />,
     document.body,
   );
