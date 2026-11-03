@@ -4,11 +4,13 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { formatAmount } from "@/components/finance/format";
+import PreviewDocumentActions from "@/components/finance/PreviewDocumentActions";
 import {
   PaymentScheduleTable,
   type PrintablePdfProps,
 } from "@/components/finance/PrintablePDF";
 import type { AmortizationRow } from "@/lib/financeCalculations";
+import { financePdfFileName } from "@/lib/saveFinanceDocumentPdf";
 import type { PrintableReverseSummaryProps } from "@/components/finance/PrintableReverseSummary";
 
 export type PrintableReversePdfProps = {
@@ -88,6 +90,35 @@ export function PrintableReversePDFContent(
         </div>
       </div>
     </div>
+  );
+}
+
+export function PrintableReversePDFPreviewModal(
+  props: PrintableReversePdfProps & {
+    open: boolean;
+    onClose: () => void;
+  },
+) {
+  if (!props.open || typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div className="finance-print-portal fixed inset-0 z-[9999] overflow-auto bg-[#5b616a] p-3 sm:p-4">
+      <PreviewDocumentActions
+        fileName={financePdfFileName(props.summary.firma)}
+        onClose={props.onClose}
+      />
+      <div className="finance-print-portal-sheet mx-auto w-full max-w-[210mm]">
+        <div className="min-h-[calc(100vh-6rem)] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.28)] print:min-h-0 print:h-auto print:shadow-none">
+          <PrintableReversePDFContent
+            {...props}
+            className="w-full p-3 sm:p-4 md:p-[10mm]"
+          />
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 

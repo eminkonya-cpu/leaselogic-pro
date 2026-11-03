@@ -8,7 +8,6 @@ import { useEffect, useMemo, useState } from "react";
 import ForwardCalculatorLayout from "@/components/finance/ForwardCalculatorLayout";
 import { FinanceDocumentPreviewModal } from "@/components/finance/FinanceDocumentPreviewModal";
 import PrintablePDF, { PrintablePDFPreviewModal } from "@/components/finance/PrintablePDF";
-import { printFinanceDocument } from "@/lib/printFinanceDocument";
 import type { PrintableCalculationSummaryProps } from "@/components/finance/PrintableCalculationSummary";
 import { useCatalogCategories } from "@/contexts/CatalogContext";
 import { EMPTY_CATALOG_SELECTION } from "@/lib/catalogPrices";
@@ -171,11 +170,7 @@ export default function AnnualForwardCalculator(props: {
   );
 
   const handlePrint = () => {
-    if (typeof window !== "undefined" && window.innerWidth < 1280) {
-      setIsMobilePreviewOpen(true);
-      return;
-    }
-    printFinanceDocument("plan");
+    setIsMobilePreviewOpen(true);
   };
 
   const display = useMemo(

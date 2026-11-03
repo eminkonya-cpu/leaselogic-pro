@@ -13,7 +13,6 @@ import {
 } from "@/lib/catalogServiceFees";
 import { computeKaskoTotalForTerm } from "@/lib/financeExpenseCatalog";
 import type { FinancingSupportCompare } from "@/lib/financingSupportReport";
-import { printFinanceDocument } from "@/lib/printFinanceDocument";
 import {
   buildGraceBalloonDetailedReportRows,
   buildGraceBalloonStitchSummaryRows,
@@ -665,11 +664,7 @@ export function useGraceBalloonPlan() {
 
   const handleCreatePaymentPlan = () => {
     if (!printProps) return;
-    if (typeof window !== "undefined" && window.innerWidth < 1280) {
-      setPrintPreviewOpen(true);
-      return;
-    }
-    printFinanceDocument("plan");
+    setPrintPreviewOpen(true);
   };
 
   return {

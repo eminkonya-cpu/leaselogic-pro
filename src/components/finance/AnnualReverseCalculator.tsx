@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import ReverseCalculatorLayout from "@/components/finance/ReverseCalculatorLayout";
 import { FinanceDocumentPreviewModal } from "@/components/finance/FinanceDocumentPreviewModal";
 import PrintableReversePDF, {
+  PrintableReversePDFPreviewModal,
   type PrintableReversePdfProps,
 } from "@/components/finance/PrintableReversePDF";
 import type { PrintableReverseSummaryProps } from "@/components/finance/PrintableReverseSummary";
@@ -15,7 +16,6 @@ import {
 } from "@/lib/catalogPrices";
 import { useCatalogSelection } from "@/lib/useCatalogSelection";
 import { reverseSummaryReportFinancing } from "@/lib/financingSupportReport";
-import { printFinanceDocument } from "@/lib/printFinanceDocument";
 import { buildDetailedReverseReportRows } from "@/lib/reverseSummaryReport";
 import {
   computeReverseBothLegs,
@@ -118,6 +118,7 @@ export default function AnnualReverseCalculator(props: {
   onPaymentFrequencyChange?: (v: "monthly" | "annual") => void;
 }) {
   const [summaryReportOpen, setSummaryReportOpen] = useState(false);
+  const [planPreviewOpen, setPlanPreviewOpen] = useState(false);
   const [pdfCurrency, setPdfCurrency] = usePersistentState<"EUR" | "TRY">(
     `${REVERSE_STORAGE_PREFIX}:pdf-currency`,
     "EUR",
@@ -299,7 +300,7 @@ export default function AnnualReverseCalculator(props: {
   }, [calc.euro, calc.tl, pdfCurrency, reverseSummary]);
 
   const handlePrint = () => {
-    printFinanceDocument("plan");
+    setPlanPreviewOpen(true);
   };
 
   const paymentFrequency = props.paymentFrequency ?? "annual";
@@ -334,7 +335,7 @@ export default function AnnualReverseCalculator(props: {
         termYears={termYears}
       />
 
-      {!summaryReportOpen ? (
+      {!summaryReportOpen && !planPreviewOpen ? (
         <PrintableReversePDF {...printPayload} />
       ) : null}
       <FinanceDocumentPreviewModal
@@ -342,6 +343,11 @@ export default function AnnualReverseCalculator(props: {
         onClose={() => setSummaryReportOpen(false)}
         variant="reverse-summary"
         reverseSummary={reverseSummary}
+      />
+      <PrintableReversePDFPreviewModal
+        {...printPayload}
+        open={planPreviewOpen}
+        onClose={() => setPlanPreviewOpen(false)}
       />
     </>
   );

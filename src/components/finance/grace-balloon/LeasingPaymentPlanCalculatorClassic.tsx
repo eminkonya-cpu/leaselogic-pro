@@ -30,7 +30,6 @@ import {
   type LeasingPlanReverseResult,
 } from "@/lib/leasingPaymentPlanReverse";
 import { usePersistentState } from "@/lib/usePersistentState";
-import { printFinanceDocument } from "@/lib/printFinanceDocument";
 import { cn } from "@/lib/utils";
 import PrintableGraceBalloonPlan, {
   PrintableGraceBalloonPreviewModal,
@@ -642,11 +641,7 @@ export default function LeasingPaymentPlanCalculatorClassic() {
 
   const handleCreatePaymentPlan = () => {
     if (!printProps) return;
-    if (typeof window !== "undefined" && window.innerWidth < 1280) {
-      setPrintPreviewOpen(true);
-      return;
-    }
-    printFinanceDocument("plan");
+    setPrintPreviewOpen(true);
   };
 
   const inputCls =
