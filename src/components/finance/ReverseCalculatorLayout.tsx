@@ -4,9 +4,7 @@ import CatalogSelector from "@/components/finance/CatalogSelector";
 import FinanceCatalogExpensePanel from "@/components/finance/FinanceCatalogExpensePanel";
 import type { FinanceExpenses } from "@/lib/financeExpenseCatalog";
 import type { PaymentFrequency } from "@/components/finance/PaymentFrequencySelector";
-import CostSummaryPanel, {
-  CostDistributionChart,
-} from "@/components/finance/ui/CostSummaryPanel";
+import CostSummaryPanel from "@/components/finance/ui/CostSummaryPanel";
 import FinanceFieldGrid, {
   MACHINE_MODELS,
 } from "@/components/finance/ui/FinanceFieldGrid";
@@ -15,17 +13,13 @@ import SectionCard from "@/components/finance/ui/SectionCard";
 import SectionClearAction from "@/components/finance/ui/SectionClearAction";
 import { CATALOG_SECTION_ID } from "@/components/finance/ui/CatalogScrollRail";
 import FinanceContextBar from "@/components/finance/ui/FinanceContextBar";
+import CalcPageHeader from "@/components/finance/ui/CalcPageHeader";
 import FinanceKpiStrip, {
   type FinanceKpiItem,
 } from "@/components/finance/ui/FinanceKpiStrip";
-import { Button } from "@/components/ui/button";
 import type { ReverseFinanceLeg } from "@/lib/reverseFinanceCalc";
 import type { CatalogLine, CatalogSelection } from "@/lib/catalogPrices";
-import {
-  buildReverseDistributionSegments,
-  buildReverseStitchSummaryRows,
-} from "@/lib/reverseSummaryReport";
-import { RotateCcw, Printer, FileText } from "lucide-react";
+import { buildReverseStitchSummaryRows } from "@/lib/reverseSummaryReport";
 import { useMemo } from "react";
 
 export type ReverseCalcSlice = {
@@ -146,23 +140,18 @@ export default function ReverseCalculatorLayout(props: {
     ],
   );
 
-  const segments = useMemo(
-    () =>
-      buildReverseDistributionSegments({
-        displayNetMachine: leg.displayNetMachine,
-        totalExpenses: leg.totalExpenses,
-        interestDiff: leg.interestDiff,
-        catalogLines: props.calc.catalogLines,
-        catalogAmount,
-      }),
-    [catalogAmount, leg, props.calc.catalogLines],
-  );
-
   const netMachineDisplay = leg.displayNetMachine;
 
   const reverseKpiItems = useMemo((): FinanceKpiItem[] => {
     const vadeFarki = leg.interestDiff;
     return [
+      {
+        label: "Net makine bedeli",
+        value: netMachineDisplay,
+        hint: "KDV hariç",
+        currencySymbol: sym,
+        accent: "navy",
+      },
       {
         label: isAnnual ? "Yıllık taksit" : "Aylık taksit",
         value: installment,
@@ -170,13 +159,6 @@ export default function ReverseCalculatorLayout(props: {
         currencySymbol: sym,
         accent: "blue",
         noDecimals: true,
-      },
-      {
-        label: "Net makine bedeli",
-        value: netMachineDisplay,
-        hint: "KDV hariç",
-        currencySymbol: sym,
-        accent: "navy",
       },
       {
         label: "Toplam ödeme",
@@ -217,21 +199,9 @@ export default function ReverseCalculatorLayout(props: {
   const reverseSummaryContent = (
     <>
       <SectionCard
-        title="Geri Hesaplama Özeti"
+        title="Maliyet özeti"
         variant="stitch"
         accentBar
-        action={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 rounded-full border-[#c3c6d7] bg-white text-xs font-semibold text-[#004ac6] md:text-[13px]"
-            onClick={props.handleOpenSummaryReport}
-          >
-            <FileText className="h-3.5 w-3.5" />
-            Özet Rapor
-          </Button>
-        }
       >
         <CostSummaryPanel
           rows={summaryRows}
@@ -250,17 +220,6 @@ export default function ReverseCalculatorLayout(props: {
         />
       </SectionCard>
 
-      <SectionCard variant="stitch">
-        <CostDistributionChart
-          segments={segments}
-          totalLabel="Makine fiyatı"
-          totalValue={allInTotal}
-          currencySymbol={sym}
-          large
-          amountDecimals={2}
-        />
-      </SectionCard>
-
       <PaymentSchedulePanel
         schedule={schedule}
         currencySymbol={sym}
@@ -272,37 +231,25 @@ export default function ReverseCalculatorLayout(props: {
         totalPayment={totalPrimary}
         amountDecimals={2}
       />
-
-      <div className="flex flex-col gap-3">
-        <Button
-          type="button"
-          className="h-11 gap-2 rounded-xl bg-[#004ac6] text-sm font-semibold hover:bg-[#2563eb] shadow-md max-lg:h-11 max-lg:text-sm"
-          onClick={props.handlePrint}
-        >
-          <Printer className="h-5 w-5" />
-          PDF Raporu Oluştur
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-10 gap-2 rounded-xl border-[#c3c6d7] font-semibold text-sm max-lg:h-10 max-lg:text-sm"
-          onClick={props.handleNewCalculation}
-        >
-          <RotateCcw className="h-4 w-4" />
-          Yeni Hesaplama
-        </Button>
-      </div>
     </>
   );
 
   return (
     <div className="space-y-5 pb-5 max-lg:space-y-4 max-lg:pb-5">
+      <CalcPageHeader
+        kicker="Leasing · Geri hesaplama"
+        title="Geri hesaplama"
+        description="Toplam ödemeden net makine bedeline. Tutarlar KDV hariçtir."
+        onSummary={props.handleOpenSummaryReport}
+        onPaymentPlan={props.handlePrint}
+        summaryActionAttr="open-summary"
+      />
       {isAnnual ? (
-        <p className="rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#565e74] shadow-sm md:text-[15px]">
+        <p className="llp-pro-banner rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#565e74] shadow-sm md:text-[15px]">
           Geri hesaplama · Yılda bir taksit · Vade en fazla 3 yıl · KDV hariç
         </p>
       ) : (
-        <p className="rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#565e74] shadow-sm md:text-[15px]">
+        <p className="llp-pro-banner rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#565e74] shadow-sm md:text-[15px]">
           Geri hesaplama · Makine fiyatından net makine bedeline · KDV hariç
         </p>
       )}
@@ -317,7 +264,7 @@ export default function ReverseCalculatorLayout(props: {
         onRefreshEuroRate={props.handleRefreshEuroRate}
       />
 
-      <FinanceKpiStrip items={reverseKpiItems} />
+      <FinanceKpiStrip items={reverseKpiItems} heroFirst />
 
       <div className="finance-calc-stack finance-calc-stack--with-catalog">
         <div className="finance-calc-stack__main grid grid-cols-1 gap-4 max-lg:gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">

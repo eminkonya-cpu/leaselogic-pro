@@ -31,6 +31,7 @@ export default function SegmentedControl<T extends string>(props: {
             type="button"
             role="tab"
             aria-selected={active}
+            data-promo-forward-tab={opt.value}
             onClick={() => props.onChange(opt.value)}
             className={cn(
               "flex-1 rounded-lg px-2 py-1.5 text-center font-bold transition-colors",

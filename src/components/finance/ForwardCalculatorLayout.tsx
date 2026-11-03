@@ -6,9 +6,7 @@ import CatalogSelector from "@/components/finance/CatalogSelector";
 import CurrencyComparisonReport from "@/components/finance/CurrencyComparisonReport";
 import RateProjectionInput from "@/components/finance/RateProjectionInput";
 import type { PaymentFrequency } from "@/components/finance/PaymentFrequencySelector";
-import CostSummaryPanel, {
-  CostDistributionChart,
-} from "@/components/finance/ui/CostSummaryPanel";
+import CostSummaryPanel from "@/components/finance/ui/CostSummaryPanel";
 import FinanceFieldGrid, {
   MACHINE_MODELS,
 } from "@/components/finance/ui/FinanceFieldGrid";
@@ -39,6 +37,7 @@ import {
   CATALOG_SECTION_ID,
 } from "@/components/finance/ui/CatalogScrollRail";
 import FinanceContextBar from "@/components/finance/ui/FinanceContextBar";
+import CalcPageHeader from "@/components/finance/ui/CalcPageHeader";
 import FinanceKpiStrip, {
   type FinanceKpiItem,
 } from "@/components/finance/ui/FinanceKpiStrip";
@@ -375,21 +374,9 @@ export default function ForwardCalculatorLayout(props: {
     ) : showStitchChrome ? (
       <>
         <SectionCard
-          title="Hesaplama Özeti"
+          title="Maliyet özeti"
           variant="stitch"
           accentBar
-          action={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-                    className="h-8 gap-1.5 rounded-full border-[#c3c6d7] bg-white text-xs font-semibold text-[#004ac6] md:text-[13px]"
-              onClick={props.handleOpenSummaryReport}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              Özet Rapor
-            </Button>
-          }
         >
           <CostSummaryPanel
             rows={summaryRows}
@@ -409,18 +396,6 @@ export default function ForwardCalculatorLayout(props: {
           />
         </SectionCard>
 
-        <SectionCard variant="stitch">
-          <CostDistributionChart
-            segments={segments}
-            totalLabel={
-              plainCatalogOnly && isPlainTab ? "Toplam Tutar" : "Toplam Ödeme"
-            }
-            totalValue={totalPrimary}
-            currencySymbol={sym}
-            large
-          />
-        </SectionCard>
-
         {!(plainCatalogOnly && isPlainTab) ? (
           <PaymentSchedulePanel
             schedule={schedule}
@@ -433,41 +408,22 @@ export default function ForwardCalculatorLayout(props: {
             totalPayment={totalPrimary}
           />
         ) : null}
-
-        <div className="flex flex-col gap-3">
-          <Button
-            type="button"
-            className="h-11 gap-2 rounded-xl bg-[#004ac6] text-sm font-semibold hover:bg-[#2563eb] shadow-md max-lg:h-11 max-lg:text-sm"
-            onClick={props.handlePrint}
-          >
-            <Printer className="h-5 w-5" />
-            PDF Raporu Oluştur
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-10 gap-2 rounded-xl border-[#c3c6d7] font-semibold text-sm max-lg:h-10 max-lg:text-sm"
-            onClick={props.handleNewCalculation}
-          >
-            <RotateCcw className="h-4 w-4" />
-            Yeni Hesaplama
-          </Button>
-        </div>
       </>
     ) : (
       <>
         <SectionCard
-          title="Hesaplama Özeti"
+          title="Maliyet özeti"
           action={
             <Button
               type="button"
               variant="outline"
               size="sm"
               className="h-8 gap-1.5 text-xs font-bold"
+              data-promo-action="open-summary"
               onClick={props.handleOpenSummaryReport}
             >
               <FileText className="h-3.5 w-3.5" />
-              Özet Rapor
+              Özet rapor
             </Button>
           }
         >
@@ -507,6 +463,17 @@ export default function ForwardCalculatorLayout(props: {
         observeKey={props.activeTab}
       />
 
+      {showStitchChrome ? (
+        <CalcPageHeader
+          kicker="Leasing · İleri hesaplama"
+          title="İleri hesaplama"
+          description="Makine bedelinden taksit ve toplam ödemeye. Tutarlar KDV hariçtir."
+          onSummary={props.handleOpenSummaryReport}
+          onPaymentPlan={props.handlePrint}
+          summaryActionAttr="open-summary"
+        />
+      ) : null}
+
       {showStitchChrome && props.onPaymentFrequencyChange ? (
         <FinanceContextBar
           paymentFrequency={paymentFrequency}
@@ -520,7 +487,7 @@ export default function ForwardCalculatorLayout(props: {
       ) : null}
 
       {forwardKpiItems.length > 0 ? (
-        <FinanceKpiStrip items={forwardKpiItems} />
+        <FinanceKpiStrip items={forwardKpiItems} heroFirst />
       ) : null}
 
       {isAnnual && !showStitchChrome ? (
@@ -559,7 +526,7 @@ export default function ForwardCalculatorLayout(props: {
               }
             />
             {showStitchChrome && isPlainTab ? (
-              <p className="mt-3 rounded-lg border border-[#004ac6]/20 bg-[#eff4ff] px-3 py-2 text-sm text-[#434655] md:text-[15px]">
+              <p className="llp-pro-hint mt-3 rounded-lg border border-[#004ac6]/20 bg-[#eff4ff] px-3 py-2 text-sm text-[#434655] md:text-[15px]">
                 Makine ve finansman bilgilerini girin; opsiyonlar hemen altında,
                 sağdaki özet anında güncellenir.
               </p>
@@ -792,7 +759,7 @@ export default function ForwardCalculatorLayout(props: {
           onClick={props.handlePrint}
         >
           <Printer className="h-4 w-4" />
-          PDF Raporu Oluştur
+          Ödeme planı oluştur
         </Button>
       </div>
 

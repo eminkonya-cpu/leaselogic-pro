@@ -56,7 +56,7 @@ export default function PaymentSchedulePanel(props: {
     : "text-[10px] font-bold";
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#c3c6d7] bg-white shadow-sm">
+    <div className="no-print overflow-hidden rounded-xl border border-[#c3c6d7] bg-white shadow-sm">
       <button
         type="button"
         onClick={() => setExpanded((open) => !open)}
@@ -74,7 +74,7 @@ export default function PaymentSchedulePanel(props: {
                 roomy ? "text-xs" : "text-sm",
               )}
             >
-              Ödeme Planı
+              Ödeme planı
             </h3>
             {!expanded ? (
               <span

@@ -182,6 +182,7 @@ export default function CatalogSelector(props: {
                 >
                   <input
                     type={isSingleSelect ? "radio" : "checkbox"}
+                    data-promo-catalog={`${category.id}:${item.id}`}
                     name={
                       isSingleSelect ? `catalog-${category.id}` : undefined
                     }

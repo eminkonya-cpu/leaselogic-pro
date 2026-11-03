@@ -100,8 +100,7 @@ export default function PrintableReversePDF(props: PrintableReversePdfProps) {
     <PrintableReversePDFContent
       {...props}
       className={cn(
-        "hidden",
-        "print:block print:bg-white",
+        "llp-print-sheet hidden print:bg-white",
         "print:px-3 print:pb-2 print:pt-0",
       )}
     />,

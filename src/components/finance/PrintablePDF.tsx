@@ -6,8 +6,8 @@ import { Separator } from "@/components/ui/separator";
 import { formatNumber } from "@/components/finance/format";
 import type { AmortizationRow } from "@/lib/financeCalculations";
 import { cn } from "@/lib/utils";
-import { X } from "lucide-react";
-import { expenseFieldLabels } from "./ExpenseInputCard";
+import { printFinanceDocument } from "@/lib/printFinanceDocument";
+import { Printer, X } from "lucide-react";
 
 export type PrintablePdfProps = {
   params: {
@@ -196,153 +196,6 @@ export function PrintablePaymentPlanContent(
   );
 }
 
-function PrintablePDFContent(
-  props: PrintablePdfProps & {
-    className?: string;
-  },
-) {
-  const isCampaignMode = props.mode === "campaign";
-  const firma = props.params.firma ?? "-";
-  const makine = props.params.makine ?? "-";
-  const unitPriceEuro = props.params.machinePriceEuro ?? 0;
-  const term = props.params.term ?? 0;
-  const euroInterest = props.params.euroInterest ?? 0;
-  const tlInterest = props.params.tlInterest ?? 0;
-  const monthlyEuro = props.calc.plainMonthlyEuro ?? 0;
-  const monthlyTL = props.calc.plainMonthlyTL ?? 0;
-  const derived = usePrintablePdfDerived(props);
-  const {
-    schedule,
-    symbol,
-    planInterest,
-    downPayment,
-    paymentMode,
-    totalPayment,
-  } = derived;
-  const monthly = props.printCurrency === "TRY" ? monthlyTL : monthlyEuro;
-  const selectedCurrency = props.printCurrency ?? "EUR";
-
-  return (
-    <div
-      id="pdf-print-area"
-      className={cn(
-        "pdf-print-root",
-        "bg-white",
-        props.className,
-      )}
-    >
-      <div className="text-base font-extrabold leading-tight text-slate-900 print:mt-0 print:text-[14px]">
-        Leasing Ödeme Planı
-      </div>
-      <Separator className="my-2 print:my-0.5" />
-      <div className="rounded-lg border border-slate-300 bg-white print:break-inside-avoid">
-        <div className="border-b border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-extrabold print:px-2 print:py-1 print:text-[12px]">
-          Özet Bilgiler
-        </div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 px-3 py-2 text-sm font-semibold print:gap-x-4 print:gap-y-1 print:px-2 print:py-1.5 print:text-[10px]">
-          <div className="text-slate-600">Müşteri</div>
-          <div className="text-right font-extrabold">{firma}</div>
-
-          <div className="text-slate-600">Makine Modeli</div>
-          <div className="text-right font-extrabold">{makine}</div>
-
-          <div className="text-slate-600">Birim Fiyat (KDV hariç)</div>
-          <div className="text-right tabular-nums font-extrabold">
-            {formatNumber(unitPriceEuro)} €
-          </div>
-
-          <div className="text-slate-600">Vade</div>
-          <div className="text-right font-extrabold">
-            {paymentMode === "annual" ? `${term} yıl` : `${term} ay`}
-          </div>
-
-          {!isCampaignMode ? (
-            <>
-              <div className="text-slate-600">Euro Faiz</div>
-              <div className="text-right tabular-nums font-extrabold">
-                %{formatNumber(euroInterest, { decimals: 1 })}
-              </div>
-
-              <div className="text-slate-600">TL Faiz</div>
-              <div className="text-right tabular-nums font-extrabold">
-                %{formatNumber(tlInterest, { decimals: 1 })}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-slate-600">Kampanya Tipi</div>
-              <div className="text-right font-extrabold">
-                Kampanyali fiyat
-              </div>
-            </>
-          )}
-
-          <div className="text-slate-600">PDF Para Birimi</div>
-          <div className="text-right font-extrabold">
-            {selectedCurrency === "EUR" ? "Euro" : "TL"}
-          </div>
-
-          <div className="text-slate-600">
-            {paymentMode === "annual" ? "Yıllık Taksit" : "Aylık Taksit"} ({symbol})
-          </div>
-          <div className="text-right tabular-nums font-extrabold">
-            {formatNumber(monthly)} {symbol}
-          </div>
-        </div>
-
-        {(props.mode === "allin" || props.mode === "campaign") && props.expenses ? (
-          <div className="border-t border-slate-200 px-3 py-2 print:px-2 print:py-1.5">
-            <div className="mb-1 text-xs font-extrabold print:text-[10px]">
-              Secilen Ek Masraflar
-            </div>
-            <div className="space-y-1 text-xs print:space-y-0.5 print:text-[10px]">
-              {Object.entries(props.expenses)
-                .filter(([, v]) => (v || 0) !== 0)
-                .map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between">
-                    <div className="text-slate-600">
-                      {(expenseFieldLabels as Record<string, string>)[k] ?? k}
-                    </div>
-                    <div className="tabular-nums font-bold">{formatNumber(v)} €</div>
-                  </div>
-                ))}
-              <div className="flex items-center justify-between border-t pt-1 font-extrabold">
-                <div>Toplam</div>
-                <div className="tabular-nums">
-                  {formatNumber(props.calc.totalExpenses ?? 0)} €
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      <PaymentScheduleTable
-        schedule={schedule}
-        symbol={symbol}
-        downPayment={downPayment}
-        planInterest={planInterest}
-        isCampaignMode={isCampaignMode}
-        paymentMode={paymentMode}
-        totalPayment={totalPayment}
-      />
-
-      <div className="mt-4 space-y-1 text-xs font-semibold text-slate-700 print:mt-1.5 print:break-inside-avoid print:space-y-0.5 print:text-[10px]">
-        <div>Bu dokümandaki tüm tutarlar KDV hariçtir.</div>
-        <div>Bu plan ön bilgilendirme amaçlıdır, bağlayıcı değildir.</div>
-        {isCampaignMode ? (
-          <div>Kampanya fiyatina finansman maliyeti dahil kabul edilmistir.</div>
-        ) : (
-          <div>
-            Kasko ve masraf bedellerine vade farkı yansıyabileceği için küçük ilave tutarlar
-            oluşabilir.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function PrintablePDFPreviewModal(
   props: PrintablePdfProps & {
     open: boolean;
@@ -355,7 +208,16 @@ export function PrintablePDFPreviewModal(
 
   return createPortal(
     <div className="finance-print-portal fixed inset-0 z-[9999] overflow-auto bg-[#5b616a] p-3 sm:p-4">
-      <div className="no-print sticky top-3 z-10 mb-3 flex justify-end sm:top-4 sm:mb-4">
+      <div className="no-print sticky top-3 z-10 mb-3 flex justify-end gap-2 sm:top-4 sm:mb-4">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 gap-1.5 border-slate-300 bg-white/95 px-3 text-xs font-bold text-slate-900 shadow-sm backdrop-blur"
+          onClick={() => printFinanceDocument("preview")}
+        >
+          <Printer className="h-4 w-4" aria-hidden />
+          Yazdır
+        </Button>
         <Button
           type="button"
           variant="outline"
@@ -369,7 +231,7 @@ export function PrintablePDFPreviewModal(
 
       <div className="finance-print-portal-sheet mx-auto w-full max-w-[210mm]">
         <div className="min-h-[calc(100vh-6rem)] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.28)]">
-          <PrintablePDFContent
+          <PrintablePaymentPlanContent
             {...props}
             className="w-full p-3 sm:p-4 md:p-[10mm]"
           />
@@ -386,11 +248,10 @@ export default function PrintablePDF(props: PrintablePdfProps) {
   }
 
   return createPortal(
-    <PrintablePDFContent
+    <PrintablePaymentPlanContent
       {...props}
       className={cn(
-        "hidden",
-        "print:block print:bg-white",
+        "llp-print-sheet hidden print:bg-white",
         "print:px-3 print:pb-2 print:pt-0",
       )}
     />,

@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "../styles/bank-modern.css";
+@import "../styles/pro-calc.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -211,21 +212,42 @@
   }
 }
 
+.llp-print-sheet {
+  display: none !important;
+}
+
 @media print {
   @page {
     margin: 4mm 8mm 6mm 8mm;
   }
 
-  body > *:not(.finance-print-portal):not(#pdf-print-area) {
+  /* Özet / önizleme: yalnızca portal. Ödeme planı belgesi basılmaz. */
+  html[data-llp-print="preview"] body > *:not(.finance-print-portal),
+  body:has(.finance-print-portal) > *:not(.finance-print-portal) {
     display: none !important;
   }
 
-  body > .finance-print-portal,
-  #pdf-print-area {
+  html[data-llp-print="preview"] .llp-print-sheet,
+  body:has(.finance-print-portal) .llp-print-sheet {
+    display: none !important;
+  }
+
+  /* Ödeme planı: yalnızca gizli plan belgesi. */
+  html[data-llp-print="plan"] body > *:not(.llp-print-sheet) {
+    display: none !important;
+  }
+
+  html[data-llp-print="plan"] .llp-print-sheet,
+  html:not([data-llp-print="preview"]) body:not(:has(.finance-print-portal)) .llp-print-sheet {
     display: block !important;
   }
 
+  html:not([data-llp-print="preview"]) body:not(:has(.finance-print-portal)) > *:not(.llp-print-sheet):not(#pdf-print-area) {
+    display: none !important;
+  }
+
   .finance-print-portal {
+    display: block !important;
     position: static !important;
     inset: auto !important;
     width: 100% !important;

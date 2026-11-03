@@ -15,6 +15,7 @@ export type FinanceKpiItem = {
 export default function FinanceKpiStrip(props: {
   items: FinanceKpiItem[];
   className?: string;
+  heroFirst?: boolean;
 }) {
   if (props.items.length === 0) return null;
 
@@ -25,7 +26,7 @@ export default function FinanceKpiStrip(props: {
         props.className,
       )}
     >
-      {props.items.map((item) => (
+      {props.items.map((item, index) => (
         <SummaryCard
           key={item.label}
           label={item.label}
@@ -34,6 +35,7 @@ export default function FinanceKpiStrip(props: {
           currencySymbol={item.currencySymbol}
           accent={item.accent ?? "blue"}
           noDecimals={item.noDecimals}
+          hero={Boolean(props.heroFirst && index === 0)}
         />
       ))}
     </div>

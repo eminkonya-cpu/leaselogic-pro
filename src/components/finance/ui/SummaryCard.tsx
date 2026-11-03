@@ -10,6 +10,7 @@ export default function SummaryCard(props: {
   currencySymbol: "€" | "₺" | "$";
   accent?: "default" | "orange" | "blue" | "green" | "purple" | "navy";
   noDecimals?: boolean;
+  hero?: boolean;
 }) {
   const accentBar = {
     default: "border-l-[#c3c6d7]",
@@ -31,6 +32,7 @@ export default function SummaryCard(props: {
 
   return (
     <div
+      data-hero={props.hero ? "true" : "false"}
       className={cn(
         "llp-kpi-card rounded-xl border border-[#c3c6d7]/90 bg-white px-3.5 py-3 shadow-sm border-l-[3px] sm:px-4 sm:py-3.5",
         accentBar,

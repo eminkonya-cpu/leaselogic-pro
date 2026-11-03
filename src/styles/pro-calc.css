@@ -1,0 +1,214 @@
+/**
+ * İleri / geri hesaplama — balon sayfasıyla aynı B2B dashboard dili.
+ * Sadece [data-llp-pro="on"] altında.
+ */
+
+[data-llp-pro="on"].llp-pro-shell {
+  --pro-ink: #020617;
+  --pro-navy: #0f172a;
+  --pro-accent: #0369a1;
+  --pro-muted: #475569;
+  --pro-line: #e2e8f0;
+  --pro-canvas: #f8fafc;
+  color: var(--pro-ink);
+  background: var(--pro-canvas);
+  border-radius: 1rem;
+  padding: 0.75rem;
+  box-shadow: 0 0 0 1px var(--pro-line);
+}
+
+@media (min-width: 768px) {
+  [data-llp-pro="on"].llp-pro-shell {
+    padding: 1rem;
+  }
+}
+
+[data-llp-pro="on"] .llp-pro-banner {
+  display: none;
+}
+
+[data-llp-pro="on"] .llp-pro-hint {
+  display: none;
+}
+
+[data-llp-pro="on"] .finance-context-bar {
+  border-color: var(--pro-line);
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: none;
+  padding: 0.75rem 0.875rem;
+  gap: 0.75rem;
+}
+
+[data-llp-pro="on"] .finance-context-bar label,
+[data-llp-pro="on"] .finance-context-bar p {
+  color: var(--pro-muted);
+  font-size: 12px;
+}
+
+[data-llp-pro="on"] .llp-segment {
+  border-radius: 9999px;
+  border-color: var(--pro-line);
+  background: var(--pro-canvas);
+}
+
+[data-llp-pro="on"] .llp-segment button,
+[data-llp-pro="on"] .finance-context-bar .llp-segment + * button,
+[data-llp-pro="on"] .finance-context-bar button.rounded-md {
+  border-radius: 9999px;
+}
+
+[data-llp-pro="on"] .finance-context-bar .bg-\[\#004ac6\] {
+  background-color: var(--pro-navy) !important;
+}
+
+[data-llp-pro="on"] .finance-context-bar input {
+  height: 2.25rem;
+  border-color: var(--pro-line);
+  border-radius: 0.5rem;
+}
+
+[data-llp-pro="on"] .llp-section-card {
+  border-color: var(--pro-line);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+[data-llp-pro="on"] .llp-section-card h2 {
+  color: var(--pro-ink);
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
+}
+
+[data-llp-pro="on"] .llp-section-card > div:not([aria-hidden]):first-of-type {
+  border-color: var(--pro-line);
+}
+
+[data-llp-pro="on"] .llp-section-card > div[aria-hidden] {
+  background: var(--pro-accent);
+  width: 3px;
+}
+
+[data-llp-pro="on"] .llp-kpi-card {
+  border-color: var(--pro-line);
+  border-left-width: 1px;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: none;
+  padding: 0.625rem 0.75rem;
+}
+
+[data-llp-pro="on"] .llp-kpi-card p:first-child {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: #64748b;
+}
+
+[data-llp-pro="on"] .llp-kpi-card p:nth-child(2) {
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
+}
+
+[data-llp-pro="on"] .llp-kpi-card[data-hero="true"] {
+  border-color: var(--pro-navy);
+  background: var(--pro-navy);
+}
+
+[data-llp-pro="on"] .llp-kpi-card[data-hero="true"] p:first-child {
+  color: #7dd3fc;
+}
+
+[data-llp-pro="on"] .llp-kpi-card[data-hero="true"] p:nth-child(2),
+[data-llp-pro="on"] .llp-kpi-card[data-hero="true"] p:nth-child(2) span {
+  color: #fff;
+}
+
+[data-llp-pro="on"] .llp-kpi-card[data-hero="true"] p:nth-child(3) {
+  color: rgb(255 255 255 / 0.7);
+}
+
+[data-llp-pro="on"] .finance-kpi-strip {
+  gap: 0.5rem;
+}
+
+[data-llp-pro="on"] .space-y-5 {
+  row-gap: 0.75rem;
+}
+
+[data-llp-pro="on"] .finance-calc-stack__main {
+  gap: 0.75rem;
+}
+
+[data-llp-pro="on"] .llp-cost-total-box {
+  border: 0;
+  border-top: 3px solid var(--pro-accent);
+  border-radius: 0.75rem;
+  background: linear-gradient(140deg, #0f172a 0%, #12305f 100%);
+  color: #e6ecf5;
+}
+
+[data-llp-pro="on"] .llp-cost-total-box span,
+[data-llp-pro="on"] .llp-cost-total-box p {
+  color: #c7d2e3;
+}
+
+[data-llp-pro="on"] .llp-cost-total-box > div:first-child span {
+  color: #fff;
+}
+
+[data-llp-pro="on"] .llp-cost-total-box .grid {
+  border-color: rgb(255 255 255 / 0.12);
+}
+
+[data-llp-pro="on"] .llp-cost-total-box .grid > div {
+  background: rgb(255 255 255 / 0.07);
+}
+
+[data-llp-pro="on"] .llp-cost-total-box .text-emerald-700 {
+  color: #6ee7b7;
+}
+
+[data-llp-pro="on"] .llp-pro-btn-primary {
+  height: 2.25rem !important;
+  border-radius: 0.5rem !important;
+  background: var(--pro-accent) !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+}
+
+[data-llp-pro="on"] .llp-pro-btn-primary:hover {
+  background: #075985 !important;
+}
+
+[data-llp-pro="on"] .llp-pro-btn-secondary {
+  height: 2.25rem !important;
+  border-radius: 0.5rem !important;
+  border-color: var(--pro-line) !important;
+  color: var(--pro-ink) !important;
+  font-size: 13px !important;
+}
+
+[data-llp-pro="on"] .llp-pro-btn-report {
+  height: 2rem !important;
+  border-radius: 0.5rem !important;
+  border-color: var(--pro-line) !important;
+  color: var(--pro-ink) !important;
+  background: #fff !important;
+}
+
+[data-llp-pro="on"] .finance-main input:not([type="checkbox"]):not([type="radio"]),
+[data-llp-pro="on"] .llp-pro-shell input:not([type="checkbox"]):not([type="radio"]) {
+  border-color: var(--pro-line);
+  border-radius: 0.5rem;
+}
+
+[data-llp-pro="on"] .llp-pro-shell input:focus-visible {
+  border-color: var(--pro-accent);
+  box-shadow: 0 0 0 3px rgb(3 105 161 / 0.15);
+}
+
+[data-llp-pro="on"] button.bg-\[\#004ac6\]:not(.llp-pro-btn-primary) {
+  background-color: var(--pro-navy);
+}

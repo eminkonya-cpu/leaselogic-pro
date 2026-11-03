@@ -15,6 +15,7 @@ import {
 } from "@/lib/catalogPrices";
 import { useCatalogSelection } from "@/lib/useCatalogSelection";
 import { reverseSummaryReportFinancing } from "@/lib/financingSupportReport";
+import { printFinanceDocument } from "@/lib/printFinanceDocument";
 import { buildDetailedReverseReportRows } from "@/lib/reverseSummaryReport";
 import {
   computeReverseBothLegs,
@@ -292,7 +293,7 @@ export default function ReverseCalculator(props: {
   }, [calc.euro, calc.tl, pdfCurrency, reverseSummary]);
 
   const handlePrint = () => {
-    window.print();
+    printFinanceDocument("plan");
   };
 
   const paymentFrequency = props.paymentFrequency ?? "monthly";
@@ -332,7 +333,7 @@ export default function ReverseCalculator(props: {
         variant="reverse-summary"
         reverseSummary={reverseSummary}
       />
-      <PrintableReversePDF {...printPayload} />
+      {!summaryReportOpen ? <PrintableReversePDF {...printPayload} /> : null}
     </>
   );
 }

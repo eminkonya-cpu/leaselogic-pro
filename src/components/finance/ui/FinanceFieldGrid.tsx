@@ -43,7 +43,7 @@ export default function FinanceFieldGrid(props: {
       type === "number" ? Number(raw ?? 0) : 0;
 
     return (
-      <div key={f.key} className="space-y-0.5">
+      <div key={f.key} className="space-y-0.5" data-promo-field-wrap={f.key}>
         <Label
           className={cn(
             "font-semibold text-slate-600",
@@ -54,6 +54,7 @@ export default function FinanceFieldGrid(props: {
         </Label>
         {type === "number" ? (
           <DecimalTextInput
+            data-promo-field={f.key}
             className={cn(
               roomy ? "h-8 text-[13px] md:text-sm max-lg:h-8 max-lg:text-sm" : "h-8 text-sm max-lg:h-8",
             )}
@@ -63,6 +64,7 @@ export default function FinanceFieldGrid(props: {
           />
         ) : (
         <Input
+          data-promo-field={f.key}
           className={cn(roomy ? "h-8 text-[13px] md:text-sm max-lg:h-8 max-lg:text-sm" : "h-8 text-sm max-lg:h-8")}
           value={value}
           type={type}

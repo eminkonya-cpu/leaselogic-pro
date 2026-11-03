@@ -33,12 +33,22 @@ export function useBankUiTheme() {
 }
 
 /** Banka görünümünün tamamı `src/styles/bank-modern.css` içinde; burada yalnızca `data-llp-ui` set edilir. */
-export function BankUiProvider(props: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<LlpUiTheme>("classic");
+export function BankUiProvider(props: {
+  children: ReactNode;
+  /** Tanıtım kaydı vb. — localStorage yok sayılır */
+  forceTheme?: LlpUiTheme;
+}) {
+  const [theme, setThemeState] = useState<LlpUiTheme>(
+    props.forceTheme ?? "classic",
+  );
 
   useEffect(() => {
+    if (props.forceTheme) {
+      setThemeState(props.forceTheme);
+      return;
+    }
     setThemeState(readStoredUiTheme() ?? getDefaultUiTheme());
-  }, []);
+  }, [props.forceTheme]);
 
   useEffect(() => {
     document.documentElement.dataset.llpUi = theme;
