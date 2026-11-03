@@ -228,7 +228,9 @@
   }
 
   html[data-llp-print="preview"] .llp-print-sheet,
-  body:has(.finance-print-portal) .llp-print-sheet {
+  html[data-llp-print="preview"] body > [id="pdf-print-area"],
+  body:has(.finance-print-portal) .llp-print-sheet,
+  body:has(.finance-print-portal) > [id="pdf-print-area"] {
     display: none !important;
   }
 
