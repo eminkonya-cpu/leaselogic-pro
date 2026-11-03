@@ -10,17 +10,6 @@
   --pro-muted: #475569;
   --pro-line: #e2e8f0;
   --pro-canvas: #f8fafc;
-  color: var(--pro-ink);
-  background: var(--pro-canvas);
-  border-radius: 1rem;
-  padding: 0.75rem;
-  box-shadow: 0 0 0 1px var(--pro-line);
-}
-
-@media (min-width: 768px) {
-  [data-llp-pro="on"].llp-pro-shell {
-    padding: 1rem;
-  }
 }
 
 [data-llp-pro="on"] .llp-pro-banner {
@@ -47,15 +36,13 @@
 }
 
 [data-llp-pro="on"] .llp-segment {
-  border-radius: 9999px;
-  border-color: var(--pro-line);
-  background: var(--pro-canvas);
+  background: transparent;
+  border: 0;
 }
 
 [data-llp-pro="on"] .llp-segment button,
-[data-llp-pro="on"] .finance-context-bar .llp-segment + * button,
 [data-llp-pro="on"] .finance-context-bar button.rounded-md {
-  border-radius: 9999px;
+  border-radius: 0.375rem;
 }
 
 [data-llp-pro="on"] .finance-context-bar .bg-\[\#004ac6\] {

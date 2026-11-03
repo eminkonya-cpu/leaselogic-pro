@@ -11,11 +11,16 @@ import {
 import LeasingPaymentPlanCalculator from "@/components/finance/LeasingPaymentPlanCalculator";
 import ReverseCalculator from "@/components/finance/ReverseCalculator";
 import LoginRatesBar from "@/components/finance/LoginRatesBar";
-import ProCalcShell from "@/components/finance/ui/ProCalcShell";
 import {
   BankUiProvider,
   BankUiThemeToggle,
 } from "@/components/finance/ui/BankUiProvider";
+import {
+  CALC_CHIP_BASE_CLS,
+  CALC_CHIP_GROUP_CLS,
+  headerChipStateCls,
+} from "@/components/finance/ui/CalcFormChrome";
+import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -206,11 +211,11 @@ export function CalculatorApp({
   };
 
   const modeTabClass = (active: boolean) =>
-    `flex-1 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors max-lg:px-2 max-lg:py-2 max-lg:text-xs ${
-      active
-        ? "bg-[#004ac6] text-white shadow-sm"
-        : "text-[#565e74] hover:bg-[#eff4ff]"
-    }`;
+    cn(
+      CALC_CHIP_BASE_CLS,
+      "flex-1 px-2.5 py-2 text-xs max-lg:px-2 max-lg:py-2 max-lg:text-xs",
+      headerChipStateCls(active),
+    );
 
   return (
     <CatalogProvider>
@@ -269,7 +274,12 @@ export function CalculatorApp({
           </div>
 
           {appView === "calculator" ? (
-            <div className="llp-mode-tabs mt-3 flex rounded-xl border border-[#c3c6d7] bg-white p-1.5 shadow-sm max-lg:mt-2 max-lg:p-1.5">
+            <div
+              className={cn(
+                "llp-mode-tabs mt-3 w-full max-lg:mt-2",
+                CALC_CHIP_GROUP_CLS,
+              )}
+            >
               <button
                 type="button"
                 data-promo-mode="forward"
@@ -312,20 +322,16 @@ export function CalculatorApp({
       <main className="app-shell finance-main py-4 lg:py-5">
         {mode === "paymentPlan" ? (
           <LeasingPaymentPlanCalculator />
+        ) : paymentFrequency === "monthly" ? (
+          mode === "forward" ? (
+            <ForwardCalculator {...stitchPaymentProps} />
+          ) : (
+            <ReverseCalculator {...stitchPaymentProps} />
+          )
+        ) : mode === "forward" ? (
+          <AnnualForwardCalculator {...stitchPaymentProps} />
         ) : (
-          <ProCalcShell>
-            {paymentFrequency === "monthly" ? (
-              mode === "forward" ? (
-                <ForwardCalculator {...stitchPaymentProps} />
-              ) : (
-                <ReverseCalculator {...stitchPaymentProps} />
-              )
-            ) : mode === "forward" ? (
-              <AnnualForwardCalculator {...stitchPaymentProps} />
-            ) : (
-              <AnnualReverseCalculator {...stitchPaymentProps} />
-            )}
-          </ProCalcShell>
+          <AnnualReverseCalculator {...stitchPaymentProps} />
         )}
       </main>
 

@@ -13,6 +13,17 @@ import type { PaymentMonthMode } from "@/lib/leasingPaymentPlan";
 import { cn } from "@/lib/utils";
 import CalcPageHeader from "@/components/finance/ui/CalcPageHeader";
 import {
+  CALC_CHIP_BASE_CLS,
+  CALC_CHIP_GROUP_CLS,
+  CALC_FOCUS_RING,
+  CALC_INPUT_CLS,
+  CALC_PANEL_CLS,
+  calcChipStateCls,
+  FormField,
+  FormStep,
+  ResultKpiBand,
+} from "@/components/finance/ui/CalcFormChrome";
+import {
   AlertTriangle,
   Calculator,
   Eraser,
@@ -20,24 +31,21 @@ import {
   Undo2,
 } from "lucide-react";
 import { IBM_Plex_Sans } from "next/font/google";
-import { useId, useMemo, type ReactNode } from "react";
-import {
-  DEFAULT_GRACE_MONTHS,
-  useGraceBalloonPlan,
-  type GraceBalloonPlan,
-} from "./useGraceBalloonPlan";
+import { useMemo, type ReactNode } from "react";
 
 const plex = IBM_Plex_Sans({
   subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
 });
+import {
+  DEFAULT_GRACE_MONTHS,
+  useGraceBalloonPlan,
+  type GraceBalloonPlan,
+} from "./useGraceBalloonPlan";
 
-const focusRing =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0369A1] focus-visible:ring-offset-2";
-
-const inputCls =
-  "h-9 rounded-md border-[#E2E8F0] bg-white text-[13px] font-medium tabular-nums text-[#020617] shadow-none focus-visible:border-[#0369A1] focus-visible:ring-[#0369A1]/20";
+const focusRing = CALC_FOCUS_RING;
+const inputCls = CALC_INPUT_CLS;
 
 export const GRACE_BALLOON_MODULE_TITLE = "3 Ay Ödemesiz & Balon Hesaplama";
 
@@ -49,7 +57,7 @@ export default function GraceBalloonPlanView() {
     <div
       className={cn(
         plex.className,
-        "mx-auto flex w-full min-w-0 max-w-[1600px] flex-col gap-3 rounded-2xl bg-[#F8FAFC] p-3 text-[#020617] ring-1 ring-[#E2E8F0] md:gap-3 md:p-4 [&>*]:min-w-0",
+        "mx-auto flex w-full min-w-0 max-w-[1600px] flex-col gap-3 rounded-2xl bg-[#F8FAFC] p-3 text-[#020617] ring-1 ring-[#E2E8F0] md:p-4 [&>*]:min-w-0",
       )}
     >
       <PageHeader plan={plan} />
@@ -92,7 +100,7 @@ function PageHeader({ plan }: { plan: GraceBalloonPlan }) {
       description={`İlk ${DEFAULT_GRACE_MONTHS} ay varsayılan ödemesiz. Ay bazında ödemesiz ay ve balon seçebilir, ek maliyetleri peşin ya da plana dahil ödetebilirsiniz.`}
       extra={
         <div
-          className="inline-flex rounded-lg border border-[#E2E8F0] bg-white p-0.5"
+          className={CALC_CHIP_GROUP_CLS}
           role="group"
           aria-label="Hesaplama yönü"
         >
@@ -133,11 +141,10 @@ function DirectionButton(props: {
       aria-pressed={props.active}
       onClick={props.onClick}
       className={cn(
-        "inline-flex h-8 cursor-pointer items-center gap-2 rounded-md px-2.5 text-[13px] font-semibold transition-colors motion-reduce:transition-none",
+        CALC_CHIP_BASE_CLS,
+        "inline-flex h-8 items-center gap-2 px-2.5 text-[13px]",
         focusRing,
-        props.active
-          ? "bg-[#0F172A] text-white"
-          : "text-[#475569] hover:bg-[#F1F5F9] hover:text-[#020617]",
+        calcChipStateCls(props.active),
       )}
     >
       {props.icon}
@@ -198,50 +205,7 @@ function ResultBand({ plan, fmt }: { plan: GraceBalloonPlan; fmt: (v: number) =>
     ...stats,
   ];
 
-  return (
-    <section aria-live="polite" aria-label="Hesap sonucu">
-      <dl className="grid grid-cols-2 gap-2 lg:grid-cols-5">
-        {kpis.map((s) => (
-          <div
-            key={s.label}
-            className={cn(
-              "rounded-xl border px-3 py-2.5",
-              s.hero
-                ? "col-span-2 border-[#0F172A] bg-[#0F172A] text-white lg:col-span-1"
-                : "border-[#E2E8F0] bg-white",
-            )}
-          >
-            <dt
-              className={cn(
-                "text-[10px] font-semibold uppercase tracking-[0.1em]",
-                s.hero ? "text-[#7DD3FC]" : "text-[#64748B]",
-              )}
-            >
-              {s.label}
-            </dt>
-            <dd
-              className={cn(
-                "mt-1 text-[15px] font-semibold tabular-nums tracking-tight md:text-base",
-                s.hero ? "text-white" : "text-[#020617]",
-              )}
-            >
-              {s.value}
-            </dd>
-            {s.sub ? (
-              <dd
-                className={cn(
-                  "mt-0.5 truncate text-[11px]",
-                  s.hero ? "text-white/70" : "text-[#64748B]",
-                )}
-              >
-                {s.sub}
-              </dd>
-            ) : null}
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
+  return <ResultKpiBand items={kpis} />;
 }
 
 /* ——— Girişler ——— */
@@ -250,7 +214,7 @@ function InputsCard({ plan }: { plan: GraceBalloonPlan }) {
   const { state, setField } = plan;
 
   return (
-    <section className="rounded-xl border border-[#E2E8F0] bg-white p-3 shadow-sm md:p-4 lg:col-span-7">
+    <section className={cn(CALC_PANEL_CLS, "lg:col-span-7")}>
       <h3 className="sr-only">Girişler</h3>
 
       <FormStep index={1} title="Müşteri">
@@ -421,68 +385,11 @@ function InputsCard({ plan }: { plan: GraceBalloonPlan }) {
   );
 }
 
-function FormStep(props: {
-  index: number;
-  title: string;
-  last?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <fieldset
-      className={cn(
-        "min-w-0",
-        !props.last && "mb-4 border-b border-[#E2E8F0] pb-4",
-      )}
-    >
-      <legend className="mb-3 flex items-center gap-2.5 text-[13px] font-semibold text-[#020617]">
-        <span
-          aria-hidden
-          className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#0F172A] text-xs font-semibold text-white"
-        >
-          {props.index}
-        </span>
-        {props.title}
-      </legend>
-      {props.children}
-    </fieldset>
-  );
-}
-
-function FormField(props: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  suffix?: string;
-  className?: string;
-  children: (id: string) => ReactNode;
-}) {
-  const id = useId();
-  return (
-    <div className={cn("min-w-0 space-y-1.5", props.className)}>
-      <label htmlFor={id} className="flex items-baseline gap-1.5 text-[13px] font-medium text-[#334155]">
-        {props.label}
-        {props.required ? (
-          <span className="text-[#B42318]" aria-hidden>
-            *
-          </span>
-        ) : null}
-        {props.hint ? (
-          <span className="text-xs font-normal text-[#64748B]">({props.hint})</span>
-        ) : null}
-        {props.suffix ? (
-          <span className="ml-auto text-xs font-semibold text-[#64748B]">{props.suffix}</span>
-        ) : null}
-      </label>
-      {props.children(id)}
-    </div>
-  );
-}
-
 /* ——— Maliyet özeti ——— */
 
 function SummaryCard({ plan }: { plan: GraceBalloonPlan }) {
   return (
-    <aside className="rounded-xl border border-[#E2E8F0] bg-white p-3 shadow-sm md:p-4 lg:sticky lg:top-[4.75rem] lg:col-span-5">
+    <aside className={cn(CALC_PANEL_CLS, "lg:sticky lg:top-[4.75rem] lg:col-span-5")}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-[#0F172A]">Maliyet özeti</h3>
         <span className="rounded-full bg-[#F1F5F9] px-2.5 py-1 text-[11px] font-semibold text-[#475569]">

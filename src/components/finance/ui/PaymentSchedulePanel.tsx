@@ -1,18 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useMemo } from "react";
 import { formatNumber } from "@/components/finance/format";
 import type { AmortizationRow } from "@/lib/financeCalculations";
-import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function PaymentSchedulePanel(props: {
   schedule: AmortizationRow[];
@@ -20,7 +10,7 @@ export default function PaymentSchedulePanel(props: {
   downPayment?: number;
   interestRatePct?: number;
   periodUnit?: "month" | "year";
-  /** Kapalı başlasın; tıklayınca tablo açılır */
+  /** Eski API; plan her zaman açık gösterilir. */
   defaultExpanded?: boolean;
   comfortable?: boolean;
   /** Peşinat + taksitler toplamı (Hesaplama özeti ile aynı) */
@@ -28,185 +18,138 @@ export default function PaymentSchedulePanel(props: {
   /** Verilirse tutarlarda bu kadar ondalık (geri hesaplama: 2). */
   amountDecimals?: number;
 }) {
-  const roomy = props.comfortable ?? false;
   const fmt = (value: number) =>
     props.amountDecimals != null
       ? formatNumber(value, { decimals: props.amountDecimals })
       : formatNumber(value, { noDecimals: true });
-  const [expanded, setExpanded] = useState(props.defaultExpanded ?? false);
   const periodLabel = props.periodUnit === "year" ? "Yıl" : "Ay";
   const periodShort = props.periodUnit === "year" ? "yıl" : "ay";
   const hasDown = (props.downPayment ?? 0) > 0;
   const rowCount = props.schedule.length + (hasDown ? 1 : 0);
-  const typicalPayment = props.schedule[0]?.payment;
-
+  const lastBalance = props.schedule.at(-1)?.balance ?? 0;
+  const columnTotals = useMemo(
+    () =>
+      props.schedule.reduce(
+        (acc, r) => ({
+          payment: acc.payment + r.payment,
+          principal: acc.principal + r.principal,
+          interest: acc.interest + r.interest,
+        }),
+        { payment: 0, principal: 0, interest: 0 },
+      ),
+    [props.schedule],
+  );
   const totalPayment = useMemo(() => {
     if (props.totalPayment != null && Number.isFinite(props.totalPayment)) {
       return props.totalPayment;
     }
-    const installments = props.schedule.reduce((sum, r) => sum + r.payment, 0);
-    return installments + (props.downPayment ?? 0);
-  }, [props.downPayment, props.schedule, props.totalPayment]);
-
-  const cell = roomy
-    ? "text-[13px] sm:text-sm"
-    : "text-[10px] sm:text-[11px]";
-  const head = roomy
-    ? "text-xs font-semibold text-[#434655] sm:text-[13px]"
-    : "text-[10px] font-bold";
+    return columnTotals.payment + (props.downPayment ?? 0);
+  }, [columnTotals.payment, props.downPayment, props.totalPayment]);
 
   return (
-    <div className="no-print overflow-hidden rounded-xl border border-[#c3c6d7] bg-white shadow-sm">
-      <button
-        type="button"
-        onClick={() => setExpanded((open) => !open)}
-        aria-expanded={expanded}
-        className={cn(
-          "flex w-full items-center gap-3 text-left transition-colors hover:bg-[#eff4ff]/60",
-          roomy ? "px-3 py-2.5 sm:px-4" : "px-3 py-2.5 sm:px-4 sm:py-3",
-        )}
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h3
-              className={cn(
-                "font-bold text-[#0b1c30]",
-                roomy ? "text-xs" : "text-sm",
-              )}
-            >
-              Ödeme planı
-            </h3>
-            {!expanded ? (
-              <span
-                className={cn(
-                  "font-semibold text-[#565e74]",
-                  roomy ? "text-sm" : "text-[10px] text-slate-400",
-                )}
-              >
-                · Detayı göster
-              </span>
-            ) : null}
-          </div>
-          <p
-            className={cn(
-              "mt-1 font-medium leading-snug text-[#434655]",
-              roomy ? "text-sm" : "mt-0.5 text-[10px] text-slate-500 sm:text-[11px]",
-            )}
-          >
-            {rowCount} satır · %{formatNumber(props.interestRatePct ?? 0, { decimals: 1 })}{" "}
-            faiz
-            {!expanded && typicalPayment != null && props.schedule.length > 0 ? (
-              <>
-                {" "}
-                ·{" "}
-                <span className="tabular-nums font-semibold text-[#0b1c30]">
-                  {fmt(typicalPayment)}{" "}
-                  {props.currencySymbol}/{periodShort}
-                </span>
-              </>
-            ) : null}
+    <section className="no-print rounded-xl border border-[#E2E8F0] bg-white shadow-sm">
+      <div className="flex flex-col gap-2 border-b border-[#E2E8F0] px-3 py-3 md:flex-row md:items-center md:justify-between md:px-4">
+        <div>
+          <h3 className="text-sm font-semibold text-[#0F172A]">Ödeme planı</h3>
+          <p className="mt-0.5 text-xs text-[#64748B]">
+            {rowCount} {periodShort} · %
+            {formatNumber(props.interestRatePct ?? 0, { decimals: 1 })} faiz
+            {hasDown
+              ? ` · Peşinat ${fmt(props.downPayment ?? 0)} ${props.currencySymbol}`
+              : null}
           </p>
         </div>
-        <span
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded-lg border border-[#c3c6d7] bg-[#eff4ff] text-[#565e74]",
-            roomy ? "h-10 w-10" : "h-8 w-8 bg-slate-50 text-slate-600",
-            expanded && "border-blue-200 bg-blue-50 text-[#004ac6]",
-          )}
-          aria-hidden
-        >
-          {expanded ? (
-            <ChevronUp className={roomy ? "h-5 w-5" : "h-4 w-4"} />
-          ) : (
-            <ChevronDown className={roomy ? "h-5 w-5" : "h-4 w-4"} />
-          )}
-        </span>
-      </button>
+      </div>
 
-      {expanded ? (
-        <div className="border-t border-[#c3c6d7]/60">
-          <div className="max-h-[min(360px,52vh)] overflow-auto overscroll-contain">
-            <Table>
-              <TableHeader className="sticky top-0 z-10 bg-[#eff4ff]/95 backdrop-blur-sm">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className={cn("h-9 px-3", head)}>{periodLabel}</TableHead>
-                  <TableHead className={cn("h-9 px-3 text-right", head)}>
-                    Taksit
-                  </TableHead>
-                  <TableHead className={cn("hidden h-9 px-3 text-right sm:table-cell", head)}>
-                    Anapara
-                  </TableHead>
-                  <TableHead className={cn("hidden h-9 px-3 text-right md:table-cell", head)}>
-                    Faiz
-                  </TableHead>
-                  <TableHead className={cn("h-9 px-3 text-right", head)}>
-                    Kalan
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {hasDown ? (
-                  <TableRow className="hover:bg-blue-50/40">
-                    <TableCell className={cn("px-3 py-2 font-semibold", cell)}>0</TableCell>
-                    <TableCell className={cn("px-3 py-2 text-right tabular-nums", cell)}>
-                      {fmt(props.downPayment ?? 0)}{" "}
-                      {props.currencySymbol}
-                    </TableCell>
-                    <TableCell className={cn("hidden px-3 py-2 text-right sm:table-cell", cell)}>
-                      0
-                    </TableCell>
-                    <TableCell className={cn("hidden px-3 py-2 text-right md:table-cell", cell)}>
-                      0
-                    </TableCell>
-                    <TableCell className={cn("px-3 py-2 text-right", cell)}>—</TableCell>
-                  </TableRow>
-                ) : null}
-                {props.schedule.map((r) => (
-                  <TableRow key={r.month} className="hover:bg-blue-50/40">
-                    <TableCell className={cn("px-3 py-2 font-medium", cell)}>
-                      {r.month}
-                    </TableCell>
-                    <TableCell className={cn("px-3 py-2 text-right tabular-nums", cell)}>
-                      {fmt(r.payment)}{" "}
-                      {props.currencySymbol}
-                    </TableCell>
-                    <TableCell className={cn("hidden px-3 py-2 text-right tabular-nums sm:table-cell", cell)}>
-                      {fmt(r.principal)}
-                    </TableCell>
-                    <TableCell className={cn("hidden px-3 py-2 text-right tabular-nums md:table-cell", cell)}>
-                      {fmt(r.interest)}
-                    </TableCell>
-                    <TableCell className={cn("px-3 py-2 text-right tabular-nums", cell)}>
-                      {fmt(r.balance)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                <TableRow className="border-t-2 border-[#c3c6d7] bg-[#eff4ff]/80 hover:bg-[#eff4ff]/80">
-                  <TableCell
-                    colSpan={2}
-                    className={cn(
-                      "px-3 py-2.5 font-extrabold text-[#0b1c30]",
-                      cell,
-                    )}
-                  >
-                    Toplam tutar
-                  </TableCell>
-                  <TableCell
-                    colSpan={3}
-                    className={cn(
-                      "px-3 py-2.5 text-right tabular-nums font-extrabold text-[#004ac6]",
-                      cell,
-                    )}
-                  >
-                    {fmt(totalPayment)}{" "}
-                    {props.currencySymbol}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      ) : null}
-    </div>
+      <div className="max-h-[min(560px,65vh)] overflow-auto">
+        <table className="w-full min-w-[640px] border-collapse text-left text-[13px]">
+          <thead className="sticky top-0 z-10 bg-[#F8FAFC] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+            <tr>
+              <th scope="col" className="px-3 py-2 md:px-4">
+                {periodLabel}
+              </th>
+              <th scope="col" className="px-3 py-2 text-right">
+                Taksit
+              </th>
+              <th scope="col" className="px-3 py-2 text-right">
+                Anapara
+              </th>
+              <th scope="col" className="px-3 py-2 text-right">
+                Faiz
+              </th>
+              <th scope="col" className="px-3 py-2 text-right md:px-4">
+                Kalan borç
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {hasDown ? (
+              <tr className="border-t border-[#F1F5F9] bg-[#F8FAFC]">
+                <td className="px-3 py-1.5 font-semibold tabular-nums text-[#020617] md:px-4">
+                  0
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums font-medium text-[#0F172A]">
+                  {fmt(props.downPayment ?? 0)}
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-[#475569]">
+                  {fmt(0)}
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-[#475569]">
+                  {fmt(0)}
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-[#475569] md:px-4">
+                  —
+                </td>
+              </tr>
+            ) : null}
+            {props.schedule.map((r) => (
+              <tr
+                key={r.month}
+                className="border-t border-[#F1F5F9] transition-colors hover:bg-[#F8FAFC] motion-reduce:transition-none"
+              >
+                <td className="px-3 py-1.5 font-semibold tabular-nums text-[#020617] md:px-4">
+                  {r.month}
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums font-medium text-[#0F172A]">
+                  {fmt(r.payment)}
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-[#475569]">
+                  {fmt(r.principal)}
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-[#475569]">
+                  {fmt(r.interest)}
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-[#475569] md:px-4">
+                  {fmt(r.balance)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot className="sticky bottom-0 bg-white text-sm font-semibold text-[#0F172A] shadow-[0_-1px_0_#E2E8F0]">
+            <tr>
+              <th scope="row" className="px-3 py-2 text-left md:px-4">
+                Toplam
+              </th>
+              <td className="px-3 py-2.5 text-right tabular-nums">
+                {fmt(totalPayment)}
+              </td>
+              <td className="px-3 py-2.5 text-right tabular-nums text-[#475569]">
+                {fmt(columnTotals.principal)}
+              </td>
+              <td className="px-3 py-2.5 text-right tabular-nums text-[#475569]">
+                {fmt(columnTotals.interest)}
+              </td>
+              <td className="px-3 py-2.5 text-right tabular-nums md:px-4">
+                {fmt(lastBalance)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <p className="border-t border-[#E2E8F0] px-3 py-2.5 text-xs text-[#64748B] md:px-4">
+        Tutarlar {props.currencySymbol} cinsindendir. KDV hariçtir.
+      </p>
+    </section>
   );
 }

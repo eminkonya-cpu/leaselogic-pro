@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  CALC_CHIP_BASE_CLS,
+  CALC_CHIP_GROUP_CLS,
+  headerChipStateCls,
+} from "@/components/finance/ui/CalcFormChrome";
 import { cn } from "@/lib/utils";
 
 export type PaymentFrequency = "monthly" | "annual";
@@ -20,17 +25,16 @@ export function PaymentFrequencySelector(props: {
         <p className="text-xs font-semibold text-[#434655] md:text-[13px]">
           Ödeme sıklığı
         </p>
-        <div className="llp-segment inline-flex w-auto max-w-full rounded-lg border border-[#c3c6d7] bg-[#f8f9ff] p-0.5">
+        <div className={cn("llp-segment w-auto max-w-full", CALC_CHIP_GROUP_CLS)}>
           <button
             type="button"
             role="tab"
             aria-selected={props.value === "monthly"}
             onClick={() => props.onChange("monthly")}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm",
-              props.value === "monthly"
-                ? "bg-[#004ac6] text-white shadow-sm"
-                : "text-[#565e74] hover:bg-white",
+              CALC_CHIP_BASE_CLS,
+              "px-3 py-1.5 text-xs sm:text-sm",
+              headerChipStateCls(props.value === "monthly"),
             )}
           >
             Aylık ödeme
@@ -41,10 +45,9 @@ export function PaymentFrequencySelector(props: {
             aria-selected={props.value === "annual"}
             onClick={() => props.onChange("annual")}
             className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm",
-              props.value === "annual"
-                ? "bg-[#004ac6] text-white shadow-sm"
-                : "text-[#565e74] hover:bg-white",
+              CALC_CHIP_BASE_CLS,
+              "px-3 py-1.5 text-xs sm:text-sm",
+              headerChipStateCls(props.value === "annual"),
             )}
           >
             Yılda bir

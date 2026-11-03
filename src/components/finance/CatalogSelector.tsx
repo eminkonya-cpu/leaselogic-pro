@@ -49,8 +49,6 @@ export default function CatalogSelector(props: {
   const fullWidth = props.layout === "full" || props.layout === "page" || clean;
   const comfortable = props.density !== "compact";
   const plainProfile = props.profile === "plain";
-  const highlightPage = clean && pageWidth && !plainProfile;
-
   const grid = categories.map((category) => {
     const selectableItems = category.items.filter((item) => item.id !== "none");
     const selectedCount = selection[category.id].length;
@@ -63,8 +61,7 @@ export default function CatalogSelector(props: {
           "flex min-w-0 flex-col overflow-hidden rounded-xl border bg-white",
           clean
             ? cn(
-                "border-[#c3c6d7] shadow-sm",
-                highlightPage && "border-[#fcd34d]/70",
+                "border-[#E2E8F0]",
                 plainProfile
                   ? "min-h-0"
                   : comfortable &&
@@ -77,16 +74,7 @@ export default function CatalogSelector(props: {
           className={cn(
             "border-b border-slate-100",
             clean
-              ? cn(
-                  highlightPage
-                    ? "border-[#fcd34d]/60 bg-[#fef3c7] px-3 py-2"
-                    : "bg-[#eff4ff] px-3 py-2",
-                  plainProfile && "px-3 py-2",
-                  comfortable &&
-                    !plainProfile &&
-                    !highlightPage &&
-                    "border-[#c3c6d7] max-lg:px-3 max-lg:py-2",
-                )
+              ? "border-[#E2E8F0] bg-white px-3 py-2"
               : "px-2 py-1.5",
           )}
         >
@@ -95,15 +83,13 @@ export default function CatalogSelector(props: {
               className={cn(
                 "font-bold text-slate-800",
                 clean
-                  ? comfortable && !plainProfile
-                    ? "text-xs font-semibold text-[#0b1c30] md:text-[13px]"
-                    : "text-xs font-semibold text-[#0b1c30] sm:text-sm"
+                  ? "text-[13px] font-medium text-[#334155]"
                   : "text-[11px] lg:text-xs",
               )}
             >
               {category.title}
               {selectedCount > 0 ? (
-                <span className="ml-1.5 font-semibold text-[#2563eb]">
+                <span className="ml-1.5 font-semibold text-[#64748B]">
                   ({selectedCount})
                 </span>
               ) : null}
@@ -116,7 +102,7 @@ export default function CatalogSelector(props: {
                   props.onToggle(category.id, "none")
                 }
                 className={cn(
-                  "shrink-0 font-semibold text-[#004ac6] hover:underline",
+                  "shrink-0 font-semibold text-[#64748B] hover:text-[#0F172A] hover:underline",
                   comfortable ? "text-xs" : "text-[10px] sm:text-[11px]",
                 )}
               >
@@ -163,20 +149,14 @@ export default function CatalogSelector(props: {
                   className={cn(
                     "flex cursor-pointer items-center gap-3 rounded-lg px-3 transition-colors",
                     clean
-                      ? comfortable
-                        ? "py-2 text-[13px] leading-snug max-lg:gap-2 max-lg:px-2 max-lg:py-1.5 max-lg:text-[13px]"
-                        : plainProfile
-                          ? "py-2 text-sm sm:text-[15px]"
-                          : "py-2 text-xs sm:text-[13px]"
+                      ? "py-1.5 text-[13px] leading-snug"
                       : "items-start py-1 text-[11px] lg:text-xs",
                     checked
                       ? clean
-                        ? comfortable
-                          ? "border border-[#2563eb]/30 bg-[#eff4ff] font-medium"
-                          : "bg-sky-50 ring-1 ring-sky-100"
+                        ? "bg-[#F8FAFC] font-medium text-[#020617]"
                         : "bg-[#d9ecf7]/90 font-bold text-[#0f2f49]"
                       : clean
-                        ? "border border-transparent text-[#0b1c30] hover:bg-[#eff4ff]/60"
+                        ? "text-[#020617] hover:bg-[#F8FAFC]"
                         : "text-slate-700 hover:bg-slate-50",
                   )}
                 >
@@ -187,10 +167,8 @@ export default function CatalogSelector(props: {
                       isSingleSelect ? `catalog-${category.id}` : undefined
                     }
                     className={cn(
-                      "shrink-0 border-slate-300 accent-[#004ac6]",
-                      clean && comfortable
-                        ? "h-5 w-5"
-                        : "h-4 w-4",
+                      "shrink-0 border-slate-300 accent-[#0F172A]",
+                      clean ? "h-4 w-4" : "h-4 w-4",
                       !clean && "mt-0.5 h-3.5 w-3.5 accent-[#114a72]",
                       isSingleSelect ? "rounded-full" : "rounded-[3px]",
                     )}
@@ -221,13 +199,8 @@ export default function CatalogSelector(props: {
                   {clean ? (
                     <span
                       className={cn(
-                        "shrink-0 tabular-nums font-semibold",
-                        comfortable
-                          ? "text-sm md:text-[15px] max-lg:text-sm"
-                          : plainProfile
-                            ? "text-sm sm:text-[15px]"
-                            : "text-xs sm:text-[13px]",
-                        checked ? "font-bold text-[#004ac6]" : "text-[#565e74]",
+                        "shrink-0 text-[13px] tabular-nums font-medium",
+                        checked ? "text-[#0F172A]" : "text-[#64748B]",
                       )}
                     >
                       {priceLabel}
@@ -243,65 +216,40 @@ export default function CatalogSelector(props: {
   });
 
   if (clean) {
+    const clearButton = (
+      <button
+        type="button"
+        onClick={() => props.onClearAll?.()}
+        className="inline-flex h-8 cursor-pointer items-center rounded-lg border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-[#0F172A] transition-colors hover:bg-[#F1F5F9]"
+      >
+        Tümünü Temizle
+      </button>
+    );
+
     return (
       <section
         className={cn(
-          highlightPage
-            ? "relative overflow-hidden rounded-xl border border-[#fbbf24]/45 bg-[#fffbeb] pl-2 shadow-sm ring-1 ring-[#f59e0b]/10"
-            : "rounded-xl border border-[#c3c6d7] bg-white shadow-sm",
-          plainProfile ? "p-4" : "p-4 sm:p-5 max-lg:p-3",
+          plainProfile
+            ? "min-w-0"
+            : "rounded-xl border border-[#E2E8F0] bg-white p-3 shadow-sm md:p-4",
           props.className,
         )}
       >
-        {highlightPage ? (
-          <div
-            className="absolute bottom-0 left-0 top-0 w-1 bg-[#f59e0b]"
-            aria-hidden
-          />
-        ) : null}
-        <div
-          className={cn(
-            "flex flex-wrap items-center justify-between gap-3 border-b",
-            highlightPage ? "border-[#fcd34d]/60" : "border-[#c3c6d7]",
-            plainProfile ? "mb-3 pb-2" : "mb-3 pb-2 max-lg:mb-2 max-lg:pb-1.5",
-          )}
-        >
-          <div>
-            <h2
-              className={cn(
-                "font-semibold text-[#0b1c30]",
-                highlightPage && "text-[#92400e]",
-                plainProfile ? "text-base sm:text-lg" : "text-base md:text-[17px] max-lg:text-lg",
-              )}
-            >
-              Opsiyonlar ve Diğer Giderler
-            </h2>
-            {plainProfile ? (
-              <p className="mt-0.5 text-sm text-[#434655] md:text-[15px]">
-                Finansmana dahil — ataşman / bakım / donanım
-              </p>
-            ) : comfortable ? (
-              <p className="mt-1 text-sm text-[#434655] md:text-[15px]">
+        {plainProfile ? (
+          <div className="mb-3 flex justify-end">{clearButton}</div>
+        ) : (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] pb-3">
+            <div>
+              <h2 className="text-sm font-semibold text-[#0F172A]">
+                Opsiyonlar ve Diğer Giderler
+              </h2>
+              <p className="mt-0.5 text-xs text-[#64748B]">
                 Ataşman ve donanım çoklu; bakım paketi tek seçim
               </p>
-            ) : (
-              <p className="mt-0.5 text-xs font-medium text-slate-500">
-                Ataşman ve donanım çoklu; bakım paketi tek seçim
-              </p>
-            )}
+            </div>
+            {clearButton}
           </div>
-          <button
-            type="button"
-            onClick={() => props.onClearAll?.()}
-            className={cn(
-              "font-semibold hover:underline",
-              highlightPage ? "text-[#b45309]" : "text-[#004ac6]",
-              comfortable ? "text-sm md:text-[15px]" : "text-xs",
-            )}
-          >
-            Tümünü Temizle
-          </button>
-        </div>
+        )}
         <div
           className={cn(
             "grid gap-3 max-lg:gap-2.5",
@@ -318,69 +266,36 @@ export default function CatalogSelector(props: {
         >
           {grid}
         </div>
-        <div
-          className={cn(
-            "grid grid-cols-2 gap-3 rounded-xl px-4 sm:grid-cols-4 max-lg:gap-2 max-lg:px-3",
-            highlightPage ? "bg-[#fde68a]/35" : "bg-[#eff4ff]",
-            plainProfile
-              ? "mt-3 py-2.5 text-xs sm:text-sm"
-              : cn(
-                  "mt-3 py-3 max-lg:mt-2 max-lg:py-2",
-                  comfortable
-                    ? "text-sm max-lg:text-sm"
-                    : "text-xs font-semibold text-slate-600 sm:text-sm",
-                ),
-          )}
-        >
+        <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-[#F8FAFC] px-4 py-2.5 sm:grid-cols-4">
           <div className="min-w-0">
-            <span
-              className={cn(
-                "block font-medium uppercase tracking-wide text-[#565e74]",
-                comfortable ? "text-xs" : "text-[10px] sm:text-[11px]",
-              )}
-            >
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
               Opsiyon
             </span>
-            <span className="tabular-nums text-slate-800">
+            <span className="tabular-nums text-[13px] font-semibold text-[#0F172A]">
               {attachmentSum.toLocaleString("tr-TR")} €
             </span>
           </div>
           <div className="min-w-0">
-            <span
-              className={cn(
-                "block font-medium uppercase tracking-wide text-[#565e74]",
-                comfortable ? "text-xs" : "text-[10px] sm:text-[11px]",
-              )}
-            >
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
               Bakım
             </span>
-            <span className="tabular-nums text-slate-800">
+            <span className="tabular-nums text-[13px] font-semibold text-[#0F172A]">
               {maintenanceSum.toLocaleString("tr-TR")} €
             </span>
           </div>
           <div className="min-w-0">
-            <span
-              className={cn(
-                "block font-medium uppercase tracking-wide text-[#565e74]",
-                comfortable ? "text-xs" : "text-[10px] sm:text-[11px]",
-              )}
-            >
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
               Diğer
             </span>
-            <span className="tabular-nums text-slate-800">
+            <span className="tabular-nums text-[13px] font-semibold text-[#0F172A]">
               {(equipmentSum + otherCatalogSum).toLocaleString("tr-TR")} €
             </span>
           </div>
           <div className="min-w-0 sm:text-right">
-            <span
-              className={cn(
-                "block font-medium uppercase tracking-wide text-[#565e74]",
-                comfortable ? "text-xs" : "text-[10px] sm:text-[11px]",
-              )}
-            >
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
               Toplam
             </span>
-            <span className="tabular-nums text-base font-bold text-[#004ac6] md:text-lg">
+            <span className="tabular-nums text-sm font-semibold text-[#0F172A] md:text-base">
               {resolved.totalEuro.toLocaleString("tr-TR")} €
             </span>
           </div>

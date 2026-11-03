@@ -280,12 +280,10 @@ export default function AnnualForwardCalculator(props: {
     activeTab === "campaign"
       ? [
           { key: "downPaymentEuro", label: "Peşinat (€)" },
-          { key: "financingSupportEuro", label: "Finansman desteği (€)" },
           { key: "term", label: "Vade (Yıl) — en fazla 3" },
         ]
       : [
           { key: "downPaymentEuro", label: "Peşinat (€)" },
-          { key: "financingSupportEuro", label: "Finansman desteği (€)" },
           { key: "term", label: "Vade (Yıl) — en fazla 3" },
           {
             key: "euroInterest",
@@ -301,10 +299,10 @@ export default function AnnualForwardCalculator(props: {
 
   const handleClearExpenses = () => setExpenses({ ...EMPTY_EXPENSES });
   const handleClearMachineFinance = () =>
-    clearForwardMachineFinance(
-      handleParamChange,
-      financeFields.map((field) => field.key),
-    );
+    clearForwardMachineFinance(handleParamChange, [
+      ...financeFields.map((field) => field.key),
+      "financingSupportEuro",
+    ]);
 
   const printMode =
     activeTab === "campaign"

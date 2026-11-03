@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  CALC_CHIP_BASE_CLS,
+  CALC_CHIP_GROUP_CLS,
+  CALC_FOCUS_RING,
+  calcChipStateCls,
+} from "@/components/finance/ui/CalcFormChrome";
 import { cn } from "@/lib/utils";
 
 export type SegmentOption<T extends string> = {
@@ -17,10 +23,7 @@ export default function SegmentedControl<T extends string>(props: {
   const large = props.size === "large";
   return (
     <div
-      className={cn(
-        "flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50/80 p-1",
-        props.className,
-      )}
+      className={cn(CALC_CHIP_GROUP_CLS, props.className)}
       role="tablist"
     >
       {props.options.map((opt) => {
@@ -34,13 +37,13 @@ export default function SegmentedControl<T extends string>(props: {
             data-promo-forward-tab={opt.value}
             onClick={() => props.onChange(opt.value)}
             className={cn(
-              "flex-1 rounded-lg px-2 py-1.5 text-center font-bold transition-colors",
+              CALC_CHIP_BASE_CLS,
+              "flex-1",
+              CALC_FOCUS_RING,
               large
-                ? "min-h-11 text-base sm:min-w-[8rem]"
-                : "min-h-8 text-[11px] sm:min-w-[6.5rem] sm:text-xs",
-              active
-                ? "bg-[#2563eb] text-white shadow-sm"
-                : "text-slate-600 hover:bg-white hover:text-slate-900",
+                ? "min-h-11 px-3 text-sm sm:min-w-[8rem]"
+                : "h-8 px-2.5 text-[13px] sm:min-w-[6.5rem]",
+              calcChipStateCls(active),
             )}
           >
             {opt.label}

@@ -14,15 +14,8 @@ import PaymentSchedulePanel from "@/components/finance/ui/PaymentSchedulePanel";
 import SectionCard from "@/components/finance/ui/SectionCard";
 import SectionClearAction from "@/components/finance/ui/SectionClearAction";
 import SegmentedControl from "@/components/finance/ui/SegmentedControl";
-import SummaryCard from "@/components/finance/ui/SummaryCard";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import {
-  EMPTY_CATALOG_SELECTION,
-  type CatalogSelection,
-} from "@/lib/catalogPrices";
+import { type CatalogSelection } from "@/lib/catalogPrices";
 import { getForwardTabOptions } from "@/lib/forwardCalculatorFeatures";
 import { buildForwardStitchSummaryRows } from "@/lib/forwardSummaryRows";
 import {
@@ -30,17 +23,24 @@ import {
   type CalcSlice,
   type ForwardTabId,
 } from "@/lib/forwardDisplayMetrics";
-import { RefreshCw, RotateCcw, Printer, FileText } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import {
   CatalogScrollRail,
   CATALOG_SECTION_ID,
 } from "@/components/finance/ui/CatalogScrollRail";
-import FinanceContextBar from "@/components/finance/ui/FinanceContextBar";
 import CalcPageHeader from "@/components/finance/ui/CalcPageHeader";
-import FinanceKpiStrip, {
-  type FinanceKpiItem,
-} from "@/components/finance/ui/FinanceKpiStrip";
+import {
+  PlanContextFields,
+  PlanFinancingSupportField,
+} from "@/components/finance/ui/FinanceContextBar";
+import {
+  CALC_PANEL_CLS,
+  FormStep,
+  ResultKpiBand,
+  type ResultKpiItem,
+} from "@/components/finance/ui/CalcFormChrome";
+import { formatNumber } from "@/components/finance/format";
+import ProCalcShell from "@/components/finance/ui/ProCalcShell";
 
 export default function ForwardCalculatorLayout(props: {
   activeTab: ForwardTabId;
@@ -113,12 +113,6 @@ export default function ForwardCalculatorLayout(props: {
     ? props.params.downPaymentEuro * rate
     : props.params.downPaymentEuro;
 
-  const attachment = isTry ? display.attachment * rate : display.attachment;
-  const maintenance = isTry ? display.maintenance * rate : display.maintenance;
-  const equipment = isTry ? display.equipment * rate : display.equipment;
-  const catalogOther = isTry
-    ? display.catalogOther * rate
-    : display.catalogOther;
   const otherExpenses = isTry
     ? display.otherExpenses * rate
     : display.otherExpenses;
@@ -201,46 +195,12 @@ export default function ForwardCalculatorLayout(props: {
     ],
   );
 
-  const segments = useMemo(() => {
-    const items: { label: string; value: number; color: string }[] = [
-      { label: "Makine bedeli", value: machine, color: "#1d4ed8" },
-      { label: "Ataşman toplamı", value: attachment, color: "#2563eb" },
-      { label: "Bakım paketi", value: maintenance, color: "#3b82f6" },
-      { label: "Donanım toplamı", value: equipment, color: "#60a5fa" },
-      { label: "Diğer giderler", value: catalogOther, color: "#93c5fd" },
-    ];
-    if (display.includeExpenses) {
-      items.push({
-        label: "Ek masraflar (Kasko, Leasing, İthalat)",
-        value: otherExpenses,
-        color: "#bfdbfe",
-      });
-    }
-    const fin = Math.max(0, referenceVadeFarki.primary);
-    if (fin > 0) {
-      items.push({
-        label: "Finansman maliyeti",
-        value: fin,
-        color: "#1e3a8a",
-      });
-    }
-    return items;
-  }, [
-    machine,
-    attachment,
-    maintenance,
-    equipment,
-    catalogOther,
-    display.includeExpenses,
-    otherExpenses,
-    referenceVadeFarki.primary,
-  ]);
-
   const tabOptions = getForwardTabOptions();
-
-  const showStitchChrome = Boolean(props.onPaymentFrequencyChange);
   const isPlainTab = props.activeTab === "plain";
+  const isAdvantage = props.activeTab === "advantage";
   const plainCatalogOnly = display.plainCatalogOnly ?? false;
+  const showExtras = props.activeTab === "campaign" || props.activeTab === "allin";
+  const fmt = (v: number) => formatNumber(v, { decimals: 2 });
 
   const financingSupportCompare = useMemo(() => {
     if (financingSupportAmount <= 0 || !props.baselineCalc) return null;
@@ -276,55 +236,75 @@ export default function ForwardCalculatorLayout(props: {
     totalPrimary,
   ]);
 
-  const forwardKpiItems = useMemo((): FinanceKpiItem[] => {
-    if (!showStitchChrome || props.activeTab === "advantage") return [];
-    const items: FinanceKpiItem[] = [];
+  const stitchPrimaryTotalLabel =
+    plainCatalogOnly && isPlainTab
+      ? "Toplam tutar"
+      : financingSupportCompare
+        ? "Müşteri toplam ödemesi (destekli)"
+        : isTry
+          ? "Toplam ödeme"
+          : "Toplam (EUR)";
+
+  const heroSub = [props.params.firma.trim(), props.params.makine.trim()]
+    .filter(Boolean)
+    .join(" · ");
+
+  const forwardKpiItems = useMemo((): ResultKpiItem[] => {
+    if (isAdvantage) return [];
+    const term = Number(props.params.term) || 0;
+    const items: ResultKpiItem[] = [
+      {
+        label: stitchPrimaryTotalLabel,
+        value: `${fmt(totalPrimary)} ${sym}`,
+        sub:
+          heroSub ||
+          (financingSupportCompare
+            ? `${financingSupportCompare.deltaLabel}: ${
+                financingSupportCompare.deltaValue >= 0 ? "+" : "−"
+              }${fmt(Math.abs(financingSupportCompare.deltaValue))} ${sym}`
+            : undefined),
+        hero: true,
+      },
+    ];
     if (!(plainCatalogOnly && isPlainTab)) {
       items.push({
         label: isAnnual ? "Yıllık taksit" : "Aylık taksit",
-        value: monthly,
-        hint: isAnnual ? "Seçilen para biriminde" : "Seçilen para biriminde",
-        currencySymbol: sym,
-        accent: "blue",
-        noDecimals: true,
+        value: `${fmt(monthly)} ${sym}`,
       });
     }
     items.push(
       {
-        label: "Toplam ödeme (EUR)",
-        value: display.totalEuro,
-        hint: "Peşinat dahil",
-        currencySymbol: "€",
-        accent: "navy",
-        noDecimals: true,
+        label: "Vade farkı",
+        value: `${fmt(referenceVadeFarki.primary)} ${sym}`,
       },
       {
-        label: "Vade farkı (EUR)",
-        value: referenceVadeFarki.euro,
-        hint: "Faiz maliyeti (tam)",
-        currencySymbol: "€",
-        accent: "purple",
-        noDecimals: true,
+        label: isTry ? "Toplam ödeme (EUR)" : "Toplam ödeme (TL)",
+        value: isTry
+          ? `${fmt(display.totalEuro)} €`
+          : `${fmt(display.totalTl)} ₺`,
       },
       {
-        label: "Toplam ödeme (TL)",
-        value: display.totalTl,
-        hint: "Peşinat dahil",
-        currencySymbol: "₺",
-        accent: "green",
+        label: "Plan",
+        value: isAnnual ? `${term} yıl` : `${term} ay`,
+        sub: isAnnual ? "Yılda bir taksit" : undefined,
       },
     );
     return items;
   }, [
-    showStitchChrome,
-    props.activeTab,
+    isAdvantage,
+    props.params.term,
+    stitchPrimaryTotalLabel,
+    totalPrimary,
+    sym,
+    heroSub,
+    financingSupportCompare,
     plainCatalogOnly,
     isPlainTab,
     isAnnual,
     monthly,
-    sym,
+    referenceVadeFarki.primary,
+    isTry,
     display.totalEuro,
-    referenceVadeFarki.euro,
     display.totalTl,
   ]);
 
@@ -341,276 +321,80 @@ export default function ForwardCalculatorLayout(props: {
     </div>
   );
 
-  const summaryColumnContent =
-    props.activeTab === "advantage" ? (
-      <>
-        <SectionCard title="Kur Projeksiyonu" variant={showStitchChrome ? "stitch" : "default"}>
-          <RateProjectionInput
-            baseRate={props.params.euroRate}
-            monthlyGrowthPct={props.monthlyGrowthPct}
-            onGrowthChange={props.setMonthlyGrowthPct}
-            onReset={props.resetRates}
-            months={
-              props.rateProjectionMonths ??
-              (Number(props.params.term) || 0)
-            }
-            computedRates={props.computedRates}
-          />
-        </SectionCard>
-        <CurrencyComparisonReport
-          scheduleEuro={props.calc.plainScheduleEuro}
-          scheduleTL={props.calc.plainScheduleTL}
-          projectedRates={props.calc.projRates}
-          euroRate={props.params.euroRate}
+  const summaryAside = isAdvantage ? (
+    <div className="flex flex-col gap-3">
+      <SectionCard title="Kur Projeksiyonu" variant="stitch">
+        <RateProjectionInput
+          baseRate={props.params.euroRate}
           monthlyGrowthPct={props.monthlyGrowthPct}
-          downPaymentEuro={props.params.downPaymentEuro}
-          downPaymentTL={props.calc.downPaymentTL}
-          term={
-            props.comparisonTerm ?? (Number(props.params.term) || 0)
+          onGrowthChange={props.setMonthlyGrowthPct}
+          onReset={props.resetRates}
+          months={
+            props.rateProjectionMonths ?? (Number(props.params.term) || 0)
           }
-          paymentFrequency={paymentFrequency}
+          computedRates={props.computedRates}
         />
-      </>
-    ) : showStitchChrome ? (
-      <>
-        <SectionCard
-          title="Maliyet özeti"
-          variant="stitch"
-          accentBar
-        >
-          <CostSummaryPanel
-            rows={summaryRows}
-            currencySymbol={sym}
-            layout="stitch"
-            totalEuro={totalPrimary}
-            stitchPrimaryTotalLabel={
-              plainCatalogOnly && isPlainTab
-                ? "Toplam tutar"
-                : financingSupportCompare
-                  ? "Müşteri toplam ödemesi (destekli)"
-                  : isTry
-                    ? "Toplam ödeme"
-                    : "Toplam (EUR)"
-            }
-            stitchCompare={financingSupportCompare ?? undefined}
-          />
-        </SectionCard>
-
-        {!(plainCatalogOnly && isPlainTab) ? (
-          <PaymentSchedulePanel
-            schedule={schedule}
-            currencySymbol={sym}
-            downPayment={downPayment}
-            interestRatePct={interestRate}
-            periodUnit={isAnnual ? "year" : "month"}
-            defaultExpanded={showStitchChrome}
-            comfortable={showStitchChrome}
-            totalPayment={totalPrimary}
-          />
-        ) : null}
-      </>
-    ) : (
-      <>
-        <SectionCard
-          title="Maliyet özeti"
-          action={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs font-bold"
-              data-promo-action="open-summary"
-              onClick={props.handleOpenSummaryReport}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              Özet rapor
-            </Button>
-          }
-        >
-          <CostSummaryPanel
-            rows={summaryRows}
-            currencySymbol={sym}
-            totalLabel="Toplam ödeme"
-            totalValue={totalPrimary}
-            segments={segments}
-            layout="split"
-          />
-        </SectionCard>
-
-        <PaymentSchedulePanel
-          schedule={schedule}
-          currencySymbol={sym}
-          downPayment={downPayment}
-          interestRatePct={interestRate}
-          periodUnit={isAnnual ? "year" : "month"}
-          defaultExpanded={false}
-          totalPayment={totalPrimary}
-        />
-      </>
-    );
-
-  const summaryAsideClass = cn(
-    "flex flex-col gap-4",
-    showStitchChrome
-      ? "lg:sticky lg:top-[4.75rem]"
-      : "xl:sticky xl:top-4",
+      </SectionCard>
+      <CurrencyComparisonReport
+        scheduleEuro={props.calc.plainScheduleEuro}
+        scheduleTL={props.calc.plainScheduleTL}
+        projectedRates={props.calc.projRates}
+        euroRate={props.params.euroRate}
+        monthlyGrowthPct={props.monthlyGrowthPct}
+        downPaymentEuro={props.params.downPaymentEuro}
+        downPaymentTL={props.calc.downPaymentTL}
+        term={props.comparisonTerm ?? (Number(props.params.term) || 0)}
+        paymentFrequency={paymentFrequency}
+      />
+    </div>
+  ) : (
+    <>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-[#0F172A]">Maliyet özeti</h3>
+        <span className="rounded-full bg-[#F1F5F9] px-2.5 py-1 text-[11px] font-semibold text-[#475569]">
+          KDV hariç
+        </span>
+      </div>
+      <CostSummaryPanel
+        rows={summaryRows}
+        currencySymbol={sym}
+        layout="stitch"
+        totalEuro={totalPrimary}
+        stitchPrimaryTotalLabel={stitchPrimaryTotalLabel}
+        stitchCompare={financingSupportCompare ?? undefined}
+      />
+    </>
   );
 
   return (
-    <div className="space-y-5 pb-5 max-lg:space-y-4 max-lg:pb-5">
-      <CatalogScrollRail
-        enabled={showStitchChrome}
-        observeKey={props.activeTab}
+    <ProCalcShell>
+      <CatalogScrollRail enabled={!isPlainTab} observeKey={props.activeTab} />
+
+      <CalcPageHeader
+        kicker="Leasing · İleri hesaplama"
+        title="İleri hesaplama"
+        description="Makine bedelinden taksit ve toplam ödemeye. Tutarlar KDV hariçtir."
+        onSummary={props.handleOpenSummaryReport}
+        onPaymentPlan={props.handlePrint}
+        summaryActionAttr="open-summary"
       />
 
-      {showStitchChrome ? (
-        <CalcPageHeader
-          kicker="Leasing · İleri hesaplama"
-          title="İleri hesaplama"
-          description="Makine bedelinden taksit ve toplam ödemeye. Tutarlar KDV hariçtir."
-          onSummary={props.handleOpenSummaryReport}
-          onPaymentPlan={props.handlePrint}
-          summaryActionAttr="open-summary"
-        />
-      ) : null}
+      <ResultKpiBand items={forwardKpiItems} />
 
-      {showStitchChrome && props.onPaymentFrequencyChange ? (
-        <FinanceContextBar
-          paymentFrequency={paymentFrequency}
-          onPaymentFrequencyChange={props.onPaymentFrequencyChange}
-          pdfCurrency={props.pdfCurrency}
-          setPdfCurrency={props.setPdfCurrency}
-          euroRate={props.params.euroRate}
-          onEuroRateChange={(value) => props.handleParamChange("euroRate", value)}
-          onRefreshEuroRate={props.handleRefreshEuroRate}
-        />
-      ) : null}
+      <div className="grid gap-3 lg:grid-cols-12 lg:items-start [&>*]:min-w-0">
+        <section className={cn(CALC_PANEL_CLS, "lg:col-span-7")}>
+          <h3 className="sr-only">Girişler</h3>
 
-      {forwardKpiItems.length > 0 ? (
-        <FinanceKpiStrip items={forwardKpiItems} heroFirst />
-      ) : null}
-
-      {isAnnual && !showStitchChrome ? (
-        <p className="rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-xs font-semibold text-[#565e74] shadow-sm">
-          Yılda bir taksit · Vade en fazla 3 yıl · Tutarlar KDV hariçtir
-        </p>
-      ) : null}
-
-      <div
-        className={cn(
-          "finance-calc-stack",
-          showStitchChrome && !isPlainTab && "finance-calc-stack--with-catalog",
-        )}
-      >
-        <div className="finance-calc-stack__main grid grid-cols-1 gap-4 max-lg:gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
-        <div
-          className={cn(
-            "finance-mobile-tight flex flex-col lg:col-span-5",
-            showStitchChrome ? "gap-4 max-lg:gap-3 lg:gap-4" : "gap-6 max-lg:gap-5",
-          )}
-        >
-          <SectionCard
-            title="Hesaplama Yöntemi"
-            variant={showStitchChrome ? "stitch" : "default"}
-            density={showStitchChrome ? "compact" : "default"}
-          >
-            <SegmentedControl
-              options={tabOptions}
-              value={props.activeTab}
-              onChange={props.setActiveTab}
-              size="default"
-              className={
-                showStitchChrome
-                  ? "border-[#c3c6d7] bg-[#eff4ff]/50 [&_button]:min-h-7 [&_button]:px-2 [&_button]:py-1 [&_button]:text-xs md:[&_button]:text-[13px]"
-                  : undefined
-              }
-            />
-            {showStitchChrome && isPlainTab ? (
-              <p className="llp-pro-hint mt-3 rounded-lg border border-[#004ac6]/20 bg-[#eff4ff] px-3 py-2 text-sm text-[#434655] md:text-[15px]">
-                Makine ve finansman bilgilerini girin; opsiyonlar hemen altında,
-                sağdaki özet anında güncellenir.
-              </p>
-            ) : null}
-            {!showStitchChrome ? (
-              <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-slate-100 pt-4">
-                <div className="space-y-1">
-                  <Label className="text-[11px] font-semibold text-slate-600">
-                    Para birimi
-                  </Label>
-                  <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-                    <button
-                      type="button"
-                      className={`rounded-md px-3 py-1.5 text-xs font-bold ${
-                        props.pdfCurrency === "EUR"
-                          ? "bg-[#2563eb] text-white"
-                          : "text-slate-600"
-                      }`}
-                      onClick={() => props.setPdfCurrency("EUR")}
-                    >
-                      EUR
-                    </button>
-                    <button
-                      type="button"
-                      className={`rounded-md px-3 py-1.5 text-xs font-bold ${
-                        props.pdfCurrency === "TRY"
-                          ? "bg-[#2563eb] text-white"
-                          : "text-slate-600"
-                      }`}
-                      onClick={() => props.setPdfCurrency("TRY")}
-                    >
-                      TL
-                    </button>
-                  </div>
-                </div>
-                <div className="min-w-[8rem] flex-1 space-y-1">
-                  <Label className="text-[11px] font-semibold text-slate-600">
-                    Kur (₺ / €)
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      className="h-9 bg-white"
-                      type="number"
-                      step="0.01"
-                      value={props.params.euroRate || ""}
-                      onChange={(e) =>
-                        props.handleParamChange(
-                          "euroRate",
-                          Number(e.target.value.replace(",", ".")) || 0,
-                        )
-                      }
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 shrink-0"
-                      onClick={() => props.handleRefreshEuroRate()}
-                      title="Referans kur"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </SectionCard>
-
-          <SectionCard
-            title="Makine ve Finansman"
-            description="KDV hariç tutarlar"
-            variant={showStitchChrome ? "stitch" : "default"}
-            density={showStitchChrome ? "compact" : "default"}
-            action={
-              <SectionClearAction
-                onClick={props.handleClearMachineFinance}
-                label="Makine ve finansman alanlarını temizle"
+          <FormStep index={1} title="Müşteri">
+            <div className="mb-3">
+              <SegmentedControl
+                options={tabOptions}
+                value={props.activeTab}
+                onChange={props.setActiveTab}
               />
-            }
-          >
+            </div>
             <FinanceFieldGrid
-              layout={showStitchChrome ? "stack" : "split"}
-              machineTitle="Makine bilgileri"
-              financeTitle={props.financeCardTitle}
+              variant="plan"
               machineFields={[
                 {
                   key: "firma",
@@ -625,6 +409,27 @@ export default function ForwardCalculatorLayout(props: {
                   type: "text",
                   options: [...MACHINE_MODELS],
                 },
+              ]}
+              financeFields={[]}
+              values={props.params}
+              onChange={props.handleParamChange}
+            />
+          </FormStep>
+
+          <FormStep
+            index={2}
+            title="Finansman koşulları"
+            last={!showExtras && !isPlainTab}
+            action={
+              <SectionClearAction
+                onClick={props.handleClearMachineFinance}
+                label="Makine ve finansman alanlarını temizle"
+              />
+            }
+          >
+            <FinanceFieldGrid
+              variant="plan"
+              machineFields={[
                 {
                   key: "machinePriceEuro",
                   label: props.machinePriceLabel,
@@ -633,17 +438,35 @@ export default function ForwardCalculatorLayout(props: {
               financeFields={props.financeFields}
               values={props.params}
               onChange={props.handleParamChange}
-              comfortable={showStitchChrome}
+              extra={
+                <>
+                  <PlanContextFields
+                    paymentFrequency={paymentFrequency}
+                    onPaymentFrequencyChange={props.onPaymentFrequencyChange}
+                    pdfCurrency={props.pdfCurrency}
+                    setPdfCurrency={props.setPdfCurrency}
+                    euroRate={props.params.euroRate}
+                    onEuroRateChange={(value) =>
+                      props.handleParamChange("euroRate", value)
+                    }
+                    onRefreshEuroRate={props.handleRefreshEuroRate}
+                  />
+                  <PlanFinancingSupportField
+                    value={Number(props.params.financingSupportEuro) || 0}
+                    onValueChange={(value) =>
+                      props.handleParamChange("financingSupportEuro", value)
+                    }
+                  />
+                </>
+              }
             />
-          </SectionCard>
+          </FormStep>
 
-          {(props.activeTab === "campaign" ||
-            props.activeTab === "allin") && (
-            <SectionCard
-              title="Ek Masraflar"
-              description="(Kasko, Leasing, İthalat)"
-              variant={showStitchChrome ? "stitch" : "default"}
-              density={showStitchChrome ? "compact" : "default"}
+          {showExtras ? (
+            <FormStep
+              index={3}
+              title="Ek maliyetler"
+              last
               action={
                 <SectionClearAction
                   onClick={props.handleClearExpenses}
@@ -659,116 +482,50 @@ export default function ForwardCalculatorLayout(props: {
                 paymentFrequency={paymentFrequency}
                 expenses={props.expenses as FinanceExpenses}
                 onExpensesChange={props.onExpensesReplace}
-                inputClassName="h-8 border-[#c3c6d7] bg-white text-[13px] md:text-sm"
+                inputClassName="h-9 border-[#E2E8F0] bg-white text-[13px]"
               />
-            </SectionCard>
+            </FormStep>
+          ) : null}
+
+          {isPlainTab ? (
+            <FormStep index={showExtras ? 4 : 3} title="Opsiyonlar" last>
+              <div id={CATALOG_SECTION_ID} className="scroll-mt-24">
+                <CatalogSelector
+                  appearance="clean"
+                  layout="full"
+                  density="compact"
+                  profile="plain"
+                  selection={props.catalogSelection}
+                  onToggle={props.handleCatalogToggle}
+                  onClearAll={props.handleCatalogClearAll}
+                />
+              </div>
+            </FormStep>
+          ) : null}
+        </section>
+
+        <aside
+          className={cn(
+            CALC_PANEL_CLS,
+            "lg:sticky lg:top-[4.75rem] lg:col-span-5",
           )}
-
-          {showStitchChrome && isPlainTab ? (
-            <div id={CATALOG_SECTION_ID} className="scroll-mt-24">
-              <CatalogSelector
-                appearance="clean"
-                layout="full"
-                density="compact"
-                profile="plain"
-                selection={props.catalogSelection}
-                onToggle={props.handleCatalogToggle}
-                onClearAll={props.handleCatalogClearAll}
-              />
-            </div>
-          ) : null}
-
-          {!showStitchChrome ? (
-            <CatalogSelector
-              appearance="clean"
-              layout="full"
-              density="compact"
-              selection={props.catalogSelection}
-              onToggle={props.handleCatalogToggle}
-              onClearAll={props.handleCatalogClearAll}
-            />
-          ) : null}
-        </div>
-
-        <div className={cn("hidden lg:flex lg:col-span-7", summaryAsideClass)}>
-          {summaryColumnContent}
-        </div>
-        </div>
-
-        {showStitchChrome && !isPlainTab ? (
-          <div className="finance-calc-stack__catalog">{catalogPage}</div>
-        ) : null}
-
-        <div className="finance-calc-stack__summary flex flex-col gap-4 max-lg:gap-3 lg:hidden">
-          {summaryColumnContent}
-        </div>
-      </div>
-
-      {!showStitchChrome ? (
-        <>
-      <div className="space-y-3 border-t border-slate-200/80 pt-6">
-        <h2 className="text-sm font-bold text-slate-800">Özet sonuç</h2>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <SummaryCard
-            label={isAnnual ? "Yıllık Taksit" : "Aylık Taksit"}
-            value={monthly}
-            hint={isAnnual ? "Yıllık ödeme tutarı" : "Aylık ödeme tutarı"}
-            currencySymbol={sym}
-            accent="blue"
-            noDecimals
-          />
-          <SummaryCard
-            label="Toplam Ödeme EUR"
-            value={display.totalEuro}
-            hint="Peşinat dahil toplam"
-            currencySymbol="€"
-            accent="green"
-            noDecimals
-          />
-          <SummaryCard
-            label="Vade Farkı"
-            value={referenceVadeFarki.euro}
-            hint="Faiz maliyeti (tam)"
-            currencySymbol="€"
-            accent="purple"
-            noDecimals
-          />
-          <SummaryCard
-            label="Toplam Ödeme TL"
-            value={display.totalTl}
-            hint="Peşinat dahil toplam"
-            currencySymbol="₺"
-            accent="orange"
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col-reverse gap-3 border-t border-slate-200/80 pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <Button
-          type="button"
-          variant="outline"
-          className="gap-2 font-bold"
-          onClick={props.handleNewCalculation}
         >
-          <RotateCcw className="h-4 w-4" />
-          Yeni Hesaplama
-        </Button>
-        <Button
-          type="button"
-          className="gap-2 bg-[#2563eb] font-bold hover:bg-[#1d4ed8] sm:min-w-[240px]"
-          onClick={props.handlePrint}
-        >
-          <Printer className="h-4 w-4" />
-          Ödeme planı oluştur
-        </Button>
+          {summaryAside}
+        </aside>
       </div>
 
-      <p className="text-center text-[10px] font-medium text-slate-400">
-        * Hesaplamalar bilgilendirme amaçlıdır. Resmi teklif için bizimle iletişime
-        geçiniz.
-      </p>
-        </>
+      {!isPlainTab ? catalogPage : null}
+
+      {!isAdvantage && !(plainCatalogOnly && isPlainTab) ? (
+        <PaymentSchedulePanel
+          schedule={schedule}
+          currencySymbol={sym}
+          downPayment={downPayment}
+          interestRatePct={interestRate}
+          periodUnit={isAnnual ? "year" : "month"}
+          totalPayment={totalPrimary}
+        />
       ) : null}
-    </div>
+    </ProCalcShell>
   );
 }

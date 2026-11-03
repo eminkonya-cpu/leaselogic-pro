@@ -3,8 +3,13 @@
 import DecimalTextInput from "@/components/finance/DecimalTextInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  CALC_INPUT_CLS,
+  FormField,
+} from "@/components/finance/ui/CalcFormChrome";
 import { cn } from "@/lib/utils";
 import { MACHINE_MODELS } from "@/components/finance/machineModels";
+import type { ReactNode } from "react";
 
 type Field = {
   key: string;
@@ -25,9 +30,71 @@ export default function FinanceFieldGrid(props: {
   comfortable?: boolean;
   /** split: yan yana sütunlar; stack: makine üstte, finansman altta */
   layout?: "split" | "stack";
+  /** Balon ekranı ile aynı 2 sütunluk form ızgarası. */
+  variant?: "default" | "plan";
+  extra?: ReactNode;
 }) {
   const roomy = props.comfortable;
   const stacked = props.layout === "stack";
+  const allFields = [...props.machineFields, ...props.financeFields];
+
+  const renderPlanField = (f: Field) => {
+    const type = f.type ?? "number";
+    const raw = props.values[f.key];
+    const textValue = String(raw ?? "");
+    const numericValue = type === "number" ? Number(raw ?? 0) : 0;
+    const listId =
+      type === "text" && f.options?.length ? `list-${f.key}` : undefined;
+
+    return (
+      <div key={f.key} data-promo-field-wrap={f.key}>
+        <FormField label={f.label}>
+          {(id) =>
+            type === "number" ? (
+              <DecimalTextInput
+                id={id}
+                data-promo-field={f.key}
+                className={CALC_INPUT_CLS}
+                placeholder={f.placeholder}
+                value={Number.isFinite(numericValue) ? numericValue : 0}
+                onValueChange={(next) => props.onChange(f.key, next)}
+              />
+            ) : (
+              <>
+                <Input
+                  id={id}
+                  data-promo-field={f.key}
+                  className={cn(CALC_INPUT_CLS, "font-normal")}
+                  value={textValue}
+                  type="text"
+                  list={listId}
+                  placeholder={f.placeholder}
+                  onChange={(e) => props.onChange(f.key, e.target.value)}
+                />
+                {listId ? (
+                  <datalist id={listId}>
+                    {f.options?.map((option) => (
+                      <option key={option} value={option} />
+                    ))}
+                  </datalist>
+                ) : null}
+              </>
+            )
+          }
+        </FormField>
+      </div>
+    );
+  };
+
+  if (props.variant === "plan") {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2">
+        {allFields.map(renderPlanField)}
+        {props.extra}
+      </div>
+    );
+  }
+
   const renderField = (f: Field) => {
     const type = f.type ?? "number";
     const raw = props.values[f.key];
@@ -39,8 +106,7 @@ export default function FinanceFieldGrid(props: {
           : String(raw);
     const listId =
       type === "text" && f.options?.length ? `list-${f.key}` : undefined;
-    const numericValue =
-      type === "number" ? Number(raw ?? 0) : 0;
+    const numericValue = type === "number" ? Number(raw ?? 0) : 0;
 
     return (
       <div key={f.key} className="space-y-0.5" data-promo-field-wrap={f.key}>
@@ -63,17 +129,19 @@ export default function FinanceFieldGrid(props: {
             onValueChange={(next) => props.onChange(f.key, next)}
           />
         ) : (
-        <Input
-          data-promo-field={f.key}
-          className={cn(roomy ? "h-8 text-[13px] md:text-sm max-lg:h-8 max-lg:text-sm" : "h-8 text-sm max-lg:h-8")}
-          value={value}
-          type={type}
-          list={listId}
-          placeholder={f.placeholder}
-          onChange={(e) => {
-            props.onChange(f.key, e.target.value);
-          }}
-        />
+          <Input
+            data-promo-field={f.key}
+            className={cn(
+              roomy ? "h-8 text-[13px] md:text-sm max-lg:h-8 max-lg:text-sm" : "h-8 text-sm max-lg:h-8",
+            )}
+            value={value}
+            type={type}
+            list={listId}
+            placeholder={f.placeholder}
+            onChange={(e) => {
+              props.onChange(f.key, e.target.value);
+            }}
+          />
         )}
         {listId ? (
           <datalist id={listId}>

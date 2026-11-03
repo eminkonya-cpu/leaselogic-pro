@@ -9,17 +9,28 @@ import FinanceFieldGrid, {
   MACHINE_MODELS,
 } from "@/components/finance/ui/FinanceFieldGrid";
 import PaymentSchedulePanel from "@/components/finance/ui/PaymentSchedulePanel";
-import SectionCard from "@/components/finance/ui/SectionCard";
 import SectionClearAction from "@/components/finance/ui/SectionClearAction";
-import { CATALOG_SECTION_ID } from "@/components/finance/ui/CatalogScrollRail";
-import FinanceContextBar from "@/components/finance/ui/FinanceContextBar";
+import {
+  CatalogScrollRail,
+  CATALOG_SECTION_ID,
+} from "@/components/finance/ui/CatalogScrollRail";
+import {
+  PlanContextFields,
+  PlanFinancingSupportField,
+} from "@/components/finance/ui/FinanceContextBar";
 import CalcPageHeader from "@/components/finance/ui/CalcPageHeader";
-import FinanceKpiStrip, {
-  type FinanceKpiItem,
-} from "@/components/finance/ui/FinanceKpiStrip";
+import {
+  CALC_PANEL_CLS,
+  FormStep,
+  ResultKpiBand,
+  type ResultKpiItem,
+} from "@/components/finance/ui/CalcFormChrome";
+import { formatNumber } from "@/components/finance/format";
+import ProCalcShell from "@/components/finance/ui/ProCalcShell";
 import type { ReverseFinanceLeg } from "@/lib/reverseFinanceCalc";
 import type { CatalogLine, CatalogSelection } from "@/lib/catalogPrices";
 import { buildReverseStitchSummaryRows } from "@/lib/reverseSummaryReport";
+import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
 export type ReverseCalcSlice = {
@@ -67,7 +78,6 @@ export default function ReverseCalculatorLayout(props: {
   termYears?: number;
 }) {
   const isAnnual = props.paymentFrequency === "annual";
-
   const isTry = props.pdfCurrency === "TRY";
   const sym = isTry ? "₺" : "€";
   const rate = props.params.euroRate;
@@ -86,6 +96,7 @@ export default function ReverseCalculatorLayout(props: {
   const planInterest = isTry
     ? props.params.tlInterest
     : props.params.euroInterest;
+  const fmt = (v: number) => formatNumber(v, { decimals: 2 });
 
   const financingSupportAmount = Math.max(
     0,
@@ -141,49 +152,59 @@ export default function ReverseCalculatorLayout(props: {
   );
 
   const netMachineDisplay = leg.displayNetMachine;
+  const stitchPrimaryTotalLabel = financingSupportCompare
+    ? "Net makine bedeli (destekli)"
+    : isTry
+      ? "Net makine bedeli"
+      : "Net makine bedeli (EUR)";
+  const heroSub = [props.params.firma.trim(), props.params.makine.trim()]
+    .filter(Boolean)
+    .join(" · ");
+  const term = Number(props.params.term) || 0;
 
-  const reverseKpiItems = useMemo((): FinanceKpiItem[] => {
-    const vadeFarki = leg.interestDiff;
+  const reverseKpiItems = useMemo((): ResultKpiItem[] => {
     return [
       {
-        label: "Net makine bedeli",
-        value: netMachineDisplay,
-        hint: "KDV hariç",
-        currencySymbol: sym,
-        accent: "navy",
+        label: stitchPrimaryTotalLabel,
+        value: `${fmt(netMachineDisplay)} ${sym}`,
+        sub:
+          heroSub ||
+          (financingSupportCompare
+            ? `${financingSupportCompare.deltaLabel}: ${
+                financingSupportCompare.deltaValue >= 0 ? "+" : "−"
+              }${fmt(Math.abs(financingSupportCompare.deltaValue))} ${sym}`
+            : undefined),
+        hero: true,
       },
       {
         label: isAnnual ? "Yıllık taksit" : "Aylık taksit",
-        value: installment,
-        hint: "Seçilen para biriminde",
-        currencySymbol: sym,
-        accent: "blue",
-        noDecimals: true,
+        value: `${fmt(installment)} ${sym}`,
       },
       {
         label: "Toplam ödeme",
-        value: totalPrimary,
-        hint: "Peşinat dahil",
-        currencySymbol: sym,
-        accent: "green",
-        noDecimals: true,
+        value: `${fmt(totalPrimary)} ${sym}`,
       },
       {
         label: "Vade farkı",
-        value: vadeFarki,
-        hint: "Faiz maliyeti",
-        currencySymbol: sym,
-        accent: "purple",
-        noDecimals: true,
+        value: `${fmt(leg.interestDiff)} ${sym}`,
+      },
+      {
+        label: "Plan",
+        value: isAnnual ? `${term} yıl` : `${term} ay`,
+        sub: isAnnual ? "Yılda bir taksit" : undefined,
       },
     ];
   }, [
+    stitchPrimaryTotalLabel,
+    netMachineDisplay,
+    sym,
+    heroSub,
+    financingSupportCompare,
     isAnnual,
     installment,
-    sym,
-    netMachineDisplay,
     totalPrimary,
     leg.interestDiff,
+    term,
   ]);
 
   const termField = isAnnual
@@ -196,46 +217,9 @@ export default function ReverseCalculatorLayout(props: {
         label: "Vade (Ay)",
       };
 
-  const reverseSummaryContent = (
-    <>
-      <SectionCard
-        title="Maliyet özeti"
-        variant="stitch"
-        accentBar
-      >
-        <CostSummaryPanel
-          rows={summaryRows}
-          currencySymbol={sym}
-          layout="stitch"
-          totalEuro={netMachineDisplay}
-          amountDecimals={2}
-          stitchPrimaryTotalLabel={
-            financingSupportCompare
-              ? "Net makine bedeli (destekli)"
-              : isTry
-                ? "Net makine bedeli"
-                : "Net makine bedeli (EUR)"
-          }
-          stitchCompare={financingSupportCompare ?? undefined}
-        />
-      </SectionCard>
-
-      <PaymentSchedulePanel
-        schedule={schedule}
-        currencySymbol={sym}
-        downPayment={downPayment}
-        interestRatePct={planInterest}
-        periodUnit={isAnnual ? "year" : "month"}
-        defaultExpanded
-        comfortable
-        totalPayment={totalPrimary}
-        amountDecimals={2}
-      />
-    </>
-  );
-
   return (
-    <div className="space-y-5 pb-5 max-lg:space-y-4 max-lg:pb-5">
+    <ProCalcShell>
+      <CatalogScrollRail enabled observeKey={props.paymentFrequency} />
       <CalcPageHeader
         kicker="Leasing · Geri hesaplama"
         title="Geri hesaplama"
@@ -244,46 +228,16 @@ export default function ReverseCalculatorLayout(props: {
         onPaymentPlan={props.handlePrint}
         summaryActionAttr="open-summary"
       />
-      {isAnnual ? (
-        <p className="llp-pro-banner rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#565e74] shadow-sm md:text-[15px]">
-          Geri hesaplama · Yılda bir taksit · Vade en fazla 3 yıl · KDV hariç
-        </p>
-      ) : (
-        <p className="llp-pro-banner rounded-xl border border-[#c3c6d7] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#565e74] shadow-sm md:text-[15px]">
-          Geri hesaplama · Makine fiyatından net makine bedeline · KDV hariç
-        </p>
-      )}
 
-      <FinanceContextBar
-        paymentFrequency={props.paymentFrequency}
-        onPaymentFrequencyChange={props.onPaymentFrequencyChange}
-        pdfCurrency={props.pdfCurrency}
-        setPdfCurrency={props.setPdfCurrency}
-        euroRate={props.params.euroRate}
-        onEuroRateChange={(value) => props.handleParamChange("euroRate", value)}
-        onRefreshEuroRate={props.handleRefreshEuroRate}
-      />
+      <ResultKpiBand items={reverseKpiItems} />
 
-      <FinanceKpiStrip items={reverseKpiItems} heroFirst />
+      <div className="grid gap-3 lg:grid-cols-12 lg:items-start [&>*]:min-w-0">
+        <section className={cn(CALC_PANEL_CLS, "lg:col-span-7")}>
+          <h3 className="sr-only">Girişler</h3>
 
-      <div className="finance-calc-stack finance-calc-stack--with-catalog">
-        <div className="finance-calc-stack__main grid grid-cols-1 gap-4 max-lg:gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
-        <div className="finance-mobile-tight flex flex-col gap-4 max-lg:gap-3 lg:col-span-5 lg:gap-4">
-          <SectionCard
-            title="Geri Hesaplama Parametreleri"
-            description="KDV hariç tutarlar"
-            variant="stitch"
-            action={
-              <SectionClearAction
-                onClick={props.handleClearMachineFinance}
-                label="Parametreleri temizle"
-              />
-            }
-          >
+          <FormStep index={1} title="Müşteri">
             <FinanceFieldGrid
-              layout="stack"
-              machineTitle="Müşteri ve makine"
-              financeTitle="Finansman"
+              variant="plan"
               machineFields={[
                 {
                   key: "firma",
@@ -298,6 +252,26 @@ export default function ReverseCalculatorLayout(props: {
                   type: "text",
                   options: [...MACHINE_MODELS],
                 },
+              ]}
+              financeFields={[]}
+              values={props.params}
+              onChange={props.handleParamChange}
+            />
+          </FormStep>
+
+          <FormStep
+            index={2}
+            title="Finansman koşulları"
+            action={
+              <SectionClearAction
+                onClick={props.handleClearMachineFinance}
+                label="Parametreleri temizle"
+              />
+            }
+          >
+            <FinanceFieldGrid
+              variant="plan"
+              machineFields={[
                 {
                   key: "allInTotalEuro",
                   label: "Makine fiyatı (€)",
@@ -308,10 +282,6 @@ export default function ReverseCalculatorLayout(props: {
                 {
                   key: "downPaymentEuro",
                   label: "Peşinat (€)",
-                },
-                {
-                  key: "financingSupportEuro",
-                  label: "Finansman desteği (€)",
                 },
                 termField,
                 {
@@ -329,15 +299,34 @@ export default function ReverseCalculatorLayout(props: {
               ]}
               values={props.params}
               onChange={props.handleParamChange}
-              comfortable
+              extra={
+                <>
+                  <PlanContextFields
+                    paymentFrequency={props.paymentFrequency}
+                    onPaymentFrequencyChange={props.onPaymentFrequencyChange}
+                    pdfCurrency={props.pdfCurrency}
+                    setPdfCurrency={props.setPdfCurrency}
+                    euroRate={props.params.euroRate}
+                    onEuroRateChange={(value) =>
+                      props.handleParamChange("euroRate", value)
+                    }
+                    onRefreshEuroRate={props.handleRefreshEuroRate}
+                  />
+                  <PlanFinancingSupportField
+                    value={Number(props.params.financingSupportEuro) || 0}
+                    onValueChange={(value) =>
+                      props.handleParamChange("financingSupportEuro", value)
+                    }
+                  />
+                </>
+              }
             />
-          </SectionCard>
+          </FormStep>
 
-          <SectionCard
-            title="Ek Masraflar"
-            description="(Kasko, Leasing, İthalat)"
-            variant="stitch"
-            density="compact"
+          <FormStep
+            index={3}
+            title="Ek maliyetler"
+            last
             action={
               <SectionClearAction
                 onClick={props.handleClearExpenses}
@@ -353,34 +342,57 @@ export default function ReverseCalculatorLayout(props: {
               paymentFrequency={props.paymentFrequency}
               expenses={props.expenses as FinanceExpenses}
               onExpensesChange={props.onExpensesReplace}
-              inputClassName="h-8 border-[#c3c6d7] bg-white text-[13px] md:text-sm"
+              inputClassName="h-9 border-[#E2E8F0] bg-white text-[13px]"
             />
-          </SectionCard>
-        </div>
+          </FormStep>
+        </section>
 
-        <div className="hidden lg:flex lg:col-span-7 lg:sticky lg:top-[4.75rem] flex-col gap-4">
-          {reverseSummaryContent}
-        </div>
-        </div>
-
-        <div
-          id={CATALOG_SECTION_ID}
-          className="finance-calc-stack__catalog scroll-mt-24"
+        <aside
+          className={cn(
+            CALC_PANEL_CLS,
+            "lg:sticky lg:top-[4.75rem] lg:col-span-5",
+          )}
         >
-          <CatalogSelector
-            appearance="clean"
-            layout="page"
-            density="comfortable"
-            selection={props.catalogSelection}
-            onToggle={props.handleCatalogToggle}
-            onClearAll={props.handleCatalogClearAll}
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-[#0F172A]">
+              Maliyet özeti
+            </h3>
+            <span className="rounded-full bg-[#F1F5F9] px-2.5 py-1 text-[11px] font-semibold text-[#475569]">
+              KDV hariç
+            </span>
+          </div>
+          <CostSummaryPanel
+            rows={summaryRows}
+            currencySymbol={sym}
+            layout="stitch"
+            totalEuro={netMachineDisplay}
+            amountDecimals={2}
+            stitchPrimaryTotalLabel={stitchPrimaryTotalLabel}
+            stitchCompare={financingSupportCompare ?? undefined}
           />
-        </div>
-
-        <div className="finance-calc-stack__summary flex flex-col gap-4 max-lg:gap-3 lg:hidden">
-          {reverseSummaryContent}
-        </div>
+        </aside>
       </div>
-    </div>
+
+      <div id={CATALOG_SECTION_ID} className="scroll-mt-24">
+        <CatalogSelector
+          appearance="clean"
+          layout="page"
+          density="comfortable"
+          selection={props.catalogSelection}
+          onToggle={props.handleCatalogToggle}
+          onClearAll={props.handleCatalogClearAll}
+        />
+      </div>
+
+      <PaymentSchedulePanel
+        schedule={schedule}
+        currencySymbol={sym}
+        downPayment={downPayment}
+        interestRatePct={planInterest}
+        periodUnit={isAnnual ? "year" : "month"}
+        totalPayment={totalPrimary}
+        amountDecimals={2}
+      />
+    </ProCalcShell>
   );
 }
