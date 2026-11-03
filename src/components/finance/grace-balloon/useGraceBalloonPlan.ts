@@ -79,7 +79,7 @@ const EXTRA_COST_FIELDS: {
   { amountKey: "fileFee", modeKey: "fileFee", label: "Dosya masrafı" },
   { amountKey: "totalInsurance", modeKey: "totalInsurance", label: "Toplam kasko maliyeti" },
   { amountKey: "importCost", modeKey: "importCost", label: "İthalat maliyeti" },
-  { amountKey: "attachmentCost", modeKey: "attachmentCost", label: "Ataşman maliyeti" },
+  { amountKey: "attachmentCost", modeKey: "attachmentCost", label: "Ataşman ve donanım maliyeti" },
 ];
 
 const DEFAULT_STATE: PlanState = {

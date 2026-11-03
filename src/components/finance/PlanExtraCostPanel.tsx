@@ -43,7 +43,7 @@ const ROWS: {
   },
   {
     key: "attachmentCost",
-    label: "Ataşman maliyeti",
+    label: "Ataşman ve donanım maliyeti",
     modeKey: "attachmentCost",
     amountKey: "attachmentCost",
     supportsAuto: false,
@@ -202,7 +202,9 @@ export default function PlanExtraCostPanel(props: {
                           : "Fiyat listesinden"}
                     </p>
                   ) : mode === "manual" ? (
-                    <p className="text-[11px] text-[#565e74]">Manuel giriş</p>
+                    <p className="mt-0.5 inline-flex rounded-md bg-[#0F172A] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#FDE68A]">
+                      Manuel giriş
+                    </p>
                   ) : (
                     <p className="text-[11px] text-[#8b93a7]">Hesaba dahil değil</p>
                   )}

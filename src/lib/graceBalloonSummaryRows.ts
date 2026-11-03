@@ -8,7 +8,7 @@ export type GraceBalloonExtraAmounts = {
   attachmentCost: number;
 };
 
-const ATTACHMENT_LABEL = "Ataşman toplamı";
+const ATTACHMENT_LABEL = "Ataşman ve donanım maliyeti";
 const FINANCING_SUPPORT_LABEL = "Finansman desteği";
 const EXPENSE_BUNDLE_LABEL = "Ek masraflar (Kasko, Leasing, İthalat)";
 
