@@ -189,12 +189,12 @@ export function ReportKeyValues(props: { items: ReportKeyValue[] }) {
       {props.items.map((item) => (
         <div
           key={item.label}
-          className="grid gap-x-3 gap-y-0.5 border-b border-dotted border-[#e2e8f0] py-1.5 max-[1024px]:grid-cols-1 min-[1025px]:grid-cols-[minmax(0,1fr)_auto] min-[1025px]:items-baseline print:py-1"
+          className="llp-kv-row grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-0.5 border-b border-dotted border-[#e2e8f0] py-1.5 print:py-1"
         >
           <dt className="min-w-0 font-medium text-[#64748b]">{item.label}</dt>
           <dd
             className={cn(
-              "min-w-0 font-semibold text-[#0f172a] max-[1024px]:text-left max-[1024px]:text-[12px] max-[1024px]:leading-snug min-[1025px]:text-right min-[1025px]:tabular-nums",
+              "llp-kv-value min-w-0 text-right font-semibold tabular-nums text-[#0f172a] max-[1024px]:text-[12px] max-[1024px]:leading-snug",
               item.label === "Plan süresi" && "whitespace-normal",
             )}
           >

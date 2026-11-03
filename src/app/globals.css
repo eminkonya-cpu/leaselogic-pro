@@ -316,6 +316,23 @@
     print-color-adjust: exact;
   }
 
+  /* Yazıcı kağıdı <1024px sayıldığı için tutarlar alta binmesin. */
+  .llp-report .llp-kv-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: baseline !important;
+  }
+
+  .llp-report .llp-kv-value {
+    text-align: right !important;
+  }
+
+  .llp-report table th:last-child,
+  .llp-report table td:last-child {
+    text-align: right !important;
+    white-space: nowrap !important;
+  }
+
   /* Toplam satırları her sayfada tekrarlanmasın */
   .llp-report tfoot {
     display: table-row-group;
