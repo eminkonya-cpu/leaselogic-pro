@@ -32,8 +32,16 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  clearAuthHint,
   getSupabaseBrowserClient,
+  hasStoredSupabaseSession,
+  isInvalidRefreshTokenError,
+  isSessionExpired,
+  isStoredSupabaseSessionExpired,
   isSupabaseConfigured,
+  readAuthHint,
+  signOutLocally,
+  writeAuthHint,
 } from "@/lib/supabase";
 import { usePersistentState } from "@/lib/usePersistentState";
 import type {
@@ -71,92 +79,6 @@ type AccessCheckResult =
       reason: string;
       transient?: boolean;
     };
-
-type AuthHint = {
-  email: string;
-  canEditCatalog: boolean;
-};
-
-const AUTH_HINT_KEY = "llp:auth:hint";
-
-function readAuthHint(): AuthHint | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(AUTH_HINT_KEY);
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw) as Partial<AuthHint>;
-    if (typeof parsed.email === "string" && parsed.email.includes("@")) {
-      return {
-        email: parsed.email,
-        canEditCatalog: Boolean(parsed.canEditCatalog),
-      };
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function writeAuthHint(hint: AuthHint) {
-  try {
-    window.localStorage.setItem(AUTH_HINT_KEY, JSON.stringify(hint));
-  } catch {
-    // ignore quota / private mode
-  }
-}
-
-function clearAuthHint() {
-  try {
-    window.localStorage.removeItem(AUTH_HINT_KEY);
-  } catch {
-    // ignore
-  }
-}
-
-function hasStoredSupabaseSession() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  try {
-    for (let i = 0; i < window.localStorage.length; i += 1) {
-      const key = window.localStorage.key(i);
-      if (!key?.startsWith("sb-") || !key.includes("auth-token")) {
-        continue;
-      }
-
-      const raw = window.localStorage.getItem(key);
-      if (raw && raw !== "null" && raw !== "{}") {
-        return true;
-      }
-    }
-  } catch {
-    return false;
-  }
-
-  return false;
-}
-
-function isRecoverableSessionError(error: unknown) {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-
-  const normalizedMessage = error.message.toLowerCase();
-
-  return (
-    normalizedMessage.includes("refresh token") ||
-    normalizedMessage.includes("invalid token") ||
-    normalizedMessage.includes("session not found")
-  );
-}
 
 async function checkAuthorizedAccess(
   supabase: SupabaseClient,
@@ -458,13 +380,22 @@ export function HomeClient() {
     }
 
     const hint = readAuthHint();
-    if (hint) {
+    const storedSession = hasStoredSupabaseSession();
+    const storedExpired = isStoredSupabaseSessionExpired();
+
+    if (hint && storedSession && !storedExpired) {
       setSessionEmail(hint.email);
       setCanEditCatalog(hint.canEditCatalog);
       setAuthState("authenticated");
-    } else if (hasStoredSupabaseSession()) {
+    } else if (storedSession) {
+      if (hint && storedExpired) {
+        clearAuthHint();
+      }
       setAuthState("loading");
     } else {
+      if (hint) {
+        clearAuthHint();
+      }
       setAuthState("signed_out");
     }
 
@@ -483,12 +414,30 @@ export function HomeClient() {
     }
 
     let isMounted = true;
+    let recoveringSession = false;
 
     const applySignedOut = () => {
       clearAuthHint();
       setAuthState("signed_out");
       setSessionEmail("");
       setCanEditCatalog(false);
+    };
+
+    const recoverInvalidSession = async () => {
+      if (recoveringSession) {
+        return;
+      }
+      recoveringSession = true;
+      try {
+        await signOutLocally(supabase);
+        if (!isMounted) {
+          return;
+        }
+        applySignedOut();
+        setMessage("");
+      } finally {
+        recoveringSession = false;
+      }
     };
 
     const syncSession = async (
@@ -500,23 +449,28 @@ export function HomeClient() {
       }
 
       if (!session) {
-        const keepOpen =
-          authStateRef.current === "authenticated" ||
-          Boolean(readAuthHint()) ||
-          hasStoredSupabaseSession();
+        if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+          return;
+        }
 
-        // Yalnızca gerçek çıkış giriş ekranına düşürsün.
-        // INITIAL_SESSION/token yenileme sırasında session kısa süre boş gelebiliyor.
         if (event === "SIGNED_OUT") {
           applySignedOut();
           return;
         }
 
-        if (keepOpen) {
+        if (hasStoredSupabaseSession()) {
+          if (isStoredSupabaseSessionExpired()) {
+            return;
+          }
+          await recoverInvalidSession();
           return;
         }
 
-        setAuthState("signed_out");
+        applySignedOut();
+        return;
+      }
+
+      if (isSessionExpired(session) && event === "INITIAL_SESSION") {
         return;
       }
 
@@ -550,6 +504,10 @@ export function HomeClient() {
       }
 
       if (access.timedOut) {
+        if (isSessionExpired(session)) {
+          await recoverInvalidSession();
+          return;
+        }
         if (alreadyIn || readAuthHint()) {
           setAuthState("authenticated");
         }
@@ -570,6 +528,10 @@ export function HomeClient() {
       }
 
       if (access.transient && (alreadyIn || readAuthHint())) {
+        if (isSessionExpired(session)) {
+          await recoverInvalidSession();
+          return;
+        }
         setAuthState("authenticated");
         return;
       }
@@ -579,33 +541,8 @@ export function HomeClient() {
       setSessionEmail("");
       setCanEditCatalog(false);
       setMessage(access.reason);
-      await supabase.auth.signOut();
+      await signOutLocally(supabase);
     };
-
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (!isMounted) {
-        return;
-      }
-
-      if (error) {
-        if (isRecoverableSessionError(error)) {
-          void supabase.auth.signOut({ scope: "local" });
-          applySignedOut();
-          setMessage("");
-          return;
-        }
-
-        if (authStateRef.current === "authenticated" || readAuthHint()) {
-          return;
-        }
-
-        setAuthState("signed_out");
-        setMessage("Oturum okunurken bir hata olustu.");
-        return;
-      }
-
-      void syncSession(data.session);
-    });
 
     const {
       data: { subscription },
@@ -613,29 +550,9 @@ export function HomeClient() {
       void syncSession(session, event);
     });
 
-    const onVisible = () => {
-      if (document.visibilityState !== "visible") {
-        return;
-      }
-      void supabase.auth.getSession().then(({ data }) => {
-        if (!isMounted) {
-          return;
-        }
-        if (data.session) {
-          if (authStateRef.current === "authenticated") {
-            return;
-          }
-          void syncSession(data.session);
-        }
-      });
-    };
-
-    document.addEventListener("visibilitychange", onVisible);
-
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -655,13 +572,19 @@ export function HomeClient() {
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    await signOutLocally(supabase);
+
     const { error } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password,
     });
 
     if (error) {
-      setMessage(error.message);
+      setMessage(
+        isInvalidRefreshTokenError(error)
+          ? "Oturum suresi dolmus. Tekrar giris yapin."
+          : error.message,
+      );
       setAuthState("signed_out");
     }
 
@@ -677,8 +600,17 @@ export function HomeClient() {
 
     setIsSigningOut(true);
     clearAuthHint();
-    await supabase.auth.signOut();
-    setIsSigningOut(false);
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      await signOutLocally(supabase);
+    } finally {
+      await signOutLocally(supabase);
+      setAuthState("signed_out");
+      setSessionEmail("");
+      setCanEditCatalog(false);
+      setIsSigningOut(false);
+    }
   };
 
   if (
