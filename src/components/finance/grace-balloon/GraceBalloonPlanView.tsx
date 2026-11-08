@@ -22,6 +22,7 @@ import {
   FormField,
   FormStep,
   ResultKpiBand,
+  type ResultKpiItem,
 } from "@/components/finance/ui/CalcFormChrome";
 import {
   AlertTriangle,
@@ -176,9 +177,9 @@ function ResultBand({ plan, fmt }: { plan: GraceBalloonPlan; fmt: (v: number) =>
   const machineValue =
     plan.direction === "reverse" ? (plan.solvedMachine ?? 0) : plan.state.machinePrice;
 
-  const stats: { label: string; value: string; sub?: string; hero?: boolean }[] = [
+  const stats: ResultKpiItem[] = [
+    { label: "Vade farkı", value: `${fmt(plan.displayFinanceInterest)} ${sym}` },
     { label: "Aylık taksit", value: `${fmt(summary.equalNormalInstallment)} ${sym}` },
-    { label: "Toplam balon", value: `${fmt(summary.totalBalloon)} ${sym}` },
     {
       label: plan.direction === "reverse" ? "Müşteri toplam ödemesi" : machineLabel,
       value: `${fmt(plan.direction === "reverse" ? summary.customerTotalPayment : machineValue)} ${sym}`,
@@ -190,7 +191,18 @@ function ResultBand({ plan, fmt }: { plan: GraceBalloonPlan; fmt: (v: number) =>
     },
   ];
 
-  const kpis: { label: string; value: string; sub?: string; hero?: boolean }[] = [
+  const balloonBadge =
+    summary.totalBalloon > 0.005
+      ? {
+          label:
+            plan.balloonMonthCount > 1
+              ? `${plan.balloonMonthCount} balon`
+              : "Balon",
+          value: `${fmt(summary.totalBalloon)} ${sym}`,
+        }
+      : undefined;
+
+  const kpis: ResultKpiItem[] = [
     {
       label: plan.stitchPrimaryTotalLabel,
       value: `${fmt(plan.stitchPrimaryTotal)} ${sym}`,
@@ -201,6 +213,7 @@ function ResultBand({ plan, fmt }: { plan: GraceBalloonPlan; fmt: (v: number) =>
             ? `${plan.supportCompare.deltaLabel}: ${plan.supportCompare.deltaValue >= 0 ? "+" : "−"}${fmt(Math.abs(plan.supportCompare.deltaValue))} ${sym}`
             : undefined,
       hero: true,
+      badge: balloonBadge,
     },
     ...stats,
   ];

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Balloon } from "lucide-react";
 import { useId, type ReactNode } from "react";
 
 export const CALC_FOCUS_RING =
@@ -34,16 +35,17 @@ export type ResultKpiItem = {
   value: string;
   sub?: string;
   hero?: boolean;
+  badge?: { label: string; value: string };
 };
 
 export function ResultKpiBand(props: { items: ResultKpiItem[]; label?: string }) {
   if (props.items.length === 0) return null;
   const cols =
     props.items.length >= 5
-      ? "lg:grid-cols-5"
+      ? "sm:grid-cols-3 lg:grid-cols-5"
       : props.items.length === 4
-        ? "lg:grid-cols-4"
-        : "lg:grid-cols-3";
+        ? "sm:grid-cols-2 lg:grid-cols-4"
+        : "sm:grid-cols-3";
 
   return (
     <section aria-live="polite" aria-label={props.label ?? "Hesap sonucu"}>
@@ -52,20 +54,37 @@ export function ResultKpiBand(props: { items: ResultKpiItem[]; label?: string })
           <div
             key={s.label}
             className={cn(
-              "rounded-xl border px-3 py-2.5",
+              "min-w-0 rounded-xl border px-2.5 py-2 sm:px-3 sm:py-2.5",
               s.hero
                 ? "col-span-2 border-[#0F172A] bg-[#0F172A] text-white lg:col-span-1"
                 : "border-[#E2E8F0] bg-white",
             )}
           >
-            <dt
-              className={cn(
-                "text-[10px] font-semibold uppercase tracking-[0.1em]",
-                s.hero ? "text-[#7DD3FC]" : "text-[#64748B]",
-              )}
-            >
-              {s.label}
-            </dt>
+            <div className="flex items-start justify-between gap-2">
+              <dt
+                className={cn(
+                  "min-w-0 truncate text-[10px] font-semibold uppercase tracking-[0.1em]",
+                  s.hero ? "text-[#7DD3FC]" : "text-[#64748B]",
+                )}
+              >
+                {s.label}
+              </dt>
+              {s.badge ? (
+                <span
+                  aria-label={`${s.badge.label} ${s.badge.value}`}
+                  className={cn(
+                    "inline-flex min-w-0 shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                    s.hero
+                      ? "bg-sky-400/20 text-[#7DD3FC]"
+                      : "bg-sky-50 text-sky-800",
+                  )}
+                >
+                  <Balloon className="h-3 w-3 shrink-0" aria-hidden />
+                  <span className="whitespace-nowrap">{s.badge.label}</span>
+                  <span className="tabular-nums">{s.badge.value}</span>
+                </span>
+              ) : null}
+            </div>
             <dd
               className={cn(
                 "mt-1 text-[15px] font-semibold tabular-nums tracking-tight md:text-base",
