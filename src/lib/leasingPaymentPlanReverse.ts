@@ -55,13 +55,13 @@ function fail(
 }
 
 function solveReverseAtTarget(
-  rawForPlan: LeasingPlanInput & { targetCustomerTotal?: number },
+  rawForPlan: LeasingPlanReverseInput,
   target: number,
   extraTotal: number,
 ): LeasingPlanReverseResult {
   const downPayment = num(rawForPlan.downPayment);
   const financingSupport = num(rawForPlan.financingSupport);
-  const base = { ...rawForPlan, machinePrice: 0 };
+  const base: LeasingPlanInput = { ...rawForPlan, machinePrice: 0 };
 
   function totalAt(machine: number): number | null {
     const r = computeLeasingPaymentPlan({ ...base, machinePrice: machine });

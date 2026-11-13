@@ -90,3 +90,4 @@ export {
   signOutLocally,
   writeAuthHint,
 } from "@/lib/supabaseAuth";
+export type { AuthHint } from "@/lib/supabaseAuth";

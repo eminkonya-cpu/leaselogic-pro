@@ -44,6 +44,7 @@ import {
   readAuthHint,
   signOutLocally,
   writeAuthHint,
+  type AuthHint,
 } from "@/lib/supabase";
 import { usePersistentState } from "@/lib/usePersistentState";
 import type {
