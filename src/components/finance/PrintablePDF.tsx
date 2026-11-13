@@ -44,7 +44,7 @@ export type PrintablePdfProps = {
   supportCompare?: FinancingSupportCompare | null;
   unsupportedInstallment?: number;
   /** Ataşman / bakım / donanım ve (her şey dahil) masraflar. */
-  extraLines?: { label: string; value: number }[];
+  extraLines?: { label: string; value: number; modeLabel?: string }[];
 };
 
 export function PaymentScheduleTable(props: {
@@ -337,7 +337,12 @@ export function PrintablePaymentPlanContent(
         </div>
         {(props.extraLines ?? []).map((line) => (
           <Fragment key={line.label}>
-            <div className="text-slate-600">{line.label}</div>
+            <div className="text-slate-600">
+              {line.label}
+              {line.modeLabel ? (
+                <span className="text-slate-400"> · {line.modeLabel}</span>
+              ) : null}
+            </div>
             <div className="text-right tabular-nums">
               {fmt(line.value)} {symbol}
             </div>

@@ -19,8 +19,16 @@ import {
   type ServiceFeeApplyMode,
   type ServiceFeeModes,
 } from "@/lib/catalogServiceFees";
+import type { ExtraCostModes, ExtraCostPaymentMode } from "@/lib/leasingPaymentPlan";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { useCallback, useEffect, useMemo } from "react";
+
+const FALLBACK_EXTRA_COST_MODES: ExtraCostModes = {
+  fileFee: "cash",
+  totalInsurance: "cash",
+  importCost: "cash",
+  attachmentCost: "cash",
+};
 
 export default function FinanceCatalogExpensePanel(props: {
   modesStorageKey: string;
@@ -32,6 +40,13 @@ export default function FinanceCatalogExpensePanel(props: {
   inputClassName?: string;
   hideTitle?: boolean;
   className?: string;
+  /** plan: 3 ay ödemesiz gibi ödeme şekli (Peşin / Plana). */
+  variant?: "plan" | "finance";
+  extraCostModes?: ExtraCostModes;
+  onPaymentModeChange?: (
+    key: "fileFee" | "totalInsurance" | "importCost" | "attachmentCost",
+    mode: ExtraCostPaymentMode,
+  ) => void;
 }) {
   const { serviceFees } = useCatalogCategories();
   const [feeModes, setFeeModes] = usePersistentState<ServiceFeeModes>(
@@ -103,6 +118,7 @@ export default function FinanceCatalogExpensePanel(props: {
             props.term,
             props.paymentFrequency,
           );
+          props.onPaymentModeChange?.("totalInsurance", "financed");
         }
       } else if (key === "fileFee") {
         next.leasingCost =
@@ -111,6 +127,7 @@ export default function FinanceCatalogExpensePanel(props: {
             : mode === "auto"
               ? serviceFees.fileFeeEuro
               : next.leasingCost;
+        if (mode === "auto") props.onPaymentModeChange?.("fileFee", "financed");
       } else if (key === "importCost") {
         next.importCost =
           mode === "off"
@@ -118,12 +135,14 @@ export default function FinanceCatalogExpensePanel(props: {
             : mode === "auto"
               ? serviceFees.importCostEuro
               : next.importCost;
+        if (mode === "auto") props.onPaymentModeChange?.("importCost", "cash");
       }
       props.onExpensesChange(next);
     },
     [
       props.expenses,
       props.onExpensesChange,
+      props.onPaymentModeChange,
       props.machinePriceEuro,
       props.term,
       props.paymentFrequency,
@@ -152,7 +171,8 @@ export default function FinanceCatalogExpensePanel(props: {
 
   return (
     <PlanExtraCostPanel
-      variant="finance"
+      variant={props.variant ?? "finance"}
+      hideAttachment
       hideTitle={props.hideTitle}
       className={props.className}
       machinePriceEuro={props.machinePriceEuro}
@@ -165,16 +185,11 @@ export default function FinanceCatalogExpensePanel(props: {
           ? `${kaskoMonths} ay × (bedelin %${serviceFees.kaskoPercentOfMachine} / 12)`
           : undefined
       }
-      extraCostModes={{
-        fileFee: "cash",
-        totalInsurance: "cash",
-        importCost: "cash",
-        attachmentCost: "cash",
-      }}
+      extraCostModes={props.extraCostModes ?? FALLBACK_EXTRA_COST_MODES}
       inputClassName={props.inputClassName}
       onSetMode={handleSetMode}
       onAmountChange={handleAmountChange}
-      onPaymentModeChange={() => {}}
+      onPaymentModeChange={props.onPaymentModeChange ?? (() => {})}
     />
   );
 }

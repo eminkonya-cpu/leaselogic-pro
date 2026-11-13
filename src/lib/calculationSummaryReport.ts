@@ -1,6 +1,11 @@
 import type { CatalogLine } from "@/lib/catalogPrices";
 import { splitExtraExpenseAmounts } from "@/lib/expenseSummaryLines";
 import { buildKatkiPayiRows } from "@/lib/katkiPayiGroup";
+import {
+  extraCostPaymentModeLabel,
+  type ExtraCostModes,
+} from "@/lib/leasingPaymentPlan";
+import { withExtraCostPaymentMode } from "@/lib/forwardSummaryRows";
 
 export type SummaryReportRow = {
   label: string;
@@ -16,24 +21,35 @@ export function buildDetailedSummaryReportRows(args: {
   vadeFarkiEuro: number;
   /** Aynı birimde; finansman maliyetinden ayrı bilgi satırı. */
   financingSupport?: number;
+  extraCostModes?: ExtraCostModes;
 }): SummaryReportRow[] {
   const rows: SummaryReportRow[] = [];
   const catalogRows: SummaryReportRow[] = [];
+  const optionMode = args.extraCostModes
+    ? extraCostPaymentModeLabel(args.extraCostModes.attachmentCost)
+    : undefined;
+  const optionSuffix = optionMode ? ` · ${optionMode}` : "";
 
   for (const line of args.catalogLines) {
     if (line.priceEuro <= 0) continue;
     if (line.categoryId === "attachment") {
-      catalogRows.push({ label: `Ataşman: ${line.itemLabel}`, valueEuro: line.priceEuro });
+      catalogRows.push({
+        label: `Ataşman: ${line.itemLabel}${optionSuffix}`,
+        valueEuro: line.priceEuro,
+      });
     } else if (line.categoryId === "maintenance") {
       catalogRows.push({
-        label: `Bakım paketi (${line.itemLabel})`,
+        label: `Bakım paketi (${line.itemLabel})${optionSuffix}`,
         valueEuro: line.priceEuro,
       });
     } else if (line.categoryId === "equipment") {
-      catalogRows.push({ label: `Donanım: ${line.itemLabel}`, valueEuro: line.priceEuro });
+      catalogRows.push({
+        label: `Donanım: ${line.itemLabel}${optionSuffix}`,
+        valueEuro: line.priceEuro,
+      });
     } else if (line.categoryId === "other") {
       catalogRows.push({
-        label: `Diğer gider: ${line.itemLabel}`,
+        label: `Diğer gider: ${line.itemLabel}${optionSuffix}`,
         valueEuro: line.priceEuro,
       });
     }
@@ -51,7 +67,18 @@ export function buildDetailedSummaryReportRows(args: {
     ithalat: split.ithalat,
     hasFollowingItems: catalogRows.length > 0,
   })) {
-    rows.push({ label: row.label, valueEuro: row.value });
+    const mode =
+      row.label === "Kasko"
+        ? args.extraCostModes?.totalInsurance
+        : row.label === "Masraflar"
+          ? args.extraCostModes?.fileFee
+          : row.label === "İthalat"
+            ? args.extraCostModes?.importCost
+            : undefined;
+    rows.push({
+      label: withExtraCostPaymentMode(row.label, mode),
+      valueEuro: row.value,
+    });
   }
   for (const row of catalogRows) {
     rows.push(row);

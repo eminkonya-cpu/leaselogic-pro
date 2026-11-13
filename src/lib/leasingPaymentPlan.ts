@@ -17,6 +17,20 @@ export const DEFAULT_EXTRA_COST_MODES: ExtraCostModes = {
   attachmentCost: "cash",
 };
 
+/** İleri Her Şey Dahil: kasko/masraf plana, ithalat ve opsiyonlar peşin. */
+export const FORWARD_ALLIN_EXTRA_COST_MODES: ExtraCostModes = {
+  fileFee: "financed",
+  totalInsurance: "financed",
+  importCost: "cash",
+  attachmentCost: "cash",
+};
+
+export function extraCostPaymentModeLabel(
+  mode: ExtraCostPaymentMode,
+): "Peşin" | "Plana" {
+  return mode === "financed" ? "Plana" : "Peşin";
+}
+
 export type LeasingPlanInput = {
   machinePrice: number;
   downPayment: number;

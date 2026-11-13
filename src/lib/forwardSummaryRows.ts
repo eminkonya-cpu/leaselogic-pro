@@ -12,6 +12,11 @@ import {
   buildKatkiPayiRows,
   katkiPayiStitchTone,
 } from "@/lib/katkiPayiGroup";
+import {
+  extraCostPaymentModeLabel,
+  type ExtraCostModes,
+  type ExtraCostPaymentMode,
+} from "@/lib/leasingPaymentPlan";
 
 const CATALOG_GROUP_LABELS: Record<CatalogCategoryId, string> = {
   attachment: "Ataşman toplamı",
@@ -26,9 +31,29 @@ function labelWithDetail(base: string, detailParts: string[]): string {
   return `${base} (${parts.join(", ")})`;
 }
 
+export function withExtraCostPaymentMode(
+  label: string,
+  mode?: ExtraCostPaymentMode,
+): string {
+  if (!mode) return label;
+  return `${label} · ${extraCostPaymentModeLabel(mode)}`;
+}
+
+function expenseLineMode(
+  label: string,
+  modes?: ExtraCostModes,
+): ExtraCostPaymentMode | undefined {
+  if (!modes) return undefined;
+  if (label === "Kasko") return modes.totalInsurance;
+  if (label === "Masraflar") return modes.fileFee;
+  if (label === "İthalat") return modes.importCost;
+  return undefined;
+}
+
 export function buildForwardCatalogGroupLines(args: {
   catalogLines: CatalogLine[];
   catalogAmount: (line: CatalogLine) => number;
+  extraCostModes?: ExtraCostModes;
 }): { label: string; value: number }[] {
   const rows: { label: string; value: number }[] = [];
   for (const categoryId of CATALOG_CATEGORY_IDS) {
@@ -43,7 +68,10 @@ export function buildForwardCatalogGroupLines(args: {
     }
     if (total <= 0) continue;
     rows.push({
-      label: labelWithDetail(CATALOG_GROUP_LABELS[categoryId], names),
+      label: withExtraCostPaymentMode(
+        labelWithDetail(CATALOG_GROUP_LABELS[categoryId], names),
+        args.extraCostModes?.attachmentCost,
+      ),
       value: total,
     });
   }
@@ -56,11 +84,25 @@ export function buildForwardPaymentPlanExtraLines(args: {
   catalogAmount: (line: CatalogLine) => number;
   includeExpenses: boolean;
   expenseAmounts: ExtraExpenseAmounts;
-}): { label: string; value: number }[] {
-  const rows = buildForwardCatalogGroupLines(args);
+  extraCostModes?: ExtraCostModes;
+}): { label: string; value: number; modeLabel?: string }[] {
+  const rows = buildForwardCatalogGroupLines({
+    catalogLines: args.catalogLines,
+    catalogAmount: args.catalogAmount,
+  }).map((row) => ({
+    ...row,
+    modeLabel: args.extraCostModes
+      ? extraCostPaymentModeLabel(args.extraCostModes.attachmentCost)
+      : undefined,
+  }));
   if (args.includeExpenses) {
     for (const row of presentExpenseSummaryLines(args.expenseAmounts)) {
-      rows.push({ label: row.label, value: row.value });
+      const mode = expenseLineMode(row.label, args.extraCostModes);
+      rows.push({
+        label: row.label,
+        value: row.value,
+        modeLabel: mode ? extraCostPaymentModeLabel(mode) : undefined,
+      });
     }
   }
   return rows;
@@ -78,6 +120,7 @@ export function buildForwardStitchSummaryRows(args: {
   /** Bilgi satırı; finansman maliyeti satırından ayrı, toplamdan sonra mavi kutuda net etki. */
   financingSupport?: number;
   totalPrimary: number;
+  extraCostModes?: ExtraCostModes;
 }): CostSummaryRow[] {
   const catalogRows = buildForwardCatalogGroupLines(args);
   const rows: CostSummaryRow[] = [
@@ -98,7 +141,10 @@ export function buildForwardStitchSummaryRows(args: {
       ithalat: amounts.ithalat,
     })) {
       rows.push({
-        label: row.label,
+        label: withExtraCostPaymentMode(
+          row.label,
+          expenseLineMode(row.label, args.extraCostModes),
+        ),
         value: row.value,
         tone: katkiPayiStitchTone(row.role, "positive"),
       });

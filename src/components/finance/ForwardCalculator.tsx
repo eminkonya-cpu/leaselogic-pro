@@ -24,6 +24,11 @@ import { forwardSummaryReportFinancing } from "@/lib/financingSupportReport";
 import { clearForwardMachineFinance } from "@/lib/financeFormClear";
 import { computeMonthlyForwardCalc } from "@/lib/forwardCalculatorCore";
 import {
+  FORWARD_ALLIN_EXTRA_COST_MODES,
+  type ExtraCostModes,
+  type ExtraCostPaymentMode,
+} from "@/lib/leasingPaymentPlan";
+import {
   scaleExpenseAmounts,
   splitExtraExpenseAmounts,
 } from "@/lib/expenseSummaryLines";
@@ -76,6 +81,10 @@ export default function ForwardCalculator(props: {
   const [expenses, setExpenses] = usePersistentState(
     `${FORWARD_STORAGE_PREFIX}:shared:expenses`,
     { ...EMPTY_EXPENSES },
+  );
+  const [extraCostModes, setExtraCostModes] = usePersistentState<ExtraCostModes>(
+    `${FORWARD_STORAGE_PREFIX}:shared:extra-cost-modes`,
+    { ...FORWARD_ALLIN_EXTRA_COST_MODES },
   );
   const [monthlyGrowthPct, setMonthlyGrowthPct] = usePersistentState(
     `${FORWARD_STORAGE_PREFIX}:shared:monthly-growth-pct`,
@@ -140,6 +149,7 @@ export default function ForwardCalculator(props: {
       term: 0,
     });
     setExpenses({ ...EMPTY_EXPENSES });
+    setExtraCostModes({ ...FORWARD_ALLIN_EXTRA_COST_MODES });
     setSelection(EMPTY_CATALOG_SELECTION);
     setMonthlyGrowthPct(1.5);
     setActiveTab(FORWARD_DEFAULT_ACTIVE_TAB);
@@ -183,12 +193,20 @@ export default function ForwardCalculator(props: {
       catalogLines: catalog.lines,
       expenses,
       computedRates,
+      extraCostModes,
     });
     return {
       ...core,
       baseMachineTL: core.baseMachineTL,
     };
-  }, [params, expenses, computedRates, catalogSelection, catalogCategories]);
+  }, [
+    params,
+    expenses,
+    extraCostModes,
+    computedRates,
+    catalogSelection,
+    catalogCategories,
+  ]);
 
   const baselineCalc = useMemo(() => {
     const {
@@ -215,8 +233,16 @@ export default function ForwardCalculator(props: {
       catalogLines: catalog.lines,
       expenses,
       computedRates,
+      extraCostModes,
     });
-  }, [params, expenses, computedRates, catalogSelection, catalogCategories]);
+  }, [
+    params,
+    expenses,
+    extraCostModes,
+    computedRates,
+    catalogSelection,
+    catalogCategories,
+  ]);
 
   const handlePrint = () => {
     setIsMobilePreviewOpen(true);
@@ -265,6 +291,7 @@ export default function ForwardCalculator(props: {
       includeExpenses: display.includeExpenses,
       vadeFarkiEuro: financing.vadeFarkiDisplay,
       financingSupport: financing.financingSupportDisplay,
+      extraCostModes: display.includeExpenses ? extraCostModes : undefined,
     });
     return {
       firma: String(params.firma ?? ""),
@@ -307,6 +334,7 @@ export default function ForwardCalculator(props: {
     calc.catalogLines,
     display,
     expenses,
+    extraCostModes,
     params.financingSupportEuro,
     params.downPaymentEuro,
     params.euroInterest,
@@ -413,6 +441,7 @@ export default function ForwardCalculator(props: {
       expenseAmounts: display.includeExpenses
         ? scaleExpenseAmounts(splitExtraExpenseAmounts(expenses), printScale(1))
         : { kasko: 0, masraflar: 0, ithalat: 0 },
+      extraCostModes: display.includeExpenses ? extraCostModes : undefined,
     }),
     financingSupport: calculationSummary.financingSupportDisplay ?? 0,
     supportCompare: calculationSummary.supportCompare,
@@ -448,6 +477,10 @@ export default function ForwardCalculator(props: {
         handleCatalogClearAll={handleCatalogClearAll}
         handleClearMachineFinance={handleClearMachineFinance}
         handleClearExpenses={handleClearExpenses}
+        extraCostModes={extraCostModes}
+        onExtraCostModeChange={(key, mode: ExtraCostPaymentMode) =>
+          setExtraCostModes((prev) => ({ ...prev, [key]: mode }))
+        }
         handlePrint={handlePrint}
         handleOpenSummaryReport={() => setSummaryReportOpen(true)}
         handleNewCalculation={handleNewCalculation}

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { CatalogLine } from "@/lib/catalogPrices";
-import { buildForwardStitchSummaryRows } from "@/lib/forwardSummaryRows";
+import {
+  buildForwardPaymentPlanExtraLines,
+  buildForwardStitchSummaryRows,
+} from "@/lib/forwardSummaryRows";
 
 describe("buildForwardStitchSummaryRows", () => {
   const lines: CatalogLine[] = [
@@ -48,6 +51,30 @@ describe("buildForwardStitchSummaryRows", () => {
     ).toBe(true);
   });
 
+  it("adds Peşin / Plana to extras when payment modes are set", () => {
+    const rows = buildForwardStitchSummaryRows({
+      machine: 100_000,
+      catalogLines: lines,
+      catalogAmount: (l) => l.priceEuro,
+      includeExpenses: true,
+      expenseAmounts: { kasko: 5400, masraflar: 450, ithalat: 350 },
+      extraCostModes: {
+        totalInsurance: "financed",
+        fileFee: "financed",
+        importCost: "cash",
+        attachmentCost: "cash",
+      },
+      vadeFarki: 500,
+      totalPrimary: 110_700,
+    });
+    expect(rows.find((r) => r.label.startsWith("Ataşman toplamı"))?.label).toContain(
+      "· Peşin",
+    );
+    expect(rows.find((r) => r.label === "Kasko · Plana")?.value).toBe(5400);
+    expect(rows.find((r) => r.label === "Masraflar · Plana")?.value).toBe(450);
+    expect(rows.find((r) => r.label === "İthalat · Peşin")?.value).toBe(350);
+  });
+
   it("lists only selected expense lines", () => {
     const rows = buildForwardStitchSummaryRows({
       machine: 100_000,
@@ -63,5 +90,36 @@ describe("buildForwardStitchSummaryRows", () => {
       "İthalat",
       "Toplam",
     ]);
+  });
+});
+
+describe("buildForwardPaymentPlanExtraLines", () => {
+  it("keeps labels clean and puts Peşin/Plana on modeLabel", () => {
+    const lines: CatalogLine[] = [
+      {
+        categoryId: "attachment",
+        categoryTitle: "Ataşman",
+        itemId: "1",
+        itemLabel: "Kova",
+        priceEuro: 3000,
+      },
+    ];
+    const rows = buildForwardPaymentPlanExtraLines({
+      catalogLines: lines,
+      catalogAmount: (l) => l.priceEuro,
+      includeExpenses: true,
+      expenseAmounts: { kasko: 1000, masraflar: 400, ithalat: 200 },
+      extraCostModes: {
+        totalInsurance: "financed",
+        fileFee: "financed",
+        importCost: "cash",
+        attachmentCost: "cash",
+      },
+    });
+    expect(rows.find((r) => r.label.startsWith("Ataşman"))?.modeLabel).toBe(
+      "Peşin",
+    );
+    expect(rows.find((r) => r.label === "Kasko")?.modeLabel).toBe("Plana");
+    expect(rows.find((r) => r.label === "İthalat")?.modeLabel).toBe("Peşin");
   });
 });

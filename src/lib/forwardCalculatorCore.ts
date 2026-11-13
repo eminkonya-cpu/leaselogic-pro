@@ -1,10 +1,12 @@
 import type { CatalogLine } from "@/lib/catalogPrices";
+import { splitExtraExpenseAmounts } from "@/lib/expenseSummaryLines";
 import {
   calculatePMT,
   generateAmortization,
   type AmortizationRow,
 } from "@/lib/financeCalculations";
 import type { CalcSlice } from "@/lib/forwardDisplayMetrics";
+import type { ExtraCostModes } from "@/lib/leasingPaymentPlan";
 
 export function sumForwardExtraExpenses(
   expenses: Record<string, number | undefined>,
@@ -31,7 +33,52 @@ export type MonthlyForwardCalcInput = {
   catalogLines: CatalogLine[];
   expenses: Record<string, number | undefined>;
   computedRates: number[];
+  extraCostModes?: Partial<ExtraCostModes>;
 };
+
+const ALL_FINANCED_MODES: ExtraCostModes = {
+  fileFee: "financed",
+  totalInsurance: "financed",
+  importCost: "financed",
+  attachmentCost: "financed",
+};
+
+function resolveForwardAllInModes(
+  partial?: Partial<ExtraCostModes>,
+): ExtraCostModes {
+  if (!partial) return ALL_FINANCED_MODES;
+  return { ...ALL_FINANCED_MODES, ...partial };
+}
+
+/** Verilmezse tüm ekler finanse (eski Her Şey Dahil). */
+export function splitForwardAllInExtras(args: {
+  expenses: Record<string, number | undefined>;
+  catalogTotalEuro: number;
+  extraCostModes?: Partial<ExtraCostModes>;
+}) {
+  const modes = resolveForwardAllInModes(args.extraCostModes);
+  const split = splitExtraExpenseAmounts(args.expenses);
+  const expenseCash =
+    (modes.totalInsurance === "cash" ? split.kasko : 0) +
+    (modes.fileFee === "cash" ? split.masraflar : 0) +
+    (modes.importCost === "cash" ? split.ithalat : 0);
+  const expenseFinanced =
+    (modes.totalInsurance === "financed" ? split.kasko : 0) +
+    (modes.fileFee === "financed" ? split.masraflar : 0) +
+    (modes.importCost === "financed" ? split.ithalat : 0);
+  const catalog = Math.max(0, args.catalogTotalEuro);
+  const catalogCash = modes.attachmentCost === "cash" ? catalog : 0;
+  const catalogFinanced = modes.attachmentCost === "financed" ? catalog : 0;
+  return {
+    modes,
+    expenseCash,
+    expenseFinanced,
+    catalogCash,
+    catalogFinanced,
+    cash: expenseCash + catalogCash,
+    financedExtras: expenseFinanced + catalogFinanced,
+  };
+}
 
 /** Aylık ileri hesaplama: Sade / Her Şey Dahil / Kampanya dilimlerinin ortak çekirdeği. */
 export function computeMonthlyForwardCalc(
@@ -91,22 +138,35 @@ export function computeMonthlyForwardCalc(
 
   const totalExpenses = sumForwardExtraExpenses(expenses);
   const totalExpensesTL = totalExpenses * euroRate;
+  const extras = splitForwardAllInExtras({
+    expenses,
+    catalogTotalEuro,
+    extraCostModes: input.extraCostModes,
+  });
   const allInBaseEuro = machineWithCatalogEuro + totalExpenses;
   const allInBaseTL = priceTL + totalExpensesTL;
+  const allInFinancedGoodsEuro = machinePriceEuro + extras.financedExtras;
+  const allInFinancedGoodsTL = allInFinancedGoodsEuro * euroRate;
+  const allInCashEuro = extras.cash;
+  const allInCashTL = allInCashEuro * euroRate;
   const allInFinanceEuro = Math.max(
     0,
-    allInBaseEuro - downPaymentEuro - financingSupport,
+    allInFinancedGoodsEuro - downPaymentEuro - financingSupport,
   );
   const allInFinanceTL = Math.max(
     0,
-    allInBaseTL - downPaymentTL - financingSupportTL,
+    allInFinancedGoodsTL - downPaymentTL - financingSupportTL,
   );
   const allInMonthlyEuro = calculatePMT(allInFinanceEuro, euroInterest, term);
   const allInMonthlyTL = calculatePMT(allInFinanceTL, tlInterest, term);
   const allInTotalEuro =
-    term > 0 ? allInMonthlyEuro * term + downPaymentEuro : allInBaseEuro;
+    term > 0
+      ? allInMonthlyEuro * term + downPaymentEuro + allInCashEuro
+      : allInBaseEuro;
   const allInTotalTL =
-    term > 0 ? allInMonthlyTL * term + downPaymentTL : allInBaseTL;
+    term > 0
+      ? allInMonthlyTL * term + downPaymentTL + allInCashTL
+      : allInBaseTL;
   const allInDiffEuro = term > 0 ? allInTotalEuro - allInBaseEuro : 0;
   const allInDiffTL = term > 0 ? allInTotalTL - allInBaseTL : 0;
   const allInScheduleEuro = generateAmortization(
@@ -122,11 +182,11 @@ export function computeMonthlyForwardCalc(
 
   const campaignRemainingEuro = Math.max(
     0,
-    allInBaseEuro - downPaymentEuro - financingSupport,
+    allInFinancedGoodsEuro - downPaymentEuro - financingSupport,
   );
   const campaignRemainingTL = Math.max(
     0,
-    allInBaseTL - downPaymentTL - financingSupportTL,
+    allInFinancedGoodsTL - downPaymentTL - financingSupportTL,
   );
   const campaignMonthlyEuro = calculatePMT(campaignRemainingEuro, 0, term);
   const campaignMonthlyTL = calculatePMT(campaignRemainingTL, 0, term);

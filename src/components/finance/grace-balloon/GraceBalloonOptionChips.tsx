@@ -14,12 +14,14 @@ export default function GraceBalloonOptionChips(props: {
   paymentMode: ExtraCostPaymentMode;
   onPaymentModeChange: (mode: ExtraCostPaymentMode) => void;
   reverseExtras?: boolean;
+  onClearAll?: () => void;
 }) {
   return (
     <CatalogOptionChips
       className="mt-3 border-t border-[#E2E8F0] pt-3"
       selection={props.selection}
       onToggle={props.onToggle}
+      onClearAll={props.onClearAll}
       description="Ataşman, bakım, donanım ve nakliye — seçilenler özette ayrı satır olur"
       headerRight={
         <PlanToggleGroup

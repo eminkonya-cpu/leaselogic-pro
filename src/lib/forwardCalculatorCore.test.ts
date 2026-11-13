@@ -183,6 +183,25 @@ describe("forward segment calculations", () => {
     expect(withSupport.plainTotalEuro).toBeLessThan(base.plainTotalEuro);
   });
 
+  it("Her Şey Dahil peşin ithalat anaparaya girmez, plana kasko girer", () => {
+    const financed = runCalc();
+    const mixed = runCalc({
+      extraCostModes: {
+        totalInsurance: "financed",
+        fileFee: "financed",
+        importCost: "cash",
+        attachmentCost: "cash",
+      },
+    });
+    expect(mixed.allInFinanceEuro).toBeLessThan(financed.allInFinanceEuro);
+    expect(mixed.allInFinanceEuro).toBeCloseTo(
+      100_000 + 1_300 + 500 - 10_000,
+      2,
+    );
+    expect(mixed.allInTotalEuro).toBeLessThan(financed.allInTotalEuro);
+    expect(mixed.allInMonthlyEuro).toBeLessThan(financed.allInMonthlyEuro);
+  });
+
   it("Her Şey Dahil vade 0: toplam = taban (peşinat taksit yok)", () => {
     const calc = runCalc({ termMonths: 0 });
     const allin = getForwardDisplayMetrics("allin", calc, {

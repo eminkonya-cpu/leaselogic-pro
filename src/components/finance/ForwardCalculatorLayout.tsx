@@ -3,6 +3,7 @@
 import FinanceCatalogExpensePanel from "@/components/finance/FinanceCatalogExpensePanel";
 import type { FinanceExpenses } from "@/lib/financeExpenseCatalog";
 import CatalogSelector from "@/components/finance/CatalogSelector";
+import GraceBalloonOptionChips from "@/components/finance/grace-balloon/GraceBalloonOptionChips";
 import CurrencyComparisonReport from "@/components/finance/CurrencyComparisonReport";
 import RateProjectionInput from "@/components/finance/RateProjectionInput";
 import type { PaymentFrequency } from "@/components/finance/PaymentFrequencySelector";
@@ -16,6 +17,10 @@ import SectionClearAction from "@/components/finance/ui/SectionClearAction";
 import SegmentedControl from "@/components/finance/ui/SegmentedControl";
 import { cn } from "@/lib/utils";
 import { type CatalogSelection } from "@/lib/catalogPrices";
+import type {
+  ExtraCostModes,
+  ExtraCostPaymentMode,
+} from "@/lib/leasingPaymentPlan";
 import { getForwardTabOptions } from "@/lib/forwardCalculatorFeatures";
 import { buildForwardStitchSummaryRows } from "@/lib/forwardSummaryRows";
 import {
@@ -75,6 +80,11 @@ export default function ForwardCalculatorLayout(props: {
   handleCatalogClearAll: () => void;
   handleClearMachineFinance: () => void;
   handleClearExpenses: () => void;
+  extraCostModes?: ExtraCostModes;
+  onExtraCostModeChange?: (
+    key: keyof ExtraCostModes,
+    mode: ExtraCostPaymentMode,
+  ) => void;
   handlePrint: () => void;
   handleOpenSummaryReport: () => void;
   handleNewCalculation: () => void;
@@ -183,6 +193,9 @@ export default function ForwardCalculatorLayout(props: {
         catalogAmount,
         includeExpenses: display.includeExpenses,
         expenseAmounts,
+        extraCostModes: display.includeExpenses
+          ? props.extraCostModes
+          : undefined,
         vadeFarki: referenceVadeFarki.primary,
         financingSupport: isTry
           ? financingSupportAmount * rate
@@ -195,6 +208,7 @@ export default function ForwardCalculatorLayout(props: {
       catalogAmount,
       display.includeExpenses,
       expenseAmounts,
+      props.extraCostModes,
       referenceVadeFarki.primary,
       isTry,
       rate,
@@ -208,6 +222,9 @@ export default function ForwardCalculatorLayout(props: {
   const isAdvantage = props.activeTab === "advantage";
   const plainCatalogOnly = display.plainCatalogOnly ?? false;
   const showExtras = props.activeTab === "campaign" || props.activeTab === "allin";
+  const extrasSelectedTotal =
+    (Number(props.calc.totalExpenses) || 0) +
+    (Number(props.calc.catalogTotalEuro) || 0);
   const fmt = (v: number) => formatNumber(v, { decimals: 2 });
 
   const financingSupportCompare = useMemo(() => {
@@ -316,7 +333,19 @@ export default function ForwardCalculatorLayout(props: {
     display.totalTl,
   ]);
 
-  const optionChips = (
+  const optionChips = showExtras && props.extraCostModes ? (
+    <div id={CATALOG_SECTION_ID} className="scroll-mt-24">
+      <GraceBalloonOptionChips
+        selection={props.catalogSelection}
+        onToggle={props.handleCatalogToggle}
+        onClearAll={props.handleCatalogClearAll}
+        paymentMode={props.extraCostModes.attachmentCost}
+        onPaymentModeChange={(mode) =>
+          props.onExtraCostModeChange?.("attachmentCost", mode)
+        }
+      />
+    </div>
+  ) : (
     <div id={CATALOG_SECTION_ID} className="scroll-mt-24">
       <CatalogSelector
         appearance="clean"
@@ -481,15 +510,26 @@ export default function ForwardCalculatorLayout(props: {
             >
               <FinanceCatalogExpensePanel
                 hideTitle
+                variant="plan"
                 modesStorageKey="llp:v3:forward:fee-modes"
                 machinePriceEuro={Number(props.params.machinePriceEuro) || 0}
                 term={Number(props.params.term) || 0}
                 paymentFrequency={paymentFrequency}
                 expenses={props.expenses as FinanceExpenses}
                 onExpensesChange={props.onExpensesReplace}
+                extraCostModes={props.extraCostModes}
+                onPaymentModeChange={props.onExtraCostModeChange}
                 inputClassName="h-9 border-[#E2E8F0] bg-white text-[13px]"
               />
-              <div className="mt-3 border-t border-[#E2E8F0] pt-3">{optionChips}</div>
+              {optionChips}
+              {extrasSelectedTotal > 0.005 ? (
+                <p className="mt-3 text-xs font-semibold text-[#0b1c30]">
+                  Seçilen kalemler toplamı{" "}
+                  {formatNumber(extrasSelectedTotal, { decimals: 2 })} €.
+                  Peşin kalemler faizsiz eklenir; plana alınanlar vade farkına
+                  yansır.
+                </p>
+              ) : null}
             </FormStep>
           ) : (
             <FormStep index={3} title="Opsiyonlar" last>

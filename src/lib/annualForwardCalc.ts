@@ -8,8 +8,12 @@ import {
   expandAnnualScheduleToMonthlyPdfRows,
   generateAnnualAmortization,
 } from "@/lib/financeCalculations";
-import { sumForwardExtraExpenses } from "@/lib/forwardCalculatorCore";
+import {
+  splitForwardAllInExtras,
+  sumForwardExtraExpenses,
+} from "@/lib/forwardCalculatorCore";
 import type { CalcSlice } from "@/lib/forwardDisplayMetrics";
+import type { ExtraCostModes } from "@/lib/leasingPaymentPlan";
 
 export function clampAnnualTermYears(v: string | number) {
   const raw =
@@ -32,6 +36,7 @@ export type AnnualForwardCalcInput = {
   catalogSelection: CatalogSelection;
   catalogCategories: CatalogCategory[];
   computedRates: number[];
+  extraCostModes?: Partial<ExtraCostModes>;
 };
 
 export function computeAnnualForwardCalc(
@@ -126,15 +131,24 @@ export function computeAnnualForwardCalc(
   );
   const totalExpenses = sumForwardExtraExpenses(expenses);
   const totalExpensesTL = totalExpenses * euroRate;
+  const extras = splitForwardAllInExtras({
+    expenses,
+    catalogTotalEuro: catalog.totalEuro,
+    extraCostModes: input.extraCostModes,
+  });
   const allInBaseEuro = machineWithCatalogEuro + totalExpenses;
   const allInBaseTL = priceTL + totalExpensesTL;
+  const allInFinancedGoodsEuro = machinePriceEuro + extras.financedExtras;
+  const allInFinancedGoodsTL = allInFinancedGoodsEuro * euroRate;
+  const allInCashEuro = extras.cash;
+  const allInCashTL = allInCashEuro * euroRate;
   const allInFinanceEuro = Math.max(
     0,
-    allInBaseEuro - downPaymentEuro - financingSupport,
+    allInFinancedGoodsEuro - downPaymentEuro - financingSupport,
   );
   const allInFinanceTL = Math.max(
     0,
-    allInBaseTL - downPaymentTL - financingSupportTL,
+    allInFinancedGoodsTL - downPaymentTL - financingSupportTL,
   );
   const allInAnnualEuro = calculateAnnualPMT(
     allInFinanceEuro,
@@ -147,9 +161,13 @@ export function computeAnnualForwardCalc(
     years,
   );
   const allInTotalEuro =
-    years > 0 ? allInAnnualEuro * years + downPaymentEuro : allInBaseEuro;
+    years > 0
+      ? allInAnnualEuro * years + downPaymentEuro + allInCashEuro
+      : allInBaseEuro;
   const allInTotalTL =
-    years > 0 ? allInAnnualTL * years + downPaymentTL : allInBaseTL;
+    years > 0
+      ? allInAnnualTL * years + downPaymentTL + allInCashTL
+      : allInBaseTL;
   const allInDiffEuro = years > 0 ? allInTotalEuro - allInBaseEuro : 0;
   const allInDiffTL = years > 0 ? allInTotalTL - allInBaseTL : 0;
   const allInScheduleEuro = generateAnnualAmortization(
@@ -172,11 +190,11 @@ export function computeAnnualForwardCalc(
   );
   const campaignRemainingEuro = Math.max(
     0,
-    allInBaseEuro - downPaymentEuro - financingSupport,
+    allInFinancedGoodsEuro - downPaymentEuro - financingSupport,
   );
   const campaignRemainingTL = Math.max(
     0,
-    allInBaseTL - downPaymentTL - financingSupportTL,
+    allInFinancedGoodsTL - downPaymentTL - financingSupportTL,
   );
   const campaignAnnualEuro = calculateAnnualPMT(
     campaignRemainingEuro,
