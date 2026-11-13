@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { formatNumber } from "@/components/finance/format";
+import { formatInterestRate, formatNumber } from "@/components/finance/format";
 import type { AmortizationRow } from "@/lib/financeCalculations";
 
 export default function PaymentSchedulePanel(props: {
@@ -32,10 +32,8 @@ export default function PaymentSchedulePanel(props: {
       props.schedule.reduce(
         (acc, r) => ({
           payment: acc.payment + r.payment,
-          principal: acc.principal + r.principal,
-          interest: acc.interest + r.interest,
         }),
-        { payment: 0, principal: 0, interest: 0 },
+        { payment: 0 },
       ),
     [props.schedule],
   );
@@ -53,7 +51,7 @@ export default function PaymentSchedulePanel(props: {
           <h3 className="text-sm font-semibold text-[#0F172A]">Ödeme planı</h3>
           <p className="mt-0.5 text-xs text-[#64748B]">
             {rowCount} {periodShort} · %
-            {formatNumber(props.interestRatePct ?? 0, { decimals: 1 })} faiz
+            {formatInterestRate(props.interestRatePct ?? 0)} faiz
             {hasDown
               ? ` · Peşinat ${fmt(props.downPayment ?? 0)} ${props.currencySymbol}`
               : null}
@@ -62,7 +60,7 @@ export default function PaymentSchedulePanel(props: {
       </div>
 
       <div className="max-h-[min(560px,65vh)] overflow-auto">
-        <table className="w-full min-w-[640px] border-collapse text-left text-[13px]">
+        <table className="w-full min-w-[420px] border-collapse text-left text-[13px]">
           <thead className="sticky top-0 z-10 bg-[#F8FAFC] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
             <tr>
               <th scope="col" className="px-3 py-2 md:px-4">
@@ -70,12 +68,6 @@ export default function PaymentSchedulePanel(props: {
               </th>
               <th scope="col" className="px-3 py-2 text-right">
                 Taksit
-              </th>
-              <th scope="col" className="px-3 py-2 text-right">
-                Anapara
-              </th>
-              <th scope="col" className="px-3 py-2 text-right">
-                Faiz
               </th>
               <th scope="col" className="px-3 py-2 text-right md:px-4">
                 Kalan borç
@@ -90,12 +82,6 @@ export default function PaymentSchedulePanel(props: {
                 </td>
                 <td className="px-3 py-1.5 text-right tabular-nums font-medium text-[#0F172A]">
                   {fmt(props.downPayment ?? 0)}
-                </td>
-                <td className="px-3 py-1.5 text-right tabular-nums text-[#475569]">
-                  {fmt(0)}
-                </td>
-                <td className="px-3 py-1.5 text-right tabular-nums text-[#475569]">
-                  {fmt(0)}
                 </td>
                 <td className="px-3 py-1.5 text-right tabular-nums text-[#475569] md:px-4">
                   —
@@ -113,12 +99,6 @@ export default function PaymentSchedulePanel(props: {
                 <td className="px-3 py-1.5 text-right tabular-nums font-medium text-[#0F172A]">
                   {fmt(r.payment)}
                 </td>
-                <td className="px-3 py-1.5 text-right tabular-nums text-[#475569]">
-                  {fmt(r.principal)}
-                </td>
-                <td className="px-3 py-1.5 text-right tabular-nums text-[#475569]">
-                  {fmt(r.interest)}
-                </td>
                 <td className="px-3 py-1.5 text-right tabular-nums text-[#475569] md:px-4">
                   {fmt(r.balance)}
                 </td>
@@ -132,12 +112,6 @@ export default function PaymentSchedulePanel(props: {
               </th>
               <td className="px-3 py-2.5 text-right tabular-nums">
                 {fmt(totalPayment)}
-              </td>
-              <td className="px-3 py-2.5 text-right tabular-nums text-[#475569]">
-                {fmt(columnTotals.principal)}
-              </td>
-              <td className="px-3 py-2.5 text-right tabular-nums text-[#475569]">
-                {fmt(columnTotals.interest)}
               </td>
               <td className="px-3 py-2.5 text-right tabular-nums md:px-4">
                 {fmt(lastBalance)}

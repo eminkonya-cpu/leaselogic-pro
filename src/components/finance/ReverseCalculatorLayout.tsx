@@ -10,10 +10,7 @@ import FinanceFieldGrid, {
 } from "@/components/finance/ui/FinanceFieldGrid";
 import PaymentSchedulePanel from "@/components/finance/ui/PaymentSchedulePanel";
 import SectionClearAction from "@/components/finance/ui/SectionClearAction";
-import {
-  CatalogScrollRail,
-  CATALOG_SECTION_ID,
-} from "@/components/finance/ui/CatalogScrollRail";
+import { CATALOG_SECTION_ID } from "@/components/finance/ui/CatalogScrollRail";
 import {
   PlanContextFields,
   PlanFinancingSupportField,
@@ -30,6 +27,10 @@ import ProCalcShell from "@/components/finance/ui/ProCalcShell";
 import type { ReverseFinanceLeg } from "@/lib/reverseFinanceCalc";
 import type { CatalogLine, CatalogSelection } from "@/lib/catalogPrices";
 import { buildReverseStitchSummaryRows } from "@/lib/reverseSummaryReport";
+import {
+  scaleExpenseAmounts,
+  splitExtraExpenseAmounts,
+} from "@/lib/expenseSummaryLines";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
@@ -125,11 +126,20 @@ export default function ReverseCalculatorLayout(props: {
     };
   }, [baselineLeg, financingSupportAmount, leg.displayNetMachine]);
 
+  const expenseAmounts = useMemo(
+    () =>
+      scaleExpenseAmounts(
+        splitExtraExpenseAmounts(props.expenses),
+        isTry ? rate : 1,
+      ),
+    [isTry, props.expenses, rate],
+  );
+
   const summaryRows = useMemo(
     () =>
       buildReverseStitchSummaryRows({
         allInTotal,
-        totalExpenses: leg.totalExpenses,
+        expenseAmounts,
         interestDiff: interestDiffForSummary,
         financingSupport: isTry
           ? financingSupportAmount * rate
@@ -141,12 +151,12 @@ export default function ReverseCalculatorLayout(props: {
     [
       allInTotal,
       catalogAmount,
+      expenseAmounts,
       financingSupportAmount,
       interestDiffForSummary,
       isTry,
       rate,
       leg.displayNetMachine,
-      leg.totalExpenses,
       props.calc.catalogLines,
     ],
   );
@@ -177,16 +187,16 @@ export default function ReverseCalculatorLayout(props: {
         hero: true,
       },
       {
+        label: "Vade farkı",
+        value: `${fmt(interestDiffForSummary)} ${sym}`,
+      },
+      {
         label: isAnnual ? "Yıllık taksit" : "Aylık taksit",
         value: `${fmt(installment)} ${sym}`,
       },
       {
         label: "Toplam ödeme",
         value: `${fmt(totalPrimary)} ${sym}`,
-      },
-      {
-        label: "Vade farkı",
-        value: `${fmt(leg.interestDiff)} ${sym}`,
       },
       {
         label: "Plan",
@@ -203,7 +213,7 @@ export default function ReverseCalculatorLayout(props: {
     isAnnual,
     installment,
     totalPrimary,
-    leg.interestDiff,
+    interestDiffForSummary,
     term,
   ]);
 
@@ -219,7 +229,6 @@ export default function ReverseCalculatorLayout(props: {
 
   return (
     <ProCalcShell>
-      <CatalogScrollRail enabled observeKey={props.paymentFrequency} />
       <CalcPageHeader
         kicker="Leasing · Geri hesaplama"
         title="Geri hesaplama"
@@ -287,7 +296,7 @@ export default function ReverseCalculatorLayout(props: {
                 {
                   key: "euroInterest",
                   label: "Euro faiz oranı (%)",
-                  placeholder: "6.5",
+                  placeholder: "ör. 6,5",
                   step: "0.1",
                 },
                 {
@@ -344,6 +353,15 @@ export default function ReverseCalculatorLayout(props: {
               onExpensesChange={props.onExpensesReplace}
               inputClassName="h-9 border-[#E2E8F0] bg-white text-[13px]"
             />
+            <div id={CATALOG_SECTION_ID} className="mt-3 scroll-mt-24 border-t border-[#E2E8F0] pt-3">
+              <CatalogSelector
+                appearance="clean"
+                profile="plain"
+                selection={props.catalogSelection}
+                onToggle={props.handleCatalogToggle}
+                onClearAll={props.handleCatalogClearAll}
+              />
+            </div>
           </FormStep>
         </section>
 
@@ -371,17 +389,6 @@ export default function ReverseCalculatorLayout(props: {
             stitchCompare={financingSupportCompare ?? undefined}
           />
         </aside>
-      </div>
-
-      <div id={CATALOG_SECTION_ID} className="scroll-mt-24">
-        <CatalogSelector
-          appearance="clean"
-          layout="page"
-          density="comfortable"
-          selection={props.catalogSelection}
-          onToggle={props.handleCatalogToggle}
-          onClearAll={props.handleCatalogClearAll}
-        />
       </div>
 
       <PaymentSchedulePanel

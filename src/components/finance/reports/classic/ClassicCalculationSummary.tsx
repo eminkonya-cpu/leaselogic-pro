@@ -1,8 +1,15 @@
 "use client";
 
 import { Separator } from "@/components/ui/separator";
-import { formatNumber } from "@/components/finance/format";
+import { formatInterestRate, formatNumber } from "@/components/finance/format";
 import type { PrintableCalculationSummaryProps } from "@/components/finance/PrintableCalculationSummary";
+import {
+  FINANCING_SUPPORT_LABEL,
+  isKatkiPayiLabel,
+  KATKI_PAYI_NOTE,
+  isFinancingSupportLabel,
+  sumKalemlerToplam,
+} from "@/lib/kalemlerToplam";
 import { cn } from "@/lib/utils";
 
 export function ClassicCalculationSummaryContent(
@@ -21,11 +28,16 @@ export function ClassicCalculationSummaryContent(
   const planInterest = isTry ? props.tlInterest : props.euroInterest;
   const interestLabel = isTry ? "TL faiz oranı" : "Euro faiz oranı";
   const financingSupport = Math.max(0, props.financingSupportDisplay ?? 0);
+  const itemRows = props.rows.filter((row) => !isFinancingSupportLabel(row.label));
+  const kalemlerToplam = sumKalemlerToplam(itemRows);
+  const totalLabel =
+    props.primaryTotalLabel ??
+    (isTry ? "Toplam ödeme (TL)" : "Toplam (EUR)");
 
   return (
     <div
       id="pdf-print-area"
-      className={cn("pdf-print-root bg-white", props.className)}
+      className={cn("pdf-print-root llp-report llp-report-dense bg-white", props.className)}
     >
       <div className="text-base font-extrabold leading-tight text-slate-900 print:text-[14px]">
         Hesaplama Özeti (Detaylı)
@@ -78,20 +90,20 @@ export function ClassicCalculationSummaryContent(
             <>
               <div className="text-slate-600">{interestLabel}</div>
               <div className="text-right tabular-nums font-extrabold">
-                %{formatNumber(planInterest, { decimals: 1 })}
+                %{formatInterestRate(planInterest)}
               </div>
               {!isTry ? (
                 <>
                   <div className="text-slate-600">TL faiz oranı</div>
                   <div className="text-right tabular-nums font-extrabold">
-                    %{formatNumber(props.tlInterest, { decimals: 1 })}
+                    %{formatInterestRate(props.tlInterest)}
                   </div>
                 </>
               ) : (
                 <>
                   <div className="text-slate-600">Euro faiz oranı</div>
                   <div className="text-right tabular-nums font-extrabold">
-                    %{formatNumber(props.euroInterest, { decimals: 1 })}
+                    %{formatInterestRate(props.euroInterest)}
                   </div>
                 </>
               )}
@@ -117,19 +129,39 @@ export function ClassicCalculationSummaryContent(
           Kalemler (detay)
         </div>
         <div className="divide-y divide-slate-100 px-3 py-1 text-sm print:text-[10px]">
-          {props.rows.length === 0 ? (
+          {itemRows.length === 0 ? (
             <p className="py-2 text-slate-500">Seçili kalem yok.</p>
           ) : (
-            props.rows.map((row) => (
+            itemRows.map((row) => (
               <div
                 key={row.label}
-                className="flex items-start justify-between gap-4 py-2 font-semibold"
+                className={cn(
+                  "flex items-start justify-between gap-4 py-2 font-semibold",
+                  isKatkiPayiLabel(row.label) &&
+                    "bg-[#fff7ed] px-2 font-extrabold text-[#9a3412] shadow-[inset_3px_0_0_0_#ea580c]",
+                )}
               >
-                <span className="min-w-0 text-slate-700">{row.label}</span>
+                <span
+                  className={cn(
+                    "min-w-0",
+                    isKatkiPayiLabel(row.label) ? "text-[#9a3412]" : "text-slate-700",
+                  )}
+                >
+                  {row.label}
+                  {isKatkiPayiLabel(row.label) ? (
+                    <span className="ml-1 font-medium text-[#c2410c]/70">
+                      {KATKI_PAYI_NOTE}
+                    </span>
+                  ) : null}
+                </span>
                 <span
                   className={cn(
                     "shrink-0 tabular-nums font-bold",
-                    row.valueEuro < 0 ? "text-emerald-800" : "text-slate-900",
+                    isKatkiPayiLabel(row.label)
+                      ? "text-[#9a3412]"
+                      : row.valueEuro < 0
+                        ? "text-emerald-800"
+                        : "text-slate-900",
                   )}
                 >
                   {formatNumber(row.valueEuro, { noDecimals: true })} {sym}
@@ -138,15 +170,56 @@ export function ClassicCalculationSummaryContent(
             ))
           )}
         </div>
+        <div className="flex items-center justify-between gap-4 border-t-2 border-slate-200 bg-slate-50 px-3 py-2 text-sm font-extrabold print:text-[10px]">
+          <span>Kalemler toplamı</span>
+          <span className="tabular-nums">
+            {formatNumber(kalemlerToplam, { noDecimals: true })} {sym}
+          </span>
+        </div>
+        {financingSupport > 0 ? (
+          <div className="flex items-center justify-between gap-4 border-t border-dashed border-slate-200 px-3 py-2 text-sm font-semibold text-red-700 print:text-[10px]">
+            <span className="min-w-0 leading-snug">
+              {FINANCING_SUPPORT_LABEL}{" "}
+              <span className="font-medium text-slate-500">
+                (kalemler toplamına dahil değil)
+              </span>
+            </span>
+            <span className="shrink-0 tabular-nums font-bold">
+              − {formatNumber(financingSupport, { noDecimals: true })} {sym}
+            </span>
+          </div>
+        ) : null}
       </div>
 
-      <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50/80 px-3 py-3 print:break-inside-avoid">
+      <div className="mt-3 rounded-lg border-2 border-[#2563eb]/30 bg-[#eff4ff] p-3 print:mt-1.5 print:p-2 print:break-inside-avoid">
+        <div className="space-y-2 text-sm font-semibold print:text-[10px]">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[#434655]">Makine bedeli</span>
+            <span className="tabular-nums font-bold">
+              {formatNumber(machinePrice, { noDecimals: true })} {sym}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-3 text-emerald-800">
+            <span>+ Kalemler toplamı</span>
+            <span className="tabular-nums font-bold">
+              {formatNumber(kalemlerToplam, { noDecimals: true })} {sym}
+            </span>
+          </div>
+          {financingSupport > 0 ? (
+            <div className="flex items-center justify-between gap-3 text-red-700">
+              <span>− {FINANCING_SUPPORT_LABEL}</span>
+              <span className="tabular-nums font-bold">
+                {formatNumber(financingSupport, { noDecimals: true })} {sym}
+              </span>
+            </div>
+          ) : null}
+        </div>
+        <div className="my-3 h-px bg-[#c3c6d7]/60" />
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-bold text-slate-900">
-            {props.primaryTotalLabel ??
-              (isTry ? "Toplam ödeme (TL)" : "Toplam (EUR)")}
+          <span className="text-sm font-bold text-slate-900 print:text-[11px]">
+            {totalLabel}
           </span>
-          <span className="text-xl font-extrabold tabular-nums text-[#004ac6]">
+          <span className="text-xl font-extrabold tabular-nums text-[#004ac6] print:text-[16px]">
             {formatNumber(total, { noDecimals: true })} {sym}
           </span>
         </div>

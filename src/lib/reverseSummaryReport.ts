@@ -1,6 +1,15 @@
 import type { CostSummaryRow } from "@/components/finance/ui/CostSummaryPanel";
+import { sumKalemlerToplam } from "@/lib/kalemlerToplam";
 import type { CatalogLine } from "@/lib/catalogPrices";
-import { expenseFieldLabels } from "@/components/finance/ExpenseInputCard";
+import {
+  presentExpenseSummaryLines,
+  splitExtraExpenseAmounts,
+  type ExtraExpenseAmounts,
+} from "@/lib/expenseSummaryLines";
+import {
+  buildKatkiPayiRows,
+  katkiPayiStitchTone,
+} from "@/lib/katkiPayiGroup";
 
 export type SummaryReportRow = { label: string; value: number };
 
@@ -12,7 +21,7 @@ export function scaleReverseDetailRows(
 }
 
 export function sumReverseDetailRows(rows: SummaryReportRow[]): number {
-  return rows.reduce((sum, row) => sum + row.value, 0);
+  return sumKalemlerToplam(rows);
 }
 
 /** @deprecated use sumReverseDetailRows */
@@ -32,7 +41,7 @@ const SEGMENT_COLORS = [
 
 export function buildReverseStitchSummaryRows(args: {
   allInTotal: number;
-  totalExpenses: number;
+  expenseAmounts: ExtraExpenseAmounts;
   /** Tam vade farkı (destekten bağımsız referans); destek varken desteksiz senaryo. */
   interestDiff: number;
   financingSupport?: number;
@@ -46,17 +55,21 @@ export function buildReverseStitchSummaryRows(args: {
       value: args.allInTotal,
       tone: "emphasis",
     },
-    {
-      label: "Ek masraflar (Kasko, Leasing, İthalat)",
-      value: -args.totalExpenses,
-      tone: "negative",
-    },
-    {
-      label: "Finansman maliyeti (vade farkı)",
-      value: -Math.max(0, args.interestDiff),
-      tone: "negative",
-    },
   ];
+  for (const row of buildKatkiPayiRows({
+    kasko: args.expenseAmounts.kasko,
+    masraflar: args.expenseAmounts.masraflar,
+    vadeFarki: args.interestDiff,
+    ithalat: args.expenseAmounts.ithalat,
+    sign: -1,
+    hasFollowingItems: args.catalogLines.length > 0,
+  })) {
+    rows.push({
+      label: row.label,
+      value: row.value,
+      tone: katkiPayiStitchTone(row.role, "negative"),
+    });
+  }
   for (const line of args.catalogLines) {
     rows.push({
       label: `${line.categoryTitle}: ${line.itemLabel}`,
@@ -82,7 +95,7 @@ export function buildReverseStitchSummaryRows(args: {
 
 export function buildReverseDistributionSegments(args: {
   displayNetMachine: number;
-  totalExpenses: number;
+  expenseAmounts: ExtraExpenseAmounts;
   interestDiff: number;
   catalogLines: CatalogLine[];
   catalogAmount: (line: CatalogLine) => number;
@@ -103,10 +116,10 @@ export function buildReverseDistributionSegments(args: {
     });
     colorIdx++;
   }
-  if (args.totalExpenses > 0) {
+  for (const row of presentExpenseSummaryLines(args.expenseAmounts)) {
     segments.push({
-      label: "Ek masraflar",
-      value: args.totalExpenses,
+      label: row.label,
+      value: row.value,
       color: SEGMENT_COLORS[colorIdx % SEGMENT_COLORS.length]!,
     });
     colorIdx++;
@@ -130,23 +143,22 @@ export function buildDetailedReverseReportRows(args: {
   expenseAmount: (value: number) => number;
 }): SummaryReportRow[] {
   const rows: SummaryReportRow[] = [];
-  for (const line of args.catalogLines) {
-    rows.push({
-      label: `${line.categoryTitle} — ${line.itemLabel}`,
-      value: args.catalogAmount(line),
-    });
+  const split = splitExtraExpenseAmounts(args.expenses);
+  const catalogRows = args.catalogLines.map((line) => ({
+    label: `${line.categoryTitle} — ${line.itemLabel}`,
+    value: args.catalogAmount(line),
+  }));
+  for (const row of buildKatkiPayiRows({
+    kasko: args.expenseAmount(split.kasko),
+    masraflar: args.expenseAmount(split.masraflar),
+    vadeFarki: args.interestDiff,
+    ithalat: args.expenseAmount(split.ithalat),
+    hasFollowingItems: catalogRows.length > 0,
+  })) {
+    rows.push({ label: row.label, value: row.value });
   }
-  for (const [key, value] of Object.entries(args.expenses)) {
-    if (!value) continue;
-    const label =
-      (expenseFieldLabels as Record<string, string>)[key] ?? key;
-    rows.push({ label, value: args.expenseAmount(value) });
-  }
-  if (args.interestDiff > 0) {
-    rows.push({
-      label: "Finansman maliyeti (vade farkı)",
-      value: args.interestDiff,
-    });
+  for (const row of catalogRows) {
+    rows.push(row);
   }
   return rows;
 }

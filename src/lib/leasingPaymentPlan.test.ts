@@ -192,27 +192,154 @@ describe("computeLeasingPaymentPlanReverse", () => {
     );
   });
 
-  it("karışık peşin/plana ek ile geri hesaplama", () => {
-    const forward = computeLeasingPaymentPlan(
-      base({
-        machinePrice: 130_000,
-        fileFee: 5_000,
-        importCost: 3_000,
-        extraCostModes: { fileFee: "financed", importCost: "cash" },
-      }),
-    );
-    expect(forward.summary.status).toBe("ok");
+  it("geri Peşin ekler vade farkına girmez, taksit (hedef − peşinat) / ay", () => {
+    const modes = Array.from({ length: 24 }, () => "paying" as const);
     const reverse = computeLeasingPaymentPlanReverse({
       ...base({
         machinePrice: 0,
-        fileFee: 5_000,
-        importCost: 3_000,
-        extraCostModes: { fileFee: "financed", importCost: "cash" },
+        downPayment: 35_000,
+        termMonths: 24,
+        monthModes: modes,
+        balloons: Array.from({ length: 24 }, () => 0),
+        annualNominalRatePct: 6.25,
+        totalInsurance: 3_165.26,
+        attachmentCost: 5_000,
+        extraCostModes: { totalInsurance: "cash", attachmentCost: "cash" },
       }),
-      targetCustomerTotal: forward.summary.customerTotalPayment,
+      targetCustomerTotal: 135_000,
     });
     expect(reverse.summary.status).toBe("ok");
-    expect(reverse.solvedMachinePrice!).toBeCloseTo(130_000, 0);
+    expect(reverse.summary.equalNormalInstallment).toBeCloseTo(
+      (135_000 - 35_000) / 24,
+      2,
+    );
+    expect(reverse.summary.cashExtraCosts).toBeCloseTo(8_165.26, 2);
+    expect(reverse.summary.financedExtraCosts).toBe(0);
+    expect(reverse.summary.customerTotalPayment).toBeCloseTo(135_000, 1);
+    const paying = reverse.rows.filter((row) => row.mode === "paying");
+    const extraShare = 8_165.26 / 24;
+    expect(paying[0].normalInstallment).toBeCloseTo(
+      reverse.summary.equalNormalInstallment,
+      2,
+    );
+    expect(paying[0].principalPayment).toBeCloseTo(
+      paying[0].normalInstallment - extraShare - paying[0].periodInterest,
+      4,
+    );
+  });
+
+  it("geri Plana ekler faize girer, taksit aynı kalır", () => {
+    const modes = Array.from({ length: 24 }, () => "paying" as const);
+    const shared = {
+      machinePrice: 0,
+      downPayment: 35_000,
+      termMonths: 24,
+      monthModes: modes,
+      balloons: Array.from({ length: 24 }, () => 0),
+      annualNominalRatePct: 6.25,
+      totalInsurance: 3_165.26,
+      attachmentCost: 5_000,
+    };
+    const cash = computeLeasingPaymentPlanReverse({
+      ...base({
+        ...shared,
+        extraCostModes: { totalInsurance: "cash", attachmentCost: "cash" },
+      }),
+      targetCustomerTotal: 135_000,
+    });
+    const financed = computeLeasingPaymentPlanReverse({
+      ...base({
+        ...shared,
+        extraCostModes: {
+          totalInsurance: "financed",
+          attachmentCost: "financed",
+        },
+      }),
+      targetCustomerTotal: 135_000,
+    });
+    expect(cash.summary.status).toBe("ok");
+    expect(financed.summary.status).toBe("ok");
+    expect(financed.summary.equalNormalInstallment).toBeCloseTo(
+      cash.summary.equalNormalInstallment,
+      2,
+    );
+    expect(financed.summary.financedExtraCosts).toBeCloseTo(8_165.26, 2);
+    expect(financed.summary.totalFinanceInterest).toBeGreaterThan(
+      cash.summary.totalFinanceInterest,
+    );
+    expect(financed.solvedMachinePrice!).toBeLessThan(cash.solvedMachinePrice!);
+  });
+
+  it("müşteri hedefi masraf içermez; katkı payı masrafı üste eklemeden BNP tarza yaklaşır", () => {
+    const modes = Array.from({ length: 30 }, () => "paying" as const);
+    const reverse = computeLeasingPaymentPlanReverse({
+      ...base({
+        machinePrice: 0,
+        downPayment: 20_000,
+        termMonths: 30,
+        monthModes: modes,
+        balloons: Array.from({ length: 30 }, () => 0),
+        annualNominalRatePct: 6.25,
+        fileFee: 0,
+        totalInsurance: 5_350,
+        importCost: 0,
+        attachmentCost: 0,
+        extraCostModes: {
+          totalInsurance: "financed",
+        },
+      }),
+      targetCustomerTotal: 130_693,
+    });
+    expect(reverse.summary.status).toBe("ok");
+    expect(reverse.summary.equalNormalInstallment).toBeCloseTo(
+      (130_693 - 20_000) / 30,
+      2,
+    );
+    const contribution =
+      130_693 - (reverse.solvedMachinePrice ?? 0);
+    expect(contribution).toBeCloseTo(14_219, 0);
+    expect(Math.abs(contribution - 14_151)).toBeLessThan(200);
+  });
+
+  it("listeden kasko + dosya + ithalat, toplu masrafla aynı katkıyı verir", () => {
+    const modes = Array.from({ length: 30 }, () => "paying" as const);
+    const shared = {
+      machinePrice: 0,
+      downPayment: 20_000,
+      termMonths: 30,
+      monthModes: modes,
+      balloons: Array.from({ length: 30 }, () => 0),
+      annualNominalRatePct: 6.25,
+    };
+    const lump = computeLeasingPaymentPlanReverse({
+      ...base({
+        ...shared,
+        totalInsurance: 5_350,
+        extraCostModes: { totalInsurance: "financed" },
+      }),
+      targetCustomerTotal: 130_693,
+    });
+    const itemized = computeLeasingPaymentPlanReverse({
+      ...base({
+        ...shared,
+        totalInsurance: 4_248,
+        fileFee: 450,
+        importCost: 652,
+        extraCostModes: {
+          totalInsurance: "financed",
+          fileFee: "financed",
+          importCost: "financed",
+        },
+      }),
+      targetCustomerTotal: 130_693,
+    });
+    expect(lump.summary.status).toBe("ok");
+    expect(itemized.summary.status).toBe("ok");
+    expect(itemized.summary.equalNormalInstallment).toBeCloseTo(
+      lump.summary.equalNormalInstallment,
+      2,
+    );
+    expect(itemized.solvedMachinePrice!).toBeCloseTo(lump.solvedMachinePrice!, 0);
   });
 
   it("balonlu planda geri hesaplama", () => {

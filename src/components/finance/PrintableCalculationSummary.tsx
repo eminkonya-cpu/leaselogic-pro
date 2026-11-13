@@ -1,6 +1,10 @@
 "use client";
 
-import { formatMoneyWithSymbol, formatNumber } from "@/components/finance/format";
+import {
+  formatInterestRate,
+  formatMoneyWithSymbol,
+  formatNumber,
+} from "@/components/finance/format";
 import {
   ReportDocument,
   ReportKeyValues,
@@ -16,6 +20,13 @@ import { ClassicCalculationSummaryContent } from "@/components/finance/reports/c
 import type { ForwardTabId } from "@/lib/forwardDisplayMetrics";
 import type { SummaryReportRow } from "@/lib/calculationSummaryReport";
 import type { FinancingSupportCompare } from "@/lib/financingSupportReport";
+import {
+  FINANCING_SUPPORT_LABEL,
+  isKatkiPayiLabel,
+  KATKI_PAYI_NOTE,
+  isFinancingSupportLabel,
+  sumKalemlerToplam,
+} from "@/lib/kalemlerToplam";
 import { REPORT_DESIGN } from "@/lib/reportDesign";
 
 export type PrintableCalculationSummaryProps = {
@@ -60,7 +71,7 @@ function ExecutiveCalculationSummary(
   const rate = props.euroRate;
   const money = (v: number) =>
     formatMoneyWithSymbol(v, sym, 0);
-  const pct = (v: number) => `%${formatNumber(v, { decimals: 1 })}`;
+  const pct = (v: number) => `%${formatInterestRate(v)}`;
 
   const machinePrice = isTry ? props.machinePriceEuro * rate : props.machinePriceEuro;
   const downPayment = isTry ? props.downPaymentEuro * rate : props.downPaymentEuro;
@@ -69,6 +80,8 @@ function ExecutiveCalculationSummary(
   const termText = props.termUnit === "year" ? `${props.term} yıl` : `${props.term} ay`;
   const totalLabel =
     props.primaryTotalLabel ?? (isTry ? "Toplam ödeme (TL)" : "Toplam (EUR)");
+  const itemRows = props.rows.filter((row) => !isFinancingSupportLabel(row.label));
+  const kalemlerToplam = sumKalemlerToplam(itemRows);
 
   const metrics: ReportMetric[] = [
     { label: props.machinePriceLabel, value: money(machinePrice) },
@@ -115,33 +128,73 @@ function ExecutiveCalculationSummary(
       kind="Leasing · İleri hesaplama"
       title="Hesaplama Özeti"
       tags={tags}
+      dense
       className={props.className}
       footnote="Bu özet detaylı kalem dökümü içindir; ödeme planı ayrı alınır. Tutarlar bilgilendirme amaçlıdır."
     >
       <ReportMetricStrip items={metrics} />
 
       <ReportSection index={++section} title="Müşteri ve finansman koşulları">
-        <ReportKeyValues items={conditions} />
+        <ReportKeyValues items={conditions} columns={2} />
       </ReportSection>
 
       <ReportSection
         index={++section}
         title="Maliyet kalemleri"
-        aside={`${props.rows.length} kalem`}
+        aside={`${itemRows.length} kalem`}
       >
         <ReportLineTable
           head={["Kalem", `Tutar (${sym})`]}
           emptyText="Seçili kalem yok."
-          lines={props.rows.map((row) => ({
+          lines={itemRows.map((row) => ({
             label: row.label,
             value: money(row.valueEuro),
-            tone: row.valueEuro < 0 ? "positive" : "default",
+            tone: isKatkiPayiLabel(row.label)
+              ? "highlight"
+              : row.valueEuro < 0
+                ? "positive"
+                : "default",
+            strong: isKatkiPayiLabel(row.label),
+            note: isKatkiPayiLabel(row.label) ? KATKI_PAYI_NOTE : undefined,
           }))}
+          totals={[
+            { label: "Kalemler toplamı", value: money(kalemlerToplam), strong: true },
+            ...(financingSupport > 0
+              ? [
+                  {
+                    label: FINANCING_SUPPORT_LABEL,
+                    note: "(kalemler toplamına dahil değil)",
+                    value: `− ${money(financingSupport)}`,
+                    tone: "negative" as const,
+                  },
+                ]
+              : []),
+          ]}
         />
       </ReportSection>
 
       <ReportSection index={++section} title="Sonuç">
-        <ReportResult label={totalLabel} value={money(total)} />
+        <ReportResult
+          label={totalLabel}
+          value={money(total)}
+          lines={[
+            { label: "Makine bedeli", value: money(machinePrice) },
+            {
+              label: "+ Kalemler toplamı",
+              value: money(kalemlerToplam),
+              tone: "positive",
+            },
+            ...(financingSupport > 0
+              ? [
+                  {
+                    label: "− Finansman desteği",
+                    value: money(financingSupport),
+                    tone: "negative" as const,
+                  },
+                ]
+              : []),
+          ]}
+        />
       </ReportSection>
 
       {props.supportCompare && financingSupport > 0 ? (

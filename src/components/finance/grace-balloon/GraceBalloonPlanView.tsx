@@ -3,6 +3,7 @@
 import DecimalTextInput from "@/components/finance/DecimalTextInput";
 import { FinanceDocumentPreviewModal } from "@/components/finance/FinanceDocumentPreviewModal";
 import PlanExtraCostPanel from "@/components/finance/PlanExtraCostPanel";
+import GraceBalloonOptionChips from "@/components/finance/grace-balloon/GraceBalloonOptionChips";
 import PrintableGraceBalloonPlan, {
   PrintableGraceBalloonPreviewModal,
 } from "@/components/finance/PrintableGraceBalloonPlan";
@@ -373,7 +374,7 @@ function InputsCard({ plan }: { plan: GraceBalloonPlan }) {
           kaskoAutoTotal={plan.kaskoAutoTotal}
           kaskoTermHint={
             plan.serviceFees.kaskoPercentOfMachine > 0 && state.termMonths > 0
-              ? `${state.termMonths} ay × (bedelin %${plan.serviceFees.kaskoPercentOfMachine} / 12)`
+              ? `${state.termMonths} ay × (${plan.direction === "reverse" ? "hedef toplamın" : "makine bedelinin"} %${plan.serviceFees.kaskoPercentOfMachine} / 12)`
               : undefined
           }
           amounts={{
@@ -383,6 +384,8 @@ function InputsCard({ plan }: { plan: GraceBalloonPlan }) {
             attachmentCost: state.attachmentCost,
           }}
           extraCostModes={state.extraCostModes}
+          reverseExtras={plan.direction === "reverse"}
+          hideAttachment
           inputClassName={inputCls}
           onSetMode={plan.handleSetFeeMode}
           onAmountChange={(key, value) => setField(key, value)}
@@ -392,6 +395,13 @@ function InputsCard({ plan }: { plan: GraceBalloonPlan }) {
               extraCostModes: { ...prev.extraCostModes, [key]: mode },
             }))
           }
+        />
+        <GraceBalloonOptionChips
+          selection={plan.catalogSelection}
+          onToggle={plan.toggleCatalog}
+          paymentMode={state.extraCostModes.attachmentCost}
+          onPaymentModeChange={plan.setOptionPaymentMode}
+          reverseExtras={plan.direction === "reverse"}
         />
       </FormStep>
     </section>
@@ -427,8 +437,9 @@ function SummaryCard({ plan }: { plan: GraceBalloonPlan }) {
       )}
 
       <p className="mt-4 text-xs leading-relaxed text-[#64748B]">
-        Müşteri toplamı: peşinat + taksitler + balonlar + peşin ek maliyetler. Plana dahil
-        ekler vade farkıyla taksitlere yansır. Devir bedeli hariç.
+        {plan.direction === "reverse"
+          ? "Müşteri taksiti yazılan hedefe göredir. Kasko ve masraf aşağıdan seçilir; müşteri toplamına eklenmez, vade farkına yansır. Devir bedeli hariç."
+          : "Müşteri toplamı: peşinat + taksitler + balonlar + peşin ek maliyetler. Plana dahil ekler vade farkıyla taksitlere yansır. Devir bedeli hariç."}
       </p>
     </aside>
   );

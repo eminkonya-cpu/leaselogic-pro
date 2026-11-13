@@ -12,10 +12,10 @@ import {
 import { usePersistentState } from "@/lib/usePersistentState";
 import { useCallback, useMemo } from "react";
 
-export function useCatalogSelection() {
+export function useCatalogSelection(storageKey: string = CATALOG_STORAGE_KEY) {
   const { categories } = useCatalogCategories();
   const [stored, setStored] = usePersistentState<unknown>(
-    CATALOG_STORAGE_KEY,
+    storageKey,
     EMPTY_CATALOG_SELECTION,
   );
 

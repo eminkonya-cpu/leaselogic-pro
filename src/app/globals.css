@@ -278,6 +278,8 @@
     padding: 0 !important;
     box-shadow: none !important;
     overflow: visible !important;
+    /* Yazıcı kenar boşluğu için A4'ün tamamını zorlama — ikinci sayfa olmasın. */
+    min-height: 0 !important;
   }
 
   html,
@@ -295,6 +297,28 @@
   .break-inside-avoid {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  /* Sıkı özet: bölümler sonraki boş sayfaya atmasın. */
+  .llp-report-dense section.break-inside-avoid,
+  .llp-report-dense .break-inside-avoid {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .llp-report-dense header,
+  .llp-report-dense .llp-metric-strip,
+  .llp-report-dense footer {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .llp-report-dense .llp-metric-strip {
+    grid-template-columns: repeat(var(--llp-metric-cols), minmax(0, 1fr)) !important;
+  }
+
+  .llp-report-dense dl.grid {
+    grid-template-columns: 1fr 1fr !important;
   }
 
   table,
@@ -338,4 +362,17 @@
   .llp-report tfoot {
     display: table-row-group;
   }
+}
+
+/* Kaydet (html2canvas) print medyasını kullanmaz; A4 genişliğinde aynı düzen. */
+html.llp-pdf-capture .llp-metric-strip,
+.llp-pdf-capture.llp-metric-strip,
+.llp-pdf-capture .llp-metric-strip {
+  grid-template-columns: repeat(var(--llp-metric-cols), minmax(0, 1fr)) !important;
+}
+
+html.llp-pdf-capture .llp-report dl.grid,
+.llp-pdf-capture.llp-report dl.grid,
+.llp-pdf-capture .llp-report dl.grid {
+  grid-template-columns: 1fr 1fr !important;
 }

@@ -1,6 +1,9 @@
 # local Stitch design exports (reference only)
 .stitch-cache/
 
+# local promo recordings
+/output/
+
 # dependencies
 /node_modules
 /.pnp

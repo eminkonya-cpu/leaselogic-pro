@@ -52,13 +52,10 @@ Main calculator screens:
 
 Supporting finance UI:
 
-- `src/components/finance/AmortizationTable.tsx`
 - `src/components/finance/CurrencyComparisonReport.tsx`
 - `src/components/finance/ExpenseInputCard.tsx`
-- `src/components/finance/ParameterCard.tsx`
 - `src/components/finance/PrintablePDF.tsx`
 - `src/components/finance/RateProjectionInput.tsx`
-- `src/components/finance/ResultCard.tsx`
 - `src/components/finance/machineModels.ts`
 - `src/components/finance/format.ts`
 

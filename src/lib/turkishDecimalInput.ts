@@ -26,3 +26,20 @@ export function formatDecimalForInput(value: number): string {
   if (!Number.isFinite(value) || value === 0) return "";
   return String(value).replace(".", ",");
 }
+
+/** Odak yokken: 3.090,00 (otomatik tutar satırı ile aynı yazım). */
+export function formatDecimalIdle(value: number, decimals = 2): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "";
+  return n.toLocaleString("tr-TR", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+export function roundDecimal(value: number, decimals = 2): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  const f = 10 ** Math.max(0, Math.trunc(decimals));
+  return Math.round(n * f) / f;
+}

@@ -80,13 +80,22 @@ export default function PlanExtraCostPanel(props: {
   inputClassName?: string;
   hideTitle?: boolean;
   className?: string;
+  /** Geri hesaplama: Peşin = MAATS, faiz yok; Plana = vade farkı. */
+  reverseExtras?: boolean;
+  hideAttachment?: boolean;
 }) {
   const variant = props.variant ?? "plan";
-  const visibleRows =
-    variant === "finance"
-      ? ROWS.filter((r) => r.key !== "attachmentCost")
-      : ROWS;
+  const visibleRows = ROWS.filter((r) => {
+    if (r.key === "attachmentCost" && (variant === "finance" || props.hideAttachment)) {
+      return false;
+    }
+    return true;
+  });
   const inputCls = props.inputClassName ?? "";
+  const selectedCatalogTotal = visibleRows.reduce((sum, row) => {
+    if (props.modes[row.key] === "off") return sum;
+    return sum + Math.max(0, props.amounts[row.amountKey] ?? 0);
+  }, 0);
 
   const autoAmount = (key: ExtraCostFieldKey): number => {
     switch (key) {
@@ -213,8 +222,12 @@ export default function PlanExtraCostPanel(props: {
                 <div className="w-full min-w-[7rem] sm:ml-auto sm:w-auto sm:text-right">
                   {mode === "manual" ? (
                     <DecimalTextInput
-                      className={cn(inputCls, "h-9 max-w-[10rem] sm:ml-auto")}
+                      className={cn(
+                        inputCls,
+                        "h-9 max-w-[10rem] text-right font-bold tabular-nums text-[#004ac6] sm:ml-auto",
+                      )}
                       value={amount}
+                      suffix="€"
                       onValueChange={(n) =>
                         props.onAmountChange(row.amountKey, n)
                       }
@@ -249,7 +262,11 @@ export default function PlanExtraCostPanel(props: {
                       )
                     }
                   >
-                    <option value="cash">Peşin</option>
+                    <option value="cash">
+                      {props.reverseExtras
+                        ? "Peşin (MAATS, faiz yok)"
+                        : "Peşin"}
+                    </option>
                     <option value="financed">Plana (vade farkı)</option>
                   </select>
                 </div>
@@ -258,6 +275,12 @@ export default function PlanExtraCostPanel(props: {
           );
         })}
       </ul>
+      {props.reverseExtras && selectedCatalogTotal > 0 ? (
+        <p className="mt-3 text-xs font-semibold text-[#0b1c30]">
+          Seçilen kalemler toplamı {formatNumber(selectedCatalogTotal, { decimals: 2 })} €.
+          Müşteri hedefine eklenmez; vade farkına yansır.
+        </p>
+      ) : null}
     </div>
   );
 }

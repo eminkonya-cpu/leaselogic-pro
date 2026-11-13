@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
+  isAuthNetworkError,
   isInvalidRefreshTokenError,
   signOutLocally,
 } from "@/lib/supabaseAuth";
@@ -34,17 +35,23 @@ function attachInvalidRefreshTokenGuard() {
   authErrorGuardAttached = true;
 
   window.addEventListener("unhandledrejection", (event) => {
-    if (!isInvalidRefreshTokenError(event.reason)) {
+    if (isInvalidRefreshTokenError(event.reason)) {
+      event.preventDefault();
+      recoverInvalidRefreshToken();
       return;
     }
-    event.preventDefault();
-    recoverInvalidRefreshToken();
+    if (isAuthNetworkError(event.reason)) {
+      event.preventDefault();
+    }
   });
 
   const originalConsoleError = console.error.bind(console);
   console.error = (...args: unknown[]) => {
     if (args.some((arg) => isInvalidRefreshTokenError(arg))) {
       recoverInvalidRefreshToken();
+      return;
+    }
+    if (args.some((arg) => isAuthNetworkError(arg))) {
       return;
     }
     originalConsoleError(...args);
@@ -75,6 +82,7 @@ export {
   clearAuthHint,
   clearSupabaseAuthStorage,
   hasStoredSupabaseSession,
+  isAuthNetworkError,
   isInvalidRefreshTokenError,
   isSessionExpired,
   isStoredSupabaseSessionExpired,

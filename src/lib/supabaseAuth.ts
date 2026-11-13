@@ -49,6 +49,68 @@ function extractAuthErrorCode(error: unknown): string {
   return typeof code === "string" ? code.toLowerCase() : "";
 }
 
+function extractErrorName(error: unknown): string {
+  if (error instanceof Error) {
+    return error.name;
+  }
+  if (error && typeof error === "object" && "name" in error) {
+    return typeof (error as { name?: unknown }).name === "string"
+      ? ((error as { name: string }).name)
+      : "";
+  }
+  return "";
+}
+
+function extractErrorStack(error: unknown): string {
+  if (error instanceof Error) {
+    return error.stack ?? "";
+  }
+  if (error && typeof error === "object" && "stack" in error) {
+    return typeof (error as { stack?: unknown }).stack === "string"
+      ? ((error as { stack: string }).stack)
+      : "";
+  }
+  return "";
+}
+
+function isFailedFetchMessage(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m === "failed to fetch" ||
+    m.includes("failed to fetch") ||
+    m.includes("network request failed") ||
+    m.includes("load failed") ||
+    m.includes("fetch failed")
+  );
+}
+
+function isAuthJsStack(stack: string): boolean {
+  const s = stack.toLowerCase();
+  return (
+    s.includes("_refreshaccesstoken") ||
+    s.includes("_recoverandrefresh") ||
+    s.includes("_callrefreshtoken") ||
+    s.includes("@supabase/auth-js") ||
+    s.includes("auth-js")
+  );
+}
+
+/**
+ * Oturum yenileme ağ hatası (TLS/offline). Geçersiz token değil;
+ * kullanıcıyı düşürme, kırmızı overlay de gösterme.
+ */
+export function isAuthNetworkError(error: unknown): boolean {
+  const name = extractErrorName(error);
+  const message = extractAuthErrorMessage(error);
+  const stack = extractErrorStack(error);
+
+  if (name === "AuthRetryableFetchError") {
+    return true;
+  }
+
+  return isFailedFetchMessage(message) && isAuthJsStack(stack);
+}
+
 /** GoTrue: tek kullanımlık refresh token ikinci kez yenilenince veya depoda yoksa. */
 export function isInvalidRefreshTokenError(error: unknown): boolean {
   const code = extractAuthErrorCode(error);

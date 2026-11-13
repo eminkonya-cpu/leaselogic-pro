@@ -1,15 +1,21 @@
 "use client";
 
+import { useReportPreparedBy } from "@/components/finance/reports/ReportAuthorContext";
 import { cn } from "@/lib/utils";
 import type { CSSProperties, ReactNode } from "react";
 
-export type ReportTone = "default" | "positive" | "negative" | "muted";
+export type ReportTone = "default" | "positive" | "negative" | "muted" | "highlight";
 
 const toneText: Record<ReportTone, string> = {
   default: "text-[#0f172a]",
   positive: "text-[#0f766e]",
   negative: "text-[#b42318]",
   muted: "text-[#64748b]",
+  highlight: "text-[#9a3412]",
+};
+
+const toneRow: Partial<Record<ReportTone, string>> = {
+  highlight: "bg-[#fff7ed] shadow-[inset_3px_0_0_0_#ea580c]",
 };
 
 function formatReportDate(date: Date) {
@@ -27,28 +33,43 @@ export function ReportDocument(props: {
   className?: string;
   children: ReactNode;
   footnote?: string;
+  /** Tek sayfaya sığdırmak için üst boşluğu kısar. */
+  dense?: boolean;
 }) {
   const today = formatReportDate(new Date());
+  const dense = Boolean(props.dense);
+  const preparedBy = useReportPreparedBy();
 
   return (
     <div
       id="pdf-print-area"
       className={cn(
-        "pdf-print-root llp-report bg-white text-[#0f172a]",
+        "pdf-print-root llp-report flex min-h-[297mm] flex-col bg-white text-[#0f172a]",
+        dense && "llp-report-dense",
         props.className,
       )}
     >
-      <header className="flex items-stretch justify-between gap-4 border-b-2 border-[#0f172a] pb-3 print:pb-2">
+      <header
+        className={cn(
+          "flex items-stretch justify-between gap-4 border-b-2 border-[#0f172a]",
+          dense ? "pb-2 print:pb-1.5" : "pb-3 print:pb-2",
+        )}
+      >
         <div className="flex min-w-0 gap-3">
           <div className="w-1.5 shrink-0 rounded-full bg-[#0f766e]" aria-hidden />
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0f766e] print:text-[10px]">
               {props.kind}
             </p>
-            <h1 className="mt-0.5 font-serif text-xl font-bold leading-tight tracking-tight text-[#0f172a] print:text-[18px]">
+            <h1
+              className={cn(
+                "mt-0.5 font-serif font-bold leading-tight tracking-tight text-[#0f172a]",
+                dense ? "text-lg print:text-[16px]" : "text-xl print:text-[18px]",
+              )}
+            >
               {props.title}
             </h1>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <div className={cn("flex flex-wrap gap-1.5", dense ? "mt-1" : "mt-1.5")}>
               {props.tags.map((tag) => (
                 <span
                   key={tag}
@@ -60,35 +81,45 @@ export function ReportDocument(props: {
             </div>
           </div>
         </div>
-        <div className="shrink-0 text-right text-[11px] font-medium leading-relaxed text-[#475569] print:text-[11px]">
+        <div className="shrink-0 text-right text-[11px] font-medium leading-snug text-[#475569] print:text-[11px]">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#94a3b8] print:text-[10px]">
             Rapor tarihi
           </p>
           <p className="font-semibold text-[#0f172a]">{today}</p>
-          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#94a3b8] print:text-[10px]">
+          <p className={cn("text-[10px] font-bold uppercase tracking-[0.14em] text-[#94a3b8] print:text-[10px]", dense ? "mt-0.5" : "mt-1")}>
             Gizlilik
           </p>
           <p className="font-semibold text-[#0f172a]">Yönetim / iç kullanım</p>
         </div>
       </header>
 
-      <div className="mt-3 space-y-3 print:mt-2.5 print:space-y-2.5">
+      <div
+        className={cn(
+          "flex-1",
+          dense
+            ? "mt-2 space-y-2 print:mt-1.5 print:space-y-2"
+            : "mt-3 space-y-3 print:mt-2.5 print:space-y-2.5",
+        )}
+      >
         {props.children}
       </div>
 
-      <footer className="mt-4 break-inside-avoid print:mt-3">
-        <div className="grid grid-cols-3 gap-4 print:gap-3">
-          {["Hazırlayan", "Kontrol eden", "Onaylayan"].map((role) => (
-            <div key={role} className="border-t border-[#94a3b8] pt-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#64748b] print:text-[10px]">
-                {role}
-              </p>
-              <div className="h-6 print:h-5" />
-            </div>
-          ))}
+      <footer
+        className={cn(
+          "mt-auto flex flex-wrap items-end justify-between gap-x-4 gap-y-1.5 break-inside-avoid",
+          dense ? "pt-3 print:pt-2" : "pt-4 print:pt-3",
+        )}
+      >
+        <div className="w-[9.75rem] shrink-0 border-t border-[#94a3b8] pt-1">
+          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#64748b] print:text-[9px]">
+            Hazırlayan
+          </p>
+          <p className="mt-0.5 truncate text-[11px] font-semibold leading-snug text-[#0f172a] print:text-[11px]">
+            {preparedBy || "—"}
+          </p>
         </div>
         {props.footnote ? (
-          <p className="mt-3 text-[11px] font-medium leading-snug text-[#64748b] print:mt-2.5 print:text-[10.5px]">
+          <p className="min-w-[14rem] flex-1 text-[10.5px] font-medium leading-snug text-[#64748b] print:text-[10px]">
             {props.footnote}
           </p>
         ) : null}
@@ -183,13 +214,25 @@ export function ReportSection(props: {
 
 export type ReportKeyValue = { label: string; value: string };
 
-export function ReportKeyValues(props: { items: ReportKeyValue[] }) {
+export function ReportKeyValues(props: {
+  items: ReportKeyValue[];
+  columns?: 1 | 2;
+}) {
+  const twoCol = props.columns === 2;
   return (
-    <dl className="text-[12.5px] print:text-[12px]">
+    <dl
+      className={cn(
+        "text-[12.5px] print:text-[12px]",
+        twoCol && "grid grid-cols-1 gap-x-6 sm:grid-cols-2 print:grid-cols-2",
+      )}
+    >
       {props.items.map((item) => (
         <div
           key={item.label}
-          className="llp-kv-row grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-0.5 border-b border-dotted border-[#e2e8f0] py-1.5 print:py-1"
+          className={cn(
+            "llp-kv-row grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-0.5 border-b border-dotted border-[#e2e8f0]",
+            twoCol ? "py-1 print:py-0.5" : "py-1.5 print:py-1",
+          )}
         >
           <dt className="min-w-0 font-medium text-[#64748b]">{item.label}</dt>
           <dd
@@ -246,18 +289,34 @@ export function ReportLineTable(props: {
           props.lines.map((line, i) => (
             <tr
               key={`${line.label}-${i}`}
-              className="border-b border-[#f1f5f9] last:border-b-0"
+              className={cn(
+                "border-b border-[#f1f5f9] last:border-b-0",
+                toneRow[line.tone ?? "default"],
+              )}
             >
               <td
                 className={cn(
                   "px-2.5 py-1.5 align-top print:py-1",
                   line.indent && "pl-6",
-                  line.strong ? "font-bold text-[#0f172a]" : "font-medium text-[#334155]",
+                  line.tone === "highlight"
+                    ? "font-bold text-[#9a3412]"
+                    : line.strong
+                      ? "font-bold text-[#0f172a]"
+                      : "font-medium text-[#334155]",
                 )}
               >
                 {line.label}
                 {line.note ? (
-                  <span className="ml-1 font-medium text-[#94a3b8]">{line.note}</span>
+                  <span
+                    className={cn(
+                      "ml-1 font-medium",
+                      line.tone === "highlight"
+                        ? "text-[#c2410c]/75"
+                        : "text-[#94a3b8]",
+                    )}
+                  >
+                    {line.note}
+                  </span>
                 ) : null}
               </td>
               <td

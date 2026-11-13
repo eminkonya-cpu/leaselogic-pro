@@ -42,51 +42,26 @@ function failSummary(
   };
 }
 
-/**
- * Hedef müşteri toplam ödemesinden makine bedelini çözer (peşinat, destek, balon, ödemesiz ay ve ek maliyetler sabit).
- */
-export function computeLeasingPaymentPlanReverse(
-  raw: LeasingPlanReverseInput,
+function fail(
+  status: LeasingPlanSummary["status"],
+  message: string,
+  extraTotal: number,
 ): LeasingPlanReverseResult {
-  const target = num(raw.targetCustomerTotal);
-  const downPayment = num(raw.downPayment);
-  const financingSupport = num(raw.financingSupport);
-  const extraSplit = splitExtraCosts(
-    {
-      fileFee: num(raw.fileFee),
-      totalInsurance: num(raw.totalInsurance),
-      importCost: num(raw.importCost),
-      attachmentCost: num(raw.attachmentCost),
-    },
-    resolveExtraCostModes(raw.extraCostModes),
-  );
+  return {
+    summary: failSummary(status, message, extraTotal),
+    rows: [],
+    solvedMachinePrice: null,
+  };
+}
 
-  if (target <= 0) {
-    return {
-      summary: failSummary(
-        "incomplete",
-        "Hedef müşteri toplam ödemesini girin.",
-        extraSplit.total,
-      ),
-      rows: [],
-      solvedMachinePrice: null,
-    };
-  }
-
-  const minCustomer = downPayment + extraSplit.cash;
-  if (target < minCustomer - 1e-6) {
-    return {
-      summary: failSummary(
-        "invalid",
-        "Hedef toplam, peşinat ile peşin ek maliyetlerin toplamından düşük olamaz.",
-        extraSplit.total,
-      ),
-      rows: [],
-      solvedMachinePrice: null,
-    };
-  }
-
-  const base = { ...raw, machinePrice: 0 };
+function solveReverseAtTarget(
+  rawForPlan: LeasingPlanInput & { targetCustomerTotal?: number },
+  target: number,
+  extraTotal: number,
+): LeasingPlanReverseResult {
+  const downPayment = num(rawForPlan.downPayment);
+  const financingSupport = num(rawForPlan.financingSupport);
+  const base = { ...rawForPlan, machinePrice: 0 };
 
   function totalAt(machine: number): number | null {
     const r = computeLeasingPaymentPlan({ ...base, machinePrice: machine });
@@ -103,27 +78,19 @@ export function computeLeasingPaymentPlanReverse(
     tLo = totalAt(lo);
   }
   if (tLo == null) {
-    return {
-      summary: failSummary(
-        "invalid",
-        "Bu parametrelerle geri hesaplama yapılamıyor.",
-        extraSplit.total,
-      ),
-      rows: [],
-      solvedMachinePrice: null,
-    };
+    return fail(
+      "invalid",
+      "Bu parametrelerle geri hesaplama yapılamıyor.",
+      extraTotal,
+    );
   }
 
   if (tLo > target + 0.02) {
-    return {
-      summary: failSummary(
-        "invalid",
-        "Hedef toplam çok düşük; mevcut peşinat, balon ve ödeme planı ile bu tutara ulaşılamaz.",
-        extraSplit.total,
-      ),
-      rows: [],
-      solvedMachinePrice: null,
-    };
+    return fail(
+      "invalid",
+      "Hedef toplam çok düşük; mevcut peşinat, balon ve ödeme planı ile bu tutara ulaşılamaz.",
+      extraTotal,
+    );
   }
 
   let tHi = totalAt(hi);
@@ -133,15 +100,11 @@ export function computeLeasingPaymentPlanReverse(
   }
 
   if (tHi == null || tHi < target - 0.02) {
-    return {
-      summary: failSummary(
-        "invalid",
-        "Hedef toplam için makine bedeli aralığı bulunamadı.",
-        extraSplit.total,
-      ),
-      rows: [],
-      solvedMachinePrice: null,
-    };
+    return fail(
+      "invalid",
+      "Hedef toplam için makine bedeli aralığı bulunamadı.",
+      extraTotal,
+    );
   }
 
   for (let i = 0; i < 80; i++) {
@@ -161,5 +124,68 @@ export function computeLeasingPaymentPlanReverse(
   return {
     ...finalPlan,
     solvedMachinePrice: solved,
+  };
+}
+
+/**
+ * Hedef müşteri toplam ödemesinden makine bedelini çözer.
+ * Taksit her zaman (hedef − peşinat − balonlar) / ödemeli aydır.
+ * Kasko / masraf müşteri taksitine eklenmez; katkı payına (vade farkı)
+ * yansır — hedefi masrafla şişirmeden BNP tarzı katkıya yaklaşır.
+ */
+export function computeLeasingPaymentPlanReverse(
+  raw: LeasingPlanReverseInput,
+): LeasingPlanReverseResult {
+  const target = num(raw.targetCustomerTotal);
+  const downPayment = num(raw.downPayment);
+  const extraSplit = splitExtraCosts(
+    {
+      fileFee: num(raw.fileFee),
+      totalInsurance: num(raw.totalInsurance),
+      importCost: num(raw.importCost),
+      attachmentCost: num(raw.attachmentCost),
+    },
+    resolveExtraCostModes(raw.extraCostModes),
+  );
+  const rawForPlan = { ...raw, spreadCashExtrasOnInstallments: true };
+
+  if (target <= 0) {
+    return fail(
+      "incomplete",
+      "Hedef müşteri toplam ödemesini girin.",
+      extraSplit.total,
+    );
+  }
+
+  const minCustomer = downPayment;
+  if (target < minCustomer - 1e-6) {
+    return fail(
+      "invalid",
+      "Hedef toplam peşinattan düşük olamaz.",
+      extraSplit.total,
+    );
+  }
+
+  const customer = solveReverseAtTarget(rawForPlan, target, extraSplit.total);
+  if (customer.summary.status !== "ok" || extraSplit.total <= 1e-6) {
+    return customer;
+  }
+
+  const inner = solveReverseAtTarget(
+    rawForPlan,
+    target + extraSplit.total,
+    extraSplit.total,
+  );
+  if (inner.summary.status !== "ok" || inner.solvedMachinePrice == null) {
+    return customer;
+  }
+
+  return {
+    ...customer,
+    solvedMachinePrice: inner.solvedMachinePrice - extraSplit.total,
+    summary: {
+      ...customer.summary,
+      totalFinanceInterest: inner.summary.totalFinanceInterest,
+    },
   };
 }

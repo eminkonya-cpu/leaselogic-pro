@@ -1,6 +1,7 @@
 "use client";
 
 import { formatNumber } from "@/components/finance/format";
+import { sumStitchKalemlerToplam } from "@/lib/kalemlerToplam";
 import { cn } from "@/lib/utils";
 
 export type CostSummarySubRow = {
@@ -11,7 +12,7 @@ export type CostSummarySubRow = {
 export type CostSummaryRow = {
   label: string;
   value: number;
-  tone?: "default" | "subtotal" | "negative" | "emphasis" | "positive";
+  tone?: "default" | "subtotal" | "midtotal" | "negative" | "emphasis" | "positive";
   /** Seçili opsiyon / masraf kalemleri (stitch özet). */
   subRows?: CostSummarySubRow[];
 };
@@ -20,6 +21,8 @@ function rowClass(tone: CostSummaryRow["tone"]) {
   switch (tone) {
     case "subtotal":
       return "bg-blue-50/90 font-bold text-slate-900";
+    case "midtotal":
+      return "bg-[#fff7ed] font-bold text-[#9a3412]";
     case "negative":
       return "font-semibold text-red-600";
     case "emphasis":
@@ -185,6 +188,8 @@ export default function CostSummaryPanel(props: {
   const lineRows = stitch
     ? props.rows.filter((r) => r.tone !== "subtotal")
     : props.rows;
+  const kalemlerToplam = stitch ? sumStitchKalemlerToplam(props.rows) : 0;
+  const showKalemlerToplam = stitch && kalemlerToplam > 0.005;
 
   if (stitch) {
     return (
@@ -194,21 +199,31 @@ export default function CostSummaryPanel(props: {
             key={`${row.label}-${index}`}
             className={cn(
               "border-[#c3c6d7]/50 pb-1.5",
-              index < lineRows.length - 1 ? "border-b" : "",
+              index < lineRows.length - 1 || showKalemlerToplam ? "border-b" : "",
+              row.tone === "midtotal"
+                ? "rounded-md bg-[#fff7ed] px-1.5 py-1 shadow-[inset_3px_0_0_0_#ea580c]"
+                : "",
             )}
           >
             <div className="flex items-end justify-between gap-2">
-              <span className="min-w-0 text-xs text-[#434655] md:text-[13px]">
+              <span
+                className={cn(
+                  "min-w-0 text-xs text-[#434655] md:text-[13px]",
+                  row.tone === "midtotal" && "font-bold text-[#9a3412]",
+                )}
+              >
                 {row.label}
               </span>
               <span
                 className={cn(
                   "shrink-0 text-xs font-semibold tabular-nums md:text-[13px]",
-                  row.tone === "negative" || row.value < 0
-                    ? "text-red-600"
-                    : row.tone === "positive"
-                      ? "text-emerald-700"
-                      : "",
+                  row.tone === "midtotal"
+                    ? "font-bold text-[#9a3412]"
+                    : row.tone === "negative" || row.value < 0
+                      ? "text-red-600"
+                      : row.tone === "positive"
+                        ? "text-emerald-700"
+                        : "",
                 )}
               >
                 {formatStitchAmount(row.value, row.tone, props.amountDecimals)}{" "}
@@ -231,6 +246,17 @@ export default function CostSummaryPanel(props: {
             ))}
           </div>
         ))}
+        {showKalemlerToplam ? (
+          <div className="flex items-end justify-between gap-2 border-b border-[#c3c6d7]/80 pb-1.5">
+            <span className="min-w-0 text-xs font-bold text-[#0b1c30] md:text-[13px]">
+              Kalemler toplamı
+            </span>
+            <span className="shrink-0 text-xs font-bold tabular-nums text-[#0b1c30] md:text-[13px]">
+              {formatMoney(kalemlerToplam, props.amountDecimals)}{" "}
+              {props.currencySymbol}
+            </span>
+          </div>
+        ) : null}
         <div className="llp-cost-total-box mt-1 rounded-lg border border-[#2563eb]/20 bg-[#eff4ff] p-3 max-lg:p-2.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-bold text-[#0b1c30] max-lg:text-xs">

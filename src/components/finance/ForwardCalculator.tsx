@@ -23,6 +23,11 @@ import { buildDetailedSummaryReportRows } from "@/lib/calculationSummaryReport";
 import { forwardSummaryReportFinancing } from "@/lib/financingSupportReport";
 import { clearForwardMachineFinance } from "@/lib/financeFormClear";
 import { computeMonthlyForwardCalc } from "@/lib/forwardCalculatorCore";
+import {
+  scaleExpenseAmounts,
+  splitExtraExpenseAmounts,
+} from "@/lib/expenseSummaryLines";
+import { buildForwardPaymentPlanExtraLines } from "@/lib/forwardSummaryRows";
 import { getForwardDisplayMetrics } from "@/lib/forwardDisplayMetrics";
 import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { usePersistentState } from "@/lib/usePersistentState";
@@ -387,6 +392,42 @@ export default function ForwardCalculator(props: {
           : calc.plainMonthlyTL,
     totalExpenses: calc.totalExpenses,
   };
+  const isTryPrint = pdfCurrency === "TRY";
+  const printRate = Number(params.euroRate ?? 0);
+  const printScale = (euro: number) => (isTryPrint ? euro * printRate : euro);
+  const baselineDisplay = baselineCalc
+    ? getForwardDisplayMetrics(activeTab, baselineCalc, params)
+    : null;
+  const paymentPlanDocument = {
+    params: printParams,
+    calc: printCalc,
+    mode: printMode,
+    expenses,
+    printCurrency: pdfCurrency,
+    tabLabel,
+    machinePrice: printScale(Number(params.machinePriceEuro ?? 0)),
+    extraLines: buildForwardPaymentPlanExtraLines({
+      catalogLines: calc.catalogLines,
+      catalogAmount: (line) => printScale(line.priceEuro),
+      includeExpenses: display.includeExpenses,
+      expenseAmounts: display.includeExpenses
+        ? scaleExpenseAmounts(splitExtraExpenseAmounts(expenses), printScale(1))
+        : { kasko: 0, masraflar: 0, ithalat: 0 },
+    }),
+    financingSupport: calculationSummary.financingSupportDisplay ?? 0,
+    supportCompare: calculationSummary.supportCompare,
+    unsupportedInstallment: baselineDisplay
+      ? isTryPrint
+        ? baselineDisplay.monthlyTl
+        : baselineDisplay.monthlyEuro
+      : undefined,
+    installment: isTryPrint
+      ? calculationSummary.monthlyInstallmentTl
+      : calculationSummary.monthlyInstallmentEuro,
+    customerTotal: isTryPrint
+      ? calculationSummary.totalTl
+      : calculationSummary.totalEuro,
+  };
 
   return (
     <>
@@ -423,13 +464,7 @@ export default function ForwardCalculator(props: {
       />
 
       {!summaryReportOpen && !isMobilePreviewOpen ? (
-        <PrintablePDF
-          params={printParams}
-          calc={printCalc}
-          mode={printMode}
-          expenses={expenses}
-          printCurrency={pdfCurrency}
-        />
+        <PrintablePDF {...paymentPlanDocument} />
       ) : null}
       <FinanceDocumentPreviewModal
         open={summaryReportOpen}
@@ -440,11 +475,7 @@ export default function ForwardCalculator(props: {
       <PrintablePDFPreviewModal
         open={isMobilePreviewOpen}
         onClose={() => setIsMobilePreviewOpen(false)}
-        params={printParams}
-        calc={printCalc}
-        mode={printMode}
-        expenses={expenses}
-        printCurrency={pdfCurrency}
+        {...paymentPlanDocument}
       />
     </>
   );

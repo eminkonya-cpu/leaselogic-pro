@@ -1,6 +1,11 @@
 "use client";
 
-import { formatAmount, formatMoneyWithSymbol, formatNumber } from "@/components/finance/format";
+import {
+  formatAmount,
+  formatInterestRate,
+  formatMoneyWithSymbol,
+  formatNumber,
+} from "@/components/finance/format";
 import {
   ReportDocument,
   ReportKeyValues,
@@ -14,6 +19,7 @@ import {
 } from "@/components/finance/reports/ExecutiveReport";
 import { ClassicReverseSummaryContent } from "@/components/finance/reports/classic/ClassicReverseSummary";
 import type { FinancingSupportCompare } from "@/lib/financingSupportReport";
+import { isKatkiPayiLabel, KATKI_PAYI_NOTE } from "@/lib/kalemlerToplam";
 import { REPORT_DESIGN } from "@/lib/reportDesign";
 import {
   sumReverseDetailRows,
@@ -80,7 +86,7 @@ function ExecutiveReverseSummary(
     { label: "Makine modeli", value: props.makine || "—" },
     { label: "Makine fiyatı", value: money(props.allInTotal) },
     { label: "Vade", value: termText },
-    { label: interestLabel, value: `%${formatNumber(props.planInterest, { decimals: 1 })}` },
+    { label: interestLabel, value: `%${formatInterestRate(props.planInterest)}` },
     { label: "Kur (₺ / €)", value: formatNumber(props.euroRate, { decimals: 2 }) },
     ...(financingSupport > 0
       ? [{ label: "Finansman desteği", value: money(financingSupport) }]
@@ -94,13 +100,14 @@ function ExecutiveReverseSummary(
       kind="Leasing · Geri hesaplama"
       title="Geri Hesaplama Özeti"
       tags={[props.frequencyLabel, "KDV hariç", props.currency === "TRY" ? "TL" : "EUR"]}
+      dense
       className={props.className}
       footnote="Net fiyat, opsiyon ve masraflar düşüldükten sonra kalan makine satış bedelidir (KDV hariç). Tutarlar bilgilendirme amaçlıdır."
     >
       <ReportMetricStrip items={metrics} />
 
       <ReportSection index={++section} title="Müşteri ve finansman koşulları">
-        <ReportKeyValues items={conditions} />
+        <ReportKeyValues items={conditions} columns={2} />
       </ReportSection>
 
       <ReportSection index={++section} title="Leasing hesaplaması">
@@ -114,7 +121,7 @@ function ExecutiveReverseSummary(
               strong: true,
             },
             {
-              label: "Vade farkı (finansman katkı payı)",
+              label: "Vade farkı",
               value: `− ${money(props.interestDiff)}`,
               tone: "negative",
             },
@@ -149,6 +156,9 @@ function ExecutiveReverseSummary(
           lines={props.detailRows.map((row) => ({
             label: row.label,
             value: money(row.value),
+            strong: isKatkiPayiLabel(row.label),
+            tone: isKatkiPayiLabel(row.label) ? "highlight" : "default",
+            note: isKatkiPayiLabel(row.label) ? KATKI_PAYI_NOTE : undefined,
           }))}
           totals={[
             { label: "Kalemler toplamı", value: money(kalemlerToplam), strong: true },

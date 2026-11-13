@@ -6,6 +6,21 @@ import {
   type AmortizationRow,
 } from "@/lib/financeCalculations";
 
+export const DEFAULT_REVERSE_EURO_INTEREST = 6.5;
+export const DEFAULT_REVERSE_TL_INTEREST = 42;
+
+/** Boş / 0 faiz kutusunda yer tutucu 6,5 gibi durmasın diye gerçek orana düşer. */
+export function resolveReverseInterestPct(
+  raw: unknown,
+  fallback: number,
+): number {
+  const n =
+    typeof raw === "string"
+      ? Number(String(raw).trim().replace(",", "."))
+      : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 function totalPayment(
   grossBase: number,
   downPayment: number,

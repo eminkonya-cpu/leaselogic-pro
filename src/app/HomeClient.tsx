@@ -11,10 +11,12 @@ import {
 import LeasingPaymentPlanCalculator from "@/components/finance/LeasingPaymentPlanCalculator";
 import ReverseCalculator from "@/components/finance/ReverseCalculator";
 import LoginRatesBar from "@/components/finance/LoginRatesBar";
+import { ReportAuthorProvider } from "@/components/finance/reports/ReportAuthorContext";
 import {
   BankUiProvider,
   BankUiThemeToggle,
 } from "@/components/finance/ui/BankUiProvider";
+import { formatReportPreparedByName } from "@/lib/reportPreparedBy";
 import {
   CALC_CHIP_BASE_CLS,
   CALC_CHIP_GROUP_CLS,
@@ -217,9 +219,12 @@ export function CalculatorApp({
       headerChipStateCls(active),
     );
 
+  const preparedBy = formatReportPreparedByName({ email: userEmail });
+
   return (
     <CatalogProvider>
     <BankUiProvider>
+    <ReportAuthorProvider name={preparedBy}>
       <header className="llp-app-header sticky top-0 z-50 border-b border-[#c3c6d7] bg-[#f8f9ff]">
         <div className="app-shell py-3 max-lg:py-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -339,6 +344,7 @@ export function CalculatorApp({
       <AppFooter />
         </>
       )}
+    </ReportAuthorProvider>
     </BankUiProvider>
     </CatalogProvider>
   );

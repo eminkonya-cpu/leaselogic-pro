@@ -19,6 +19,9 @@ import { reverseSummaryReportFinancing } from "@/lib/financingSupportReport";
 import { buildDetailedReverseReportRows } from "@/lib/reverseSummaryReport";
 import {
   computeReverseBothLegs,
+  DEFAULT_REVERSE_EURO_INTEREST,
+  DEFAULT_REVERSE_TL_INTEREST,
+  resolveReverseInterestPct,
   type ReverseFinanceLeg,
 } from "@/lib/reverseFinanceCalc";
 import { sumForwardExtraExpenses } from "@/lib/forwardCalculatorCore";
@@ -153,7 +156,19 @@ export default function AnnualReverseCalculator(props: {
   const { categories: catalogCategories } = useCatalogCategories();
 
   const params = useMemo(
-    () => ({ ...sharedParams, euroRate, term }),
+    () => ({
+      ...sharedParams,
+      euroRate,
+      term,
+      euroInterest: resolveReverseInterestPct(
+        sharedParams.euroInterest,
+        DEFAULT_REVERSE_EURO_INTEREST,
+      ),
+      tlInterest: resolveReverseInterestPct(
+        sharedParams.tlInterest,
+        DEFAULT_REVERSE_TL_INTEREST,
+      ),
+    }),
     [sharedParams, euroRate, term],
   );
   const termYears = clampTermYears(params.term);

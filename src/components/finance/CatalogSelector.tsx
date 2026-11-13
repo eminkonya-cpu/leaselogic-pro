@@ -1,5 +1,6 @@
 "use client";
 
+import CatalogOptionChips from "@/components/finance/CatalogOptionChips";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -8,7 +9,6 @@ import {
   isCatalogItemSelected,
   isCatalogSingleSelectCategory,
   normalizeCatalogSelection,
-  resolveCatalogSelection,
   type CatalogCategoryId,
   type CatalogSelection,
 } from "@/lib/catalogPrices";
@@ -30,25 +30,28 @@ export default function CatalogSelector(props: {
 }) {
   const { categories } = useCatalogCategories();
   const selection = normalizeCatalogSelection(props.selection, categories);
-  const resolved = resolveCatalogSelection(selection, categories);
-  const attachmentSum = resolved.lines
-    .filter((l) => l.categoryId === "attachment")
-    .reduce((s, l) => s + l.priceEuro, 0);
-  const maintenanceSum = resolved.lines
-    .filter((l) => l.categoryId === "maintenance")
-    .reduce((s, l) => s + l.priceEuro, 0);
-  const otherCatalogSum = resolved.lines
-    .filter((l) => l.categoryId === "other")
-    .reduce((s, l) => s + l.priceEuro, 0);
-  const equipmentSum = resolved.lines
-    .filter((l) => l.categoryId === "equipment")
-    .reduce((s, l) => s + l.priceEuro, 0);
-
   const clean = props.appearance === "clean";
-  const pageWidth = props.layout === "page";
-  const fullWidth = props.layout === "full" || props.layout === "page" || clean;
-  const comfortable = props.density !== "compact";
   const plainProfile = props.profile === "plain";
+
+  if (clean) {
+    return (
+      <CatalogOptionChips
+        className={cn(plainProfile ? "min-w-0" : undefined, props.className)}
+        selection={selection}
+        onToggle={props.onToggle}
+        onClearAll={props.onClearAll}
+        heading={plainProfile ? "" : "Opsiyonlar"}
+        description={
+          plainProfile
+            ? undefined
+            : "Ataşman, bakım, donanım ve nakliye — seçilenler özette ayrı satır olur"
+        }
+        promoAttr
+      />
+    );
+  }
+
+  const comfortable = props.density !== "compact";
   const grid = categories.map((category) => {
     const selectableItems = category.items.filter((item) => item.id !== "none");
     const selectedCount = selection[category.id].length;
@@ -214,95 +217,6 @@ export default function CatalogSelector(props: {
       </div>
     );
   });
-
-  if (clean) {
-    const clearButton = (
-      <button
-        type="button"
-        onClick={() => props.onClearAll?.()}
-        className="inline-flex h-8 cursor-pointer items-center rounded-lg border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-[#0F172A] transition-colors hover:bg-[#F1F5F9]"
-      >
-        Tümünü Temizle
-      </button>
-    );
-
-    return (
-      <section
-        className={cn(
-          plainProfile
-            ? "min-w-0"
-            : "rounded-xl border border-[#E2E8F0] bg-white p-3 shadow-sm md:p-4",
-          props.className,
-        )}
-      >
-        {plainProfile ? (
-          <div className="mb-3 flex justify-end">{clearButton}</div>
-        ) : (
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] pb-3">
-            <div>
-              <h2 className="text-sm font-semibold text-[#0F172A]">
-                Opsiyonlar ve Diğer Giderler
-              </h2>
-              <p className="mt-0.5 text-xs text-[#64748B]">
-                Ataşman ve donanım çoklu; bakım paketi tek seçim
-              </p>
-            </div>
-            {clearButton}
-          </div>
-        )}
-        <div
-          className={cn(
-            "grid gap-3 max-lg:gap-2.5",
-            plainProfile
-              ? "grid-cols-1 gap-3 sm:grid-cols-2"
-              : fullWidth
-                ? pageWidth && comfortable
-                  ? "grid-cols-1 max-lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-                  : comfortable
-                    ? "grid-cols-1 max-lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-                    : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
-                : "grid-cols-1 sm:grid-cols-2",
-          )}
-        >
-          {grid}
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-[#F8FAFC] px-4 py-2.5 sm:grid-cols-4">
-          <div className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
-              Opsiyon
-            </span>
-            <span className="tabular-nums text-[13px] font-semibold text-[#0F172A]">
-              {attachmentSum.toLocaleString("tr-TR")} €
-            </span>
-          </div>
-          <div className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
-              Bakım
-            </span>
-            <span className="tabular-nums text-[13px] font-semibold text-[#0F172A]">
-              {maintenanceSum.toLocaleString("tr-TR")} €
-            </span>
-          </div>
-          <div className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
-              Diğer
-            </span>
-            <span className="tabular-nums text-[13px] font-semibold text-[#0F172A]">
-              {(equipmentSum + otherCatalogSum).toLocaleString("tr-TR")} €
-            </span>
-          </div>
-          <div className="min-w-0 sm:text-right">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
-              Toplam
-            </span>
-            <span className="tabular-nums text-sm font-semibold text-[#0F172A] md:text-base">
-              {resolved.totalEuro.toLocaleString("tr-TR")} €
-            </span>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <Card

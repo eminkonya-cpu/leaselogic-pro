@@ -1,8 +1,9 @@
 "use client";
 
 import { Separator } from "@/components/ui/separator";
-import { formatAmount, formatNumber } from "@/components/finance/format";
+import { formatAmount, formatInterestRate, formatNumber } from "@/components/finance/format";
 import type { PrintableReverseSummaryProps } from "@/components/finance/PrintableReverseSummary";
+import { isKatkiPayiLabel, KATKI_PAYI_NOTE } from "@/lib/kalemlerToplam";
 import { sumReverseDetailRows } from "@/lib/reverseSummaryReport";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +46,7 @@ export function ClassicReverseSummaryContent(
   return (
     <div
       id="pdf-print-area"
-      className={cn("pdf-print-root bg-white", props.className)}
+      className={cn("pdf-print-root llp-report llp-report-dense bg-white", props.className)}
     >
       <div className="text-base font-extrabold leading-tight text-slate-900 print:text-[14px]">
         Geri Hesaplama Özeti (Detaylı)
@@ -84,7 +85,7 @@ export function ClassicReverseSummaryContent(
           </div>
           <div className="text-slate-600">{interestLabel}</div>
           <div className="text-right tabular-nums font-extrabold">
-            %{formatNumber(props.planInterest, { decimals: 1 })}
+            %{formatInterestRate(props.planInterest)}
           </div>
           <div className="text-slate-600">Kur (₺ / €)</div>
           <div className="text-right tabular-nums font-extrabold">
@@ -123,7 +124,7 @@ export function ClassicReverseSummaryContent(
             bold
           />
           <Row
-            label="Vade farkı (finansman katkı payı)"
+            label="Vade farkı"
             value={`− ${formatAmount(props.interestDiff)} ${sym}`}
           />
           {(props.financingSupportDisplay ?? 0) > 0 ? (
@@ -155,10 +156,30 @@ export function ClassicReverseSummaryContent(
             props.detailRows.map((row) => (
               <div
                 key={row.label}
-                className="flex items-center justify-between gap-4 px-3 py-1.5 text-sm font-semibold print:text-[10px]"
+                className={cn(
+                  "flex items-center justify-between gap-4 px-3 py-1.5 text-sm font-semibold print:text-[10px]",
+                  isKatkiPayiLabel(row.label) &&
+                    "bg-[#fff7ed] font-extrabold text-[#9a3412] shadow-[inset_3px_0_0_0_#ea580c]",
+                )}
               >
-                <span className="text-slate-700">{row.label}</span>
-                <span className="shrink-0 tabular-nums font-bold">
+                <span
+                  className={cn(
+                    isKatkiPayiLabel(row.label) ? "text-[#9a3412]" : "text-slate-700",
+                  )}
+                >
+                  {row.label}
+                  {isKatkiPayiLabel(row.label) ? (
+                    <span className="ml-1 font-medium text-[#c2410c]/70">
+                      {KATKI_PAYI_NOTE}
+                    </span>
+                  ) : null}
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 tabular-nums font-bold",
+                    isKatkiPayiLabel(row.label) && "text-[#9a3412]",
+                  )}
+                >
                   {formatAmount(row.value)} {sym}
                 </span>
               </div>

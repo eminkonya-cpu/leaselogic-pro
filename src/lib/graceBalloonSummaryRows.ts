@@ -1,4 +1,9 @@
 import type { CostSummaryRow } from "@/components/finance/ui/CostSummaryPanel";
+import {
+  buildKatkiPayiRows,
+  katkiPayiStitchTone,
+} from "@/lib/katkiPayiGroup";
+import { sumKalemlerToplam } from "@/lib/kalemlerToplam";
 import type { LeasingPlanSummary } from "@/lib/leasingPaymentPlan";
 
 export type GraceBalloonExtraAmounts = {
@@ -10,7 +15,21 @@ export type GraceBalloonExtraAmounts = {
 
 const ATTACHMENT_LABEL = "Ataşman ve donanım maliyeti";
 const FINANCING_SUPPORT_LABEL = "Finansman desteği";
-const EXPENSE_BUNDLE_LABEL = "Ek masraflar (Kasko, Leasing, İthalat)";
+
+function graceKatkiRows(
+  extras: GraceBalloonExtraAmounts,
+  financeCost: number,
+  args?: { sign?: 1 | -1; hasFollowingItems?: boolean },
+) {
+  return buildKatkiPayiRows({
+    kasko: extras.totalInsurance,
+    masraflar: extras.fileFee,
+    vadeFarki: financeCost,
+    ithalat: extras.importCost,
+    sign: args?.sign,
+    hasFollowingItems: args?.hasFollowingItems,
+  });
+}
 
 /** Özet rapor / finansman bilgileri: toplam vade ve ödemesiz-ödemeli dağılımı. */
 export function formatGraceBalloonPlanTerm(args: {
@@ -28,55 +47,35 @@ export function formatGraceBalloonPlanTerm(args: {
   return `Toplam ${term} ay vade · ${grace} ay ödemesiz · ${paying} ay ödemeli`;
 }
 
-function sumInsuranceLeasingImport(extras: GraceBalloonExtraAmounts): number {
-  return (
-    Math.max(0, extras.fileFee) +
-    Math.max(0, extras.totalInsurance) +
-    Math.max(0, extras.importCost)
-  );
-}
-
 export function buildGraceBalloonDetailedReportRows(args: {
-  direction: "forward" | "reverse";
-  machinePrice: number;
   extras: GraceBalloonExtraAmounts;
   displayFinanceInterest: number;
-  financingSupport: number;
+  optionRows?: { label: string; value: number }[];
 }): { label: string; value: number }[] {
-  const stitch = buildGraceBalloonStitchSummaryRows({
-    direction: args.direction,
-    machinePrice: args.machinePrice,
-    targetCustomerTotal: 0,
-    solvedMachine: null,
-    summary: {
-      status: "ok",
-      message: "",
-      financedPrincipal: 0,
-      payingMonthCount: 0,
-      equalNormalInstallment: 0,
-      totalBalloon: 0,
-      totalLeasingPayments: 0,
-      totalFinanceInterest: args.displayFinanceInterest,
-      totalExtraCosts: 0,
-      cashExtraCosts: 0,
-      financedExtraCosts: 0,
-      machineFinancedPrincipal: 0,
-      customerTotalPayment: 0,
-    },
-    extras: args.extras,
-    financingSupport: args.financingSupport,
-    displayFinanceInterest: args.displayFinanceInterest,
-  });
-  return stitch
-    .filter((row) => {
-      if (row.tone === "subtotal") return false;
-      if (args.direction === "reverse" && row.tone === "emphasis") return false;
-      return true;
-    })
-    .map((row) => ({
-      label: row.label,
-      value: row.value,
-    }));
+  const rows: { label: string; value: number }[] = [];
+  const optionRows = (args.optionRows ?? []).filter((row) => row.value > 0);
+  const attachment =
+    optionRows.length > 0 ? 0 : Math.max(0, args.extras.attachmentCost);
+  const financeCost = Math.max(0, args.displayFinanceInterest);
+  const hasFollowing = optionRows.length > 0 || attachment > 0;
+  for (const row of graceKatkiRows(args.extras, financeCost, {
+    hasFollowingItems: hasFollowing,
+  })) {
+    rows.push({ label: row.label, value: row.value });
+  }
+  for (const row of optionRows) {
+    rows.push({ label: row.label, value: row.value });
+  }
+  if (attachment > 0) {
+    rows.push({ label: ATTACHMENT_LABEL, value: attachment });
+  }
+  return rows;
+}
+
+export function sumGraceBalloonDetailRows(
+  rows: { label: string; value: number }[],
+): number {
+  return sumKalemlerToplam(rows);
 }
 
 /** Sağ panel: geri hesaplama özet satırları ile aynı stitch düzeni. */
@@ -90,14 +89,17 @@ export function buildGraceBalloonStitchSummaryRows(args: {
   financingSupport: number;
   /** Destek varken desteksiz referans faiz maliyeti. */
   displayFinanceInterest?: number;
+  optionRows?: { label: string; value: number }[];
 }): CostSummaryRow[] {
-  const expenseBundle = sumInsuranceLeasingImport(args.extras);
-  const attachment = Math.max(0, args.extras.attachmentCost);
+  const optionRows = (args.optionRows ?? []).filter((row) => row.value > 0);
+  const attachment =
+    optionRows.length > 0 ? 0 : Math.max(0, args.extras.attachmentCost);
   const financeCost = Math.max(
     0,
     args.displayFinanceInterest ?? args.summary.totalFinanceInterest,
   );
   const support = Math.max(0, args.financingSupport);
+  const hasFollowing = optionRows.length > 0 || attachment > 0;
 
   if (args.direction === "reverse") {
     const rows: CostSummaryRow[] = [
@@ -107,17 +109,20 @@ export function buildGraceBalloonStitchSummaryRows(args: {
         tone: "emphasis",
       },
     ];
-    if (expenseBundle > 0) {
+    for (const row of graceKatkiRows(args.extras, financeCost, {
+      sign: -1,
+      hasFollowingItems: hasFollowing,
+    })) {
       rows.push({
-        label: EXPENSE_BUNDLE_LABEL,
-        value: -expenseBundle,
-        tone: "negative",
+        label: row.label,
+        value: row.value,
+        tone: katkiPayiStitchTone(row.role, "negative"),
       });
     }
-    if (financeCost > 0) {
+    for (const row of optionRows) {
       rows.push({
-        label: "Finansman maliyeti (vade farkı)",
-        value: -financeCost,
+        label: row.label,
+        value: -row.value,
         tone: "negative",
       });
     }
@@ -150,17 +155,19 @@ export function buildGraceBalloonStitchSummaryRows(args: {
       tone: "emphasis",
     },
   ];
-  if (expenseBundle > 0) {
+  for (const row of graceKatkiRows(args.extras, financeCost, {
+    hasFollowingItems: hasFollowing,
+  })) {
     rows.push({
-      label: EXPENSE_BUNDLE_LABEL,
-      value: expenseBundle,
-      tone: "positive",
+      label: row.label,
+      value: row.value,
+      tone: katkiPayiStitchTone(row.role, "positive"),
     });
   }
-  if (financeCost > 0) {
+  for (const row of optionRows) {
     rows.push({
-      label: "Finansman maliyeti (vade farkı)",
-      value: financeCost,
+      label: row.label,
+      value: row.value,
       tone: "positive",
     });
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { formatNumber } from "@/components/finance/format";
 const DOCUMENT_TITLE = "3 Ay Ödemesiz & Balon Hesaplama";
 import PreviewDocumentActions from "@/components/finance/PreviewDocumentActions";
@@ -8,6 +9,7 @@ import type {
   LeasingPlanSummary,
   PaymentMonthMode,
 } from "@/lib/leasingPaymentPlan";
+import type { FinancingSupportCompare } from "@/lib/financingSupportReport";
 import { financePdfFileName } from "@/lib/saveFinanceDocumentPdf";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
@@ -27,6 +29,9 @@ export type PrintableGraceBalloonProps = {
   summary: LeasingPlanSummary;
   rows: LeasingPlanRow[];
   extraLines: { label: string; amount: number; modeLabel: string }[];
+  /** İleri hesaplama: desteksiz senaryo (özet çubuğu ile aynı). */
+  supportCompare?: FinancingSupportCompare | null;
+  unsupportedInstallment?: number;
 };
 
 function modeLabel(mode: PaymentMonthMode) {
@@ -35,6 +40,167 @@ function modeLabel(mode: PaymentMonthMode) {
 
 function fmt(v: number) {
   return formatNumber(v, { decimals: 2 });
+}
+
+function PlanTotalsBox(props: {
+  summary: LeasingPlanSummary;
+  symbol: string;
+  direction: "forward" | "reverse";
+  financingSupport: number;
+  supportCompare?: FinancingSupportCompare | null;
+  unsupportedInstallment?: number;
+}) {
+  const { summary, symbol } = props;
+  const customerTotal = summary.customerTotalPayment;
+  const reverseUnsupportedTotal = customerTotal + props.financingSupport;
+  const showReverseSupport =
+    props.direction === "reverse" && props.financingSupport > 0.005;
+  const compare = props.supportCompare;
+  const showForwardSupport =
+    props.direction === "forward" &&
+    props.financingSupport > 0 &&
+    compare != null;
+  const unsupportedInstallment = props.unsupportedInstallment;
+
+  const paymentBlock = (
+    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs print:text-[10px]">
+      <div className="text-slate-600">Taksit</div>
+      <div className="text-right font-bold tabular-nums">
+        {fmt(summary.equalNormalInstallment)} {symbol}
+      </div>
+      {summary.totalBalloon > 0 ? (
+        <>
+          <div className="text-slate-600">Toplam balon</div>
+          <div className="text-right font-bold tabular-nums">
+            {fmt(summary.totalBalloon)} {symbol}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+
+  if (!showReverseSupport && !showForwardSupport) {
+    return (
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs print:text-[10px]">
+        <div className="text-slate-600">Taksit</div>
+        <div className="text-right font-bold tabular-nums">
+          {fmt(summary.equalNormalInstallment)} {symbol}
+        </div>
+        {summary.totalBalloon > 0 ? (
+          <>
+            <div className="text-slate-600">Toplam balon</div>
+            <div className="text-right font-bold tabular-nums">
+              {fmt(summary.totalBalloon)} {symbol}
+            </div>
+          </>
+        ) : null}
+        <div className="col-span-2 mt-1 border-t border-slate-300 pt-2 font-extrabold print:text-[11px]">
+          <div className="flex justify-between gap-3">
+            <span>Müşterinin toplam ödemesi</span>
+            <span className="tabular-nums">
+              {fmt(customerTotal)} {symbol}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showReverseSupport) {
+    return (
+      <div className="space-y-2 text-xs print:text-[10px]">
+        {paymentBlock}
+        <div className="space-y-1.5 border-t border-slate-300 pt-2">
+          <div className="flex justify-between gap-3">
+            <span className="text-slate-500">Müşterinin toplam ödemesi (desteksiz)</span>
+            <span className="tabular-nums text-slate-500 line-through decoration-slate-400">
+              {fmt(reverseUnsupportedTotal)} {symbol}
+            </span>
+          </div>
+          <div className="flex justify-between gap-3 font-extrabold print:text-[11px]">
+            <span>Müşterinin toplam ödemesi (destekli)</span>
+            <span className="tabular-nums text-[#004ac6]">
+              {fmt(customerTotal)} {symbol}
+            </span>
+          </div>
+          <div className="flex justify-between gap-3 rounded-md bg-[#ecfdf5] px-2 py-1.5 font-bold text-emerald-800">
+            <span>Destek ile sağlanan fark</span>
+            <span className="tabular-nums">
+              +{fmt(props.financingSupport)} {symbol}
+            </span>
+          </div>
+          <p className="text-[10px] font-medium leading-snug text-emerald-800/80">
+            Desteksiz tutar, müşteri ödemesi üzerine finansman desteğinin
+            eklenmiş halidir. Destek ile bu tutara geri gelinir.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!compare) {
+    return paymentBlock;
+  }
+
+  const showInstallmentSplit =
+    unsupportedInstallment != null &&
+    Math.abs(unsupportedInstallment - summary.equalNormalInstallment) > 0.005;
+
+  return (
+    <div className="space-y-2 text-xs print:text-[10px]">
+      {showInstallmentSplit ? (
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+          <div className="text-slate-500">Taksit (desteksiz)</div>
+          <div className="text-right tabular-nums text-slate-500 line-through decoration-slate-400">
+            {fmt(unsupportedInstallment)} {symbol}
+          </div>
+          <div className="font-bold text-[#0b1c30]">Taksit (destekli)</div>
+          <div className="text-right font-extrabold tabular-nums text-[#004ac6]">
+            {fmt(summary.equalNormalInstallment)} {symbol}
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-x-3">
+          <div className="text-slate-600">Taksit</div>
+          <div className="text-right font-bold tabular-nums">
+            {fmt(summary.equalNormalInstallment)} {symbol}
+          </div>
+        </div>
+      )}
+      {summary.totalBalloon > 0 ? (
+        <div className="grid grid-cols-2 gap-x-3">
+          <div className="text-slate-600">Toplam balon</div>
+          <div className="text-right font-bold tabular-nums">
+            {fmt(summary.totalBalloon)} {symbol}
+          </div>
+        </div>
+      ) : null}
+      <div className="space-y-1.5 border-t border-slate-300 pt-2">
+        <div className="flex justify-between gap-3">
+          <span className="text-slate-500">Müşterinin toplam ödemesi (desteksiz)</span>
+          <span className="tabular-nums text-slate-500 line-through decoration-slate-400">
+            {fmt(compare.baselineValue)} {symbol}
+          </span>
+        </div>
+        <div className="flex justify-between gap-3 font-extrabold print:text-[11px]">
+          <span>Müşterinin toplam ödemesi (destekli)</span>
+          <span className="tabular-nums text-[#004ac6]">
+            {fmt(summary.customerTotalPayment)} {symbol}
+          </span>
+        </div>
+        <div className="flex justify-between gap-3 rounded-md bg-[#ecfdf5] px-2 py-1.5 font-bold text-emerald-800">
+          <span>Destek ile sağlanan fark</span>
+          <span className="tabular-nums">
+            +{fmt(Math.abs(compare.deltaValue))} {symbol}
+          </span>
+        </div>
+        <p className="text-[10px] font-medium leading-snug text-emerald-800/80">
+          Desteksiz tutar, destek olmasaydı ödenecek toplamdır. Destek bu farkı
+          düşürür.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function PrintableGraceBalloonContent(
@@ -82,10 +248,24 @@ export function PrintableGraceBalloonContent(
       ) : null}
 
       <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs print:mt-2 print:gap-y-0.5 print:text-[10px]">
-        <div className="text-slate-600">Makine bedeli</div>
-        <div className="text-right font-bold tabular-nums">
-          {fmt(props.machinePrice)} {symbol}
-        </div>
+        {props.direction === "reverse" ? null : (
+          <>
+            <div className="text-slate-600">Makine bedeli</div>
+            <div className="text-right font-bold tabular-nums">
+              {fmt(props.machinePrice)} {symbol}
+            </div>
+            {props.extraLines.map((line) =>
+              line.amount > 0.005 ? (
+                <Fragment key={line.label}>
+                  <div className="text-slate-600">{line.label}</div>
+                  <div className="text-right tabular-nums">
+                    {fmt(line.amount)} {symbol}
+                  </div>
+                </Fragment>
+              ) : null,
+            )}
+          </>
+        )}
         <div className="text-slate-600">Peşinat</div>
         <div className="text-right tabular-nums">{fmt(props.downPayment)} {symbol}</div>
         {props.financingSupport > 0 ? (
@@ -107,28 +287,14 @@ export function PrintableGraceBalloonContent(
       </div>
 
       <div className="mt-3 rounded-lg border border-slate-300 bg-slate-50 p-2.5 print:mt-2 print:p-2">
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs print:text-[10px]">
-          <div className="text-slate-600">Eşit taksit</div>
-          <div className="text-right font-bold tabular-nums">
-            {fmt(summary.equalNormalInstallment)} {symbol}
-          </div>
-          {summary.totalBalloon > 0 ? (
-            <>
-              <div className="text-slate-600">Toplam balon</div>
-              <div className="text-right font-bold tabular-nums">
-                {fmt(summary.totalBalloon)} {symbol}
-              </div>
-            </>
-          ) : null}
-          <div className="col-span-2 mt-1 border-t border-slate-300 pt-2 font-extrabold print:text-[11px]">
-            <div className="flex justify-between gap-3">
-              <span>Müşterinin toplam ödemesi</span>
-              <span className="tabular-nums">
-                {fmt(summary.customerTotalPayment)} {symbol}
-              </span>
-            </div>
-          </div>
-        </div>
+        <PlanTotalsBox
+          summary={summary}
+          symbol={symbol}
+          direction={props.direction}
+          financingSupport={props.financingSupport}
+          supportCompare={props.supportCompare}
+          unsupportedInstallment={props.unsupportedInstallment}
+        />
       </div>
 
       <div className="mt-3 overflow-hidden rounded-lg border border-slate-300 print:mt-2">

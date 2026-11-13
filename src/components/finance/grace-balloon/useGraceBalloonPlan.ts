@@ -5,6 +5,12 @@ import type { PrintableGraceBalloonSummaryProps } from "@/components/finance/Pri
 import type { PrintableGraceBalloonProps } from "@/components/finance/PrintableGraceBalloonPlan";
 import { useCatalogCategories } from "@/contexts/CatalogContext";
 import {
+  GRACE_BALLOON_CATALOG_KEY,
+  graceBalloonOptionSummaryRows,
+  resolveGraceBalloonOptionLines,
+} from "@/lib/graceBalloonCatalogOptions";
+import { useCatalogSelection } from "@/lib/useCatalogSelection";
+import {
   EMPTY_SERVICE_FEE_MODES,
   SERVICE_FEE_MODES_KEY,
   type ExtraCostFieldKey,
@@ -156,7 +162,9 @@ function amountFieldForKey(
 }
 
 export function useGraceBalloonPlan() {
-  const { serviceFees } = useCatalogCategories();
+  const { serviceFees, categories } = useCatalogCategories();
+  const { selection: catalogSelection, toggle: toggleCatalog } =
+    useCatalogSelection(GRACE_BALLOON_CATALOG_KEY);
   const [direction, setDirection] = usePersistentState<PlanDirection>(
     DIRECTION_KEY,
     "forward",
@@ -233,6 +241,25 @@ export function useGraceBalloonPlan() {
     setState((prev) => ({ ...prev, balloons: defaultBalloons(prev.termMonths) }));
   }, [setState]);
 
+  const optionLines = useMemo(
+    () => resolveGraceBalloonOptionLines(catalogSelection, categories),
+    [catalogSelection, categories],
+  );
+  const optionRows = useMemo(
+    () => graceBalloonOptionSummaryRows(optionLines),
+    [optionLines],
+  );
+  const optionTotal = useMemo(
+    () => optionRows.reduce((sum, row) => sum + row.value, 0),
+    [optionRows],
+  );
+
+  useEffect(() => {
+    setState((prev) =>
+      prev.attachmentCost === optionTotal ? prev : { ...prev, attachmentCost: optionTotal },
+    );
+  }, [optionTotal, setState]);
+
   const planInput = useMemo(
     () => ({
       downPayment: state.downPayment,
@@ -244,12 +271,12 @@ export function useGraceBalloonPlan() {
       fileFee: state.fileFee,
       totalInsurance: state.totalInsurance,
       importCost: state.importCost,
-      attachmentCost: state.attachmentCost,
+      attachmentCost: optionTotal,
       extraCostModes: state.extraCostModes,
       monthModes: state.monthModes,
       balloons: state.balloons,
     }),
-    [state],
+    [state, optionTotal],
   );
 
   const result = useMemo(() => {
@@ -325,17 +352,40 @@ export function useGraceBalloonPlan() {
     summary.status,
   ]);
 
+  const unsupportedInstallment = useMemo(() => {
+    if (direction !== "forward") return undefined;
+    if (Math.max(0, state.financingSupport) <= 0) return undefined;
+    if (summary.status !== "ok") return undefined;
+    const baseline = computeLeasingPaymentPlan({
+      ...planInput,
+      machinePrice: state.machinePrice,
+      financingSupport: 0,
+    });
+    if (baseline.summary.status !== "ok") return undefined;
+    return baseline.summary.equalNormalInstallment;
+  }, [
+    direction,
+    planInput,
+    state.financingSupport,
+    state.machinePrice,
+    summary.status,
+  ]);
+
   const solvedMachine: number | null =
     direction === "reverse"
       ? (result as LeasingPlanReverseResult).solvedMachinePrice
       : null;
 
   const machinePriceForKasko = useMemo(() => {
-    if (direction === "reverse" && solvedMachine != null && solvedMachine > 0) {
-      return solvedMachine;
+    if (direction === "reverse") {
+      // Geri hesaplama sekmesiyle aynı: yazılan hedef toplam. Çözülen makine
+      // bedeli kaskoyu düşürüp döngüye sokmasın.
+      return state.targetCustomerTotal > 0
+        ? state.targetCustomerTotal
+        : state.machinePrice;
     }
     return state.machinePrice;
-  }, [direction, solvedMachine, state.machinePrice]);
+  }, [direction, state.machinePrice, state.targetCustomerTotal]);
 
   const autoAmountForKey = useCallback(
     (key: ExtraCostFieldKey): number => {
@@ -387,11 +437,22 @@ export function useGraceBalloonPlan() {
           next[field] = 0;
         } else if (mode === "auto") {
           next[field] = autoAmountForKey(key);
+          if (direction === "reverse" && key === "importCost") {
+            next.extraCostModes = {
+              ...next.extraCostModes,
+              importCost: "cash",
+            };
+          } else if (direction === "reverse" && key !== "attachmentCost") {
+            next.extraCostModes = {
+              ...next.extraCostModes,
+              [field]: "financed",
+            };
+          }
         }
         return next;
       });
     },
-    [autoAmountForKey, setFeeModes, setState],
+    [autoAmountForKey, direction, setFeeModes, setState],
   );
 
   const kaskoAutoTotal = computeKaskoTotalForTerm(
@@ -526,20 +587,22 @@ export function useGraceBalloonPlan() {
           fileFee: state.fileFee,
           totalInsurance: state.totalInsurance,
           importCost: state.importCost,
-          attachmentCost: state.attachmentCost,
+          attachmentCost: optionTotal,
         },
         financingSupport: state.financingSupport,
         displayFinanceInterest,
+        optionRows,
       }),
     [
       direction,
       displayFinanceInterest,
+      optionRows,
+      optionTotal,
       state.machinePrice,
       state.targetCustomerTotal,
       state.fileFee,
       state.totalInsurance,
       state.importCost,
-      state.attachmentCost,
       state.financingSupport,
       solvedMachine,
       summary,
@@ -564,14 +627,12 @@ export function useGraceBalloonPlan() {
       fileFee: state.fileFee,
       totalInsurance: state.totalInsurance,
       importCost: state.importCost,
-      attachmentCost: state.attachmentCost,
+      attachmentCost: optionTotal,
     };
     const detailRows = buildGraceBalloonDetailedReportRows({
-      direction,
-      machinePrice: state.machinePrice,
       extras,
       displayFinanceInterest,
-      financingSupport: state.financingSupport,
+      optionRows,
     });
     return {
       direction,
@@ -593,6 +654,11 @@ export function useGraceBalloonPlan() {
       payingMonthCount: summary.payingMonthCount,
       planTermLabel,
       monthlyInstallment: summary.equalNormalInstallment,
+      financeInterest: displayFinanceInterest,
+      customerTotalPayment:
+        direction === "reverse"
+          ? state.targetCustomerTotal
+          : summary.customerTotalPayment,
       detailRows,
       primaryTotal: stitchPrimaryTotal,
       primaryTotalLabel:
@@ -617,10 +683,13 @@ export function useGraceBalloonPlan() {
     direction,
     displayFinanceInterest,
     ok,
+    optionRows,
+    optionTotal,
     solvedMachine,
     state,
     planTermLabel,
     stitchPrimaryTotal,
+    summary.customerTotalPayment,
     summary.equalNormalInstallment,
     summary.payingMonthCount,
     summary.totalBalloon,
@@ -634,16 +703,31 @@ export function useGraceBalloonPlan() {
       direction === "reverse" && solvedMachine != null
         ? solvedMachine
         : state.machinePrice;
-    const extraLines = EXTRA_COST_FIELDS.filter((f) => state[f.amountKey] > 0).map(
-      (f) => ({
+    const optionModeLabel =
+      state.extraCostModes.attachmentCost === "financed"
+        ? "Plana (vade farkı)"
+        : direction === "reverse"
+          ? "Peşin (MAATS)"
+          : "Peşin";
+    const extraLines = [
+      ...EXTRA_COST_FIELDS.filter(
+        (f) => f.amountKey !== "attachmentCost" && state[f.amountKey] > 0,
+      ).map((f) => ({
         label: f.label,
         amount: state[f.amountKey],
         modeLabel:
           state.extraCostModes[f.modeKey] === "financed"
             ? "Plana (vade farkı)"
-            : "Peşin",
-      }),
-    );
+            : direction === "reverse"
+              ? "Peşin (MAATS)"
+              : "Peşin",
+      })),
+      ...optionRows.map((row) => ({
+        label: row.label,
+        amount: row.value,
+        modeLabel: optionModeLabel,
+      })),
+    ];
     return {
       direction,
       firma: state.firma.trim(),
@@ -659,8 +743,22 @@ export function useGraceBalloonPlan() {
       summary,
       rows,
       extraLines,
+      supportCompare: direction === "forward" ? supportCompare : null,
+      unsupportedInstallment:
+        direction === "forward" ? unsupportedInstallment : undefined,
     };
-  }, [ok, direction, solvedMachine, state, sym, summary, rows]);
+  }, [
+    ok,
+    direction,
+    optionRows,
+    solvedMachine,
+    state,
+    sym,
+    summary,
+    rows,
+    supportCompare,
+    unsupportedInstallment,
+  ]);
 
   const handleCreatePaymentPlan = () => {
     if (!printProps) return;
@@ -691,6 +789,14 @@ export function useGraceBalloonPlan() {
     kaskoAutoTotal,
     feeModes,
     handleSetFeeMode,
+    catalogSelection,
+    toggleCatalog,
+    setOptionPaymentMode: (mode: ExtraCostModes["attachmentCost"]) => {
+      setState((prev) => ({
+        ...prev,
+        extraCostModes: { ...prev.extraCostModes, attachmentCost: mode },
+      }));
+    },
     sym,
     kpiSymbol,
     displayFinanceInterest,

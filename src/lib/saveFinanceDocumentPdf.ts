@@ -1,6 +1,10 @@
 import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
 
+/** A4 genişliği — kaydetmede mobil kırılım uygulanmasın, yazdırma düzeni çıksın. */
+const PDF_CAPTURE_WIDTH_PX = 1200;
+const PDF_CAPTURE_HEIGHT_PX = Math.round(PDF_CAPTURE_WIDTH_PX * (297 / 210));
+
 function printSource(): HTMLElement | null {
   return (
     document.querySelector<HTMLElement>(
@@ -32,8 +36,34 @@ export async function saveFinanceDocumentPdf(fileName: string) {
     backgroundColor: "#ffffff",
     useCORS: true,
     logging: false,
-    windowWidth: source.scrollWidth,
-    windowHeight: source.scrollHeight,
+    windowWidth: PDF_CAPTURE_WIDTH_PX,
+    width: PDF_CAPTURE_WIDTH_PX,
+    windowHeight: Math.max(source.scrollHeight, PDF_CAPTURE_HEIGHT_PX),
+    onclone: (clonedDoc, el) => {
+      clonedDoc.documentElement.classList.add("llp-pdf-capture");
+      clonedDoc.body?.classList.add("llp-pdf-capture");
+      el.classList.add("llp-pdf-capture");
+      let node: HTMLElement | null = el;
+      while (node) {
+        node.style.maxWidth = "none";
+        node.style.width = `${PDF_CAPTURE_WIDTH_PX}px`;
+        node.style.minHeight = "0";
+        node.style.height = "auto";
+        if (node.classList.contains("finance-print-portal")) break;
+        node = node.parentElement;
+      }
+      el.style.boxSizing = "border-box";
+      el.style.display = "flex";
+      el.style.flexDirection = "column";
+      el.style.width = `${PDF_CAPTURE_WIDTH_PX}px`;
+      el.style.minHeight = `${PDF_CAPTURE_HEIGHT_PX}px`;
+      el.style.height = "auto";
+      el.style.padding = "16px 24px";
+      const footer = el.querySelector("footer");
+      if (footer instanceof HTMLElement) {
+        footer.style.marginTop = "auto";
+      }
+    },
   });
 
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
@@ -41,12 +71,12 @@ export async function saveFinanceDocumentPdf(fileName: string) {
   const pageH = pdf.internal.pageSize.getHeight();
   const imgW = pageW;
   const imgH = (canvas.height * pageW) / canvas.width;
-  const img = canvas.toDataURL("image/jpeg", 0.93);
+  const img = canvas.toDataURL("image/jpeg", 0.97);
 
-  // Kısa taşma ikinci boş sayfa açmasın; biraz küçültüp tek A4'e sığdır.
-  if (imgH <= pageH * 1.18) {
-    const scale = imgH <= pageH ? 1 : pageH / imgH;
-    pdf.addImage(img, "JPEG", 0, 0, imgW * scale, imgH * scale);
+  // Önizleme / yazdırma gibi: tam A4 genişliği, doğal yükseklik.
+  // Küçülterek tek sayfaya sıkıştırma — yazı kalitesi bozulmasın.
+  if (imgH <= pageH + 0.6) {
+    pdf.addImage(img, "JPEG", 0, 0, imgW, imgH);
   } else {
     let heightLeft = imgH;
     let position = 0;

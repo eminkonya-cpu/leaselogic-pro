@@ -4,6 +4,7 @@ import {
   clearAuthHint,
   clearSupabaseAuthStorage,
   hasStoredSupabaseSession,
+  isAuthNetworkError,
   isInvalidRefreshTokenError,
   isSessionExpired,
   isStoredSupabaseSessionExpired,
@@ -59,6 +60,25 @@ describe("isInvalidRefreshTokenError", () => {
   it("ignores unrelated errors", () => {
     expect(isInvalidRefreshTokenError(new Error("JWT expired"))).toBe(false);
     expect(isInvalidRefreshTokenError(null)).toBe(false);
+  });
+});
+
+describe("isAuthNetworkError", () => {
+  it("detects auth-js refresh Failed to fetch", () => {
+    const err = new TypeError("Failed to fetch");
+    err.stack = `${err.stack ?? ""}\nSupabaseAuthClient._refreshAccessToken`;
+    expect(isAuthNetworkError(err)).toBe(true);
+  });
+
+  it("detects AuthRetryableFetchError", () => {
+    const err = new Error("Failed to fetch");
+    err.name = "AuthRetryableFetchError";
+    expect(isAuthNetworkError(err)).toBe(true);
+  });
+
+  it("ignores unrelated fetch failures", () => {
+    expect(isAuthNetworkError(new TypeError("Failed to fetch"))).toBe(false);
+    expect(isAuthNetworkError(new Error("boom"))).toBe(false);
   });
 });
 

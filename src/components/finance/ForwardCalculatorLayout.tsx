@@ -19,15 +19,16 @@ import { type CatalogSelection } from "@/lib/catalogPrices";
 import { getForwardTabOptions } from "@/lib/forwardCalculatorFeatures";
 import { buildForwardStitchSummaryRows } from "@/lib/forwardSummaryRows";
 import {
+  scaleExpenseAmounts,
+  splitExtraExpenseAmounts,
+} from "@/lib/expenseSummaryLines";
+import {
   getForwardDisplayMetrics,
   type CalcSlice,
   type ForwardTabId,
 } from "@/lib/forwardDisplayMetrics";
 import { useCallback, useMemo } from "react";
-import {
-  CatalogScrollRail,
-  CATALOG_SECTION_ID,
-} from "@/components/finance/ui/CatalogScrollRail";
+import { CATALOG_SECTION_ID } from "@/components/finance/ui/CatalogScrollRail";
 import CalcPageHeader from "@/components/finance/ui/CalcPageHeader";
 import {
   PlanContextFields,
@@ -113,9 +114,16 @@ export default function ForwardCalculatorLayout(props: {
     ? props.params.downPaymentEuro * rate
     : props.params.downPaymentEuro;
 
-  const otherExpenses = isTry
-    ? display.otherExpenses * rate
-    : display.otherExpenses;
+  const expenseAmounts = useMemo(
+    () =>
+      display.includeExpenses
+        ? scaleExpenseAmounts(
+            splitExtraExpenseAmounts(props.expenses),
+            isTry ? rate : 1,
+          )
+        : { kasko: 0, masraflar: 0, ithalat: 0 },
+    [display.includeExpenses, isTry, props.expenses, rate],
+  );
   const machine = isTry
     ? props.params.machinePriceEuro * rate
     : props.params.machinePriceEuro;
@@ -174,7 +182,7 @@ export default function ForwardCalculatorLayout(props: {
         catalogLines: props.calc.catalogLines,
         catalogAmount,
         includeExpenses: display.includeExpenses,
-        otherExpenses,
+        expenseAmounts,
         vadeFarki: referenceVadeFarki.primary,
         financingSupport: isTry
           ? financingSupportAmount * rate
@@ -186,7 +194,7 @@ export default function ForwardCalculatorLayout(props: {
       props.calc.catalogLines,
       catalogAmount,
       display.includeExpenses,
-      otherExpenses,
+      expenseAmounts,
       referenceVadeFarki.primary,
       isTry,
       rate,
@@ -308,12 +316,11 @@ export default function ForwardCalculatorLayout(props: {
     display.totalTl,
   ]);
 
-  const catalogPage = (
+  const optionChips = (
     <div id={CATALOG_SECTION_ID} className="scroll-mt-24">
       <CatalogSelector
         appearance="clean"
-        layout="page"
-        density="comfortable"
+        profile="plain"
         selection={props.catalogSelection}
         onToggle={props.handleCatalogToggle}
         onClearAll={props.handleCatalogClearAll}
@@ -368,8 +375,6 @@ export default function ForwardCalculatorLayout(props: {
 
   return (
     <ProCalcShell>
-      <CatalogScrollRail enabled={!isPlainTab} observeKey={props.activeTab} />
-
       <CalcPageHeader
         kicker="Leasing · İleri hesaplama"
         title="İleri hesaplama"
@@ -419,7 +424,7 @@ export default function ForwardCalculatorLayout(props: {
           <FormStep
             index={2}
             title="Finansman koşulları"
-            last={!showExtras && !isPlainTab}
+            last={false}
             action={
               <SectionClearAction
                 onClick={props.handleClearMachineFinance}
@@ -484,24 +489,13 @@ export default function ForwardCalculatorLayout(props: {
                 onExpensesChange={props.onExpensesReplace}
                 inputClassName="h-9 border-[#E2E8F0] bg-white text-[13px]"
               />
+              <div className="mt-3 border-t border-[#E2E8F0] pt-3">{optionChips}</div>
             </FormStep>
-          ) : null}
-
-          {isPlainTab ? (
-            <FormStep index={showExtras ? 4 : 3} title="Opsiyonlar" last>
-              <div id={CATALOG_SECTION_ID} className="scroll-mt-24">
-                <CatalogSelector
-                  appearance="clean"
-                  layout="full"
-                  density="compact"
-                  profile="plain"
-                  selection={props.catalogSelection}
-                  onToggle={props.handleCatalogToggle}
-                  onClearAll={props.handleCatalogClearAll}
-                />
-              </div>
+          ) : (
+            <FormStep index={3} title="Opsiyonlar" last>
+              {optionChips}
             </FormStep>
-          ) : null}
+          )}
         </section>
 
         <aside
@@ -513,8 +507,6 @@ export default function ForwardCalculatorLayout(props: {
           {summaryAside}
         </aside>
       </div>
-
-      {!isPlainTab ? catalogPage : null}
 
       {!isAdvantage && !(plainCatalogOnly && isPlainTab) ? (
         <PaymentSchedulePanel

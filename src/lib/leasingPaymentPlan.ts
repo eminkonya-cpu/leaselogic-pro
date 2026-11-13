@@ -32,6 +32,11 @@ export type LeasingPlanInput = {
   extraCostModes?: Partial<ExtraCostModes>;
   monthModes: PaymentMonthMode[];
   balloons: number[];
+  /**
+   * Geri hesaplama / anahtar teslim: peşin ekler taksite eşit yayılır, anaparaya
+   * ve vade farkına girmez. İleri hesaplamada kapalıdır (peşin ekler toplama eklenir).
+   */
+  spreadCashExtrasOnInstallments?: boolean;
 };
 
 export type LeasingPlanRow = {
@@ -274,6 +279,10 @@ export function computeLeasingPaymentPlan(raw: LeasingPlanInput): LeasingPlanRes
     };
   }
 
+  const spreadCash = Boolean(raw.spreadCashExtrasOnInstallments);
+  const extraPerPaying =
+    spreadCash && payingMonthCount > 0 ? extraSplit.cash / payingMonthCount : 0;
+
   const r = monthlyRate(annualRatePct);
   const rows: LeasingPlanRow[] = [];
   let balance = P;
@@ -286,11 +295,13 @@ export function computeLeasingPaymentPlan(raw: LeasingPlanInput): LeasingPlanRes
     const balloon = balloons[t - 1] ?? 0;
     const openingBalance = balance;
     const periodInterest = r === 0 ? 0 : openingBalance * r;
-    let normalInstallment = mode === "paying" ? A : 0;
+    const loanInstallment = mode === "paying" ? A : 0;
+    const extraShare = mode === "paying" ? extraPerPaying : 0;
+    let normalInstallment = loanInstallment + extraShare;
     const balloonPayment = balloon;
     let totalPeriodPayment = normalInstallment + balloonPayment;
-    let principalPayment = totalPeriodPayment - periodInterest;
-    let closingBalance = openingBalance + periodInterest - totalPeriodPayment;
+    let principalPayment = loanInstallment + balloonPayment - periodInterest;
+    let closingBalance = openingBalance + periodInterest - loanInstallment - balloonPayment;
 
     if (closingBalance < -0.01) {
       return {
@@ -342,8 +353,10 @@ export function computeLeasingPaymentPlan(raw: LeasingPlanInput): LeasingPlanRes
   }
 
   const totalLeasingPayments = totalNormal + totalBalloon;
+  const cashLump = spreadCash ? 0 : extraSplit.cash;
   const customerTotalPayment =
-    downPayment + totalNormal + totalBalloon + extraSplit.cash;
+    downPayment + totalNormal + totalBalloon + cashLump;
+  const loanPaymentSum = totalNormal - (spreadCash ? extraSplit.cash : 0);
 
   return {
     summary: {
@@ -351,10 +364,10 @@ export function computeLeasingPaymentPlan(raw: LeasingPlanInput): LeasingPlanRes
       message: "Hesaplandı",
       financedPrincipal: P,
       payingMonthCount,
-      equalNormalInstallment: A,
+      equalNormalInstallment: A + extraPerPaying,
       totalBalloon,
       totalLeasingPayments,
-      totalFinanceInterest: totalLeasingPayments - P,
+      totalFinanceInterest: loanPaymentSum + totalBalloon - P,
       totalExtraCosts: extraSplit.total,
       cashExtraCosts: extraSplit.cash,
       financedExtraCosts: extraSplit.financed,

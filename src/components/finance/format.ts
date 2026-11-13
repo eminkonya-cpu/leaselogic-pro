@@ -8,6 +8,11 @@ export function formatAmount(value: number, decimals = 2) {
   return formatNumber(value, { decimals });
 }
 
+/** Faiz oranı: girilen yüzde (6,25) 1 ondalığa yuvarlanmaz. 3 ay ödemesiz ile aynı. */
+export function formatInterestRate(value: number) {
+  return formatNumber(value, { decimals: 2 });
+}
+
 export function formatNumber(
   value: number,
   opts?: { decimals?: number; noDecimals?: boolean },
