@@ -135,7 +135,11 @@ export function computeReverseFinanceLeg(args: {
         ? generateAnnualAmortization(financed, args.annualRatePct, args.term)
         : generateAmortization(financed, args.annualRatePct, args.term)
       : [];
-  const displayNetMachine = Math.max(0, netMachine - args.catalogTotal);
+  /** Vade yokken finansman yok; ataşman düşer, katkı/finansman desteği neti yükseltir. */
+  const displayNetMachine = Math.max(
+    0,
+    netMachine - args.catalogTotal + (args.term > 0 ? 0 : support),
+  );
 
   return {
     netMachine,

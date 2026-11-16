@@ -21,12 +21,12 @@ import type { ForwardTabId } from "@/lib/forwardDisplayMetrics";
 import type { SummaryReportRow } from "@/lib/calculationSummaryReport";
 import type { FinancingSupportCompare } from "@/lib/financingSupportReport";
 import {
-  FINANCING_SUPPORT_LABEL,
   isKatkiPayiLabel,
   KATKI_PAYI_NOTE,
   isFinancingSupportLabel,
   sumKalemlerToplam,
 } from "@/lib/kalemlerToplam";
+import { reportSupportLines, type SupportSplit } from "@/lib/supportSplit";
 import { REPORT_DESIGN } from "@/lib/reportDesign";
 
 export type PrintableCalculationSummaryProps = {
@@ -50,6 +50,7 @@ export type PrintableCalculationSummaryProps = {
   installmentLabel: string;
   currency: "EUR" | "TRY";
   financingSupportDisplay?: number;
+  supportSplit?: SupportSplit;
   supportCompare?: FinancingSupportCompare | null;
   primaryTotalLabel?: string;
 };
@@ -77,19 +78,22 @@ function ExecutiveCalculationSummary(
   const downPayment = isTry ? props.downPaymentEuro * rate : props.downPaymentEuro;
   const total = isTry ? props.totalTl : props.totalEuro;
   const financingSupport = Math.max(0, props.financingSupportDisplay ?? 0);
+  const supportLines = reportSupportLines(props.supportSplit, financingSupport, 1);
   const termText = props.termUnit === "year" ? `${props.term} yıl` : `${props.term} ay`;
   const totalLabel =
     props.primaryTotalLabel ?? (isTry ? "Toplam ödeme (TL)" : "Toplam (EUR)");
   const itemRows = props.rows.filter((row) => !isFinancingSupportLabel(row.label));
   const kalemlerToplam = sumKalemlerToplam(itemRows);
+  const supportMetrics = supportLines.map((row) => ({
+    label: row.label,
+    value: money(Math.abs(row.value)),
+  }));
 
   const metrics: ReportMetric[] = [
     { label: props.machinePriceLabel, value: money(machinePrice) },
     { label: "Peşinat", value: money(downPayment) },
     { label: "Vade", value: termText },
-    ...(financingSupport > 0
-      ? [{ label: "Finansman desteği", value: money(financingSupport) }]
-      : []),
+    ...supportMetrics,
     { label: totalLabel, value: money(total), emphasis: true },
   ];
 
@@ -114,9 +118,7 @@ function ExecutiveCalculationSummary(
     { label: "Vade", value: termText },
     ...rateItems,
     { label: "Kur (₺ / €)", value: formatNumber(props.euroRate, { decimals: 2 }) },
-    ...(financingSupport > 0
-      ? [{ label: "Finansman desteği", value: money(financingSupport) }]
-      : []),
+    ...supportMetrics,
   ];
 
   const tags = [props.tabLabel, "KDV hariç", isTry ? "TL leasing (TL faiz)" : "EUR"];
@@ -159,16 +161,12 @@ function ExecutiveCalculationSummary(
           }))}
           totals={[
             { label: "Kalemler toplamı", value: money(kalemlerToplam), strong: true },
-            ...(financingSupport > 0
-              ? [
-                  {
-                    label: FINANCING_SUPPORT_LABEL,
-                    note: "(kalemler toplamına dahil değil)",
-                    value: `− ${money(financingSupport)}`,
-                    tone: "negative" as const,
-                  },
-                ]
-              : []),
+            ...supportLines.map((row) => ({
+              label: row.label,
+              note: "(kalemler toplamına dahil değil)",
+              value: `− ${money(Math.abs(row.value))}`,
+              tone: "negative" as const,
+            })),
           ]}
         />
       </ReportSection>
@@ -184,15 +182,11 @@ function ExecutiveCalculationSummary(
               value: money(kalemlerToplam),
               tone: "positive",
             },
-            ...(financingSupport > 0
-              ? [
-                  {
-                    label: "− Finansman desteği",
-                    value: money(financingSupport),
-                    tone: "negative" as const,
-                  },
-                ]
-              : []),
+            ...supportLines.map((row) => ({
+              label: `− ${row.label}`,
+              value: money(Math.abs(row.value)),
+              tone: "negative" as const,
+            })),
           ]}
         />
       </ReportSection>

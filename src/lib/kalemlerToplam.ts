@@ -1,10 +1,13 @@
-export const FINANCING_SUPPORT_LABEL = "Finansman desteği";
+import { isFinancingSupportLabel } from "@/lib/supportSplit";
+
+export {
+  FACTORY_SUPPORT_LABEL,
+  FINANCING_SUPPORT_LABEL,
+  MAATS_SUPPORT_LABEL,
+  isFinancingSupportLabel,
+} from "@/lib/supportSplit";
 export const KATKI_PAYI_LABEL = "Katkı payı";
 export const KATKI_PAYI_NOTE = "(kasko + masraf + vade farkı)";
-
-export function isFinancingSupportLabel(label: string): boolean {
-  return label.trim() === FINANCING_SUPPORT_LABEL;
-}
 
 export function isKatkiPayiLabel(label: string): boolean {
   return label.trim() === KATKI_PAYI_LABEL;

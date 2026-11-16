@@ -3,6 +3,12 @@ export function sanitizeDecimalTyping(raw: string): string {
   return raw.replace(/[^\d,.]/g, "");
 }
 
+/** Yıl / tam sayı: virgül ve ondalık yok; "2,5" → "2" */
+export function sanitizeIntegerTyping(raw: string): string {
+  const s = raw.replace(/[^\d,.]/g, "");
+  return (s.split(/[,.]/, 1)[0] ?? "").replace(/\D/g, "");
+}
+
 /** "6," veya "12," gibi henüz bitmemiş giriş */
 export function isIncompleteDecimal(raw: string): boolean {
   const s = raw.trim();

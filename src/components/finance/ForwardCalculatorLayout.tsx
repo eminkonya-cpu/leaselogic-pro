@@ -24,6 +24,10 @@ import type {
 import { getForwardTabOptions } from "@/lib/forwardCalculatorFeatures";
 import { buildForwardStitchSummaryRows } from "@/lib/forwardSummaryRows";
 import {
+  resolveSupportSplit,
+  scaleSupportSplit,
+} from "@/lib/supportSplit";
+import {
   scaleExpenseAmounts,
   splitExtraExpenseAmounts,
 } from "@/lib/expenseSummaryLines";
@@ -58,6 +62,8 @@ export default function ForwardCalculatorLayout(props: {
     dollarRate: number;
     downPaymentEuro: number;
     financingSupportEuro?: number;
+    factorySupportEuro?: number;
+    maatsSupportEuro?: number;
     euroInterest: number;
     tlInterest: number;
     machinePriceEuro: number;
@@ -144,10 +150,8 @@ export default function ForwardCalculatorLayout(props: {
     [isTry, rate],
   );
 
-  const financingSupportAmount = Math.max(
-    0,
-    Number(props.params.financingSupportEuro) || 0,
-  );
+  const supportSplit = resolveSupportSplit(props.params);
+  const financingSupportAmount = supportSplit.total;
 
   /** KPI, grafik ve özet: destek varken tam (desteksiz) vade farkı. */
   const referenceVadeFarki = useMemo(() => {
@@ -197,9 +201,10 @@ export default function ForwardCalculatorLayout(props: {
           ? props.extraCostModes
           : undefined,
         vadeFarki: referenceVadeFarki.primary,
-        financingSupport: isTry
-          ? financingSupportAmount * rate
-          : financingSupportAmount,
+        supportSplit: scaleSupportSplit(
+          supportSplit,
+          isTry ? rate : 1,
+        ),
         totalPrimary,
       }),
     [
@@ -212,7 +217,7 @@ export default function ForwardCalculatorLayout(props: {
       referenceVadeFarki.primary,
       isTry,
       rate,
-      financingSupportAmount,
+      supportSplit,
       totalPrimary,
     ],
   );
@@ -276,7 +281,7 @@ export default function ForwardCalculatorLayout(props: {
 
   const forwardKpiItems = useMemo((): ResultKpiItem[] => {
     if (isAdvantage) return [];
-    const term = Number(props.params.term) || 0;
+    const term = Math.max(0, Math.trunc(Number(props.params.term) || 0));
     const items: ResultKpiItem[] = [
       {
         label: stitchPrimaryTotalLabel,
@@ -486,9 +491,13 @@ export default function ForwardCalculatorLayout(props: {
                     onRefreshEuroRate={props.handleRefreshEuroRate}
                   />
                   <PlanFinancingSupportField
-                    value={Number(props.params.financingSupportEuro) || 0}
-                    onValueChange={(value) =>
-                      props.handleParamChange("financingSupportEuro", value)
+                    factoryValue={supportSplit.factory}
+                    maatsValue={supportSplit.maats}
+                    onFactoryChange={(value) =>
+                      props.handleParamChange("factorySupportEuro", value)
+                    }
+                    onMaatsChange={(value) =>
+                      props.handleParamChange("maatsSupportEuro", value)
                     }
                   />
                 </>

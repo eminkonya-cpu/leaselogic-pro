@@ -29,6 +29,12 @@ import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { parseEuroRate, useSharedEuroRate } from "@/lib/useSharedEuroRate";
 import { clearReverseParameters } from "@/lib/financeFormClear";
+import { normalizeForwardTermMonths } from "@/lib/forwardTerm";
+import {
+  resolveSupportSplit,
+  scaleSupportSplit,
+  withSyncedSupportTotal,
+} from "@/lib/supportSplit";
 import { EMPTY_EXPENSES } from "@/components/finance/ExpenseInputCard";
 
 const REVERSE_STORAGE_PREFIX = "llp:v2:reverse";
@@ -58,6 +64,8 @@ function buildReverseSummaryProps(args: {
   calc: ReverseCalcBundle;
   baselineCalc?: ReverseCalcBundle;
   financingSupportEuro: number;
+  factorySupportEuro?: number;
+  maatsSupportEuro?: number;
 }): PrintableReverseSummaryProps {
   const isTry = args.pdfCurrency === "TRY";
   const rate = args.euroRate;
@@ -101,6 +109,14 @@ function buildReverseSummaryProps(args: {
     installment: leg.installment,
     installmentLabel: args.installmentLabel,
     financingSupportDisplay: financing.financingSupportDisplay,
+    supportSplit: scaleSupportSplit(
+      resolveSupportSplit({
+        factorySupportEuro: args.factorySupportEuro,
+        maatsSupportEuro: args.maatsSupportEuro,
+        financingSupportEuro: args.financingSupportEuro,
+      }),
+      isTry ? rate : 1,
+    ),
     supportCompare: financing.compare,
     netMachineTotalLabel: financing.compare
       ? "Net makine bedeli (destekli)"
@@ -127,6 +143,8 @@ export default function ReverseCalculator(props: {
       euroRate: 50.5,
       downPaymentEuro: 0,
       financingSupportEuro: 0,
+      factorySupportEuro: 0,
+      maatsSupportEuro: 0,
       euroInterest: 6.5,
       tlInterest: 42,
       firma: "",
@@ -150,7 +168,7 @@ export default function ReverseCalculator(props: {
     () => ({
       ...sharedParams,
       euroRate,
-      term,
+      term: normalizeForwardTermMonths(term),
       euroInterest: resolveReverseInterestPct(
         sharedParams.euroInterest,
         DEFAULT_REVERSE_EURO_INTEREST,
@@ -171,7 +189,7 @@ export default function ReverseCalculator(props: {
       return;
     }
     if (key === "term") {
-      setTerm(Number(value));
+      setTerm(normalizeForwardTermMonths(value));
       return;
     }
     if (key === "firma" || key === "makine") {
@@ -179,6 +197,12 @@ export default function ReverseCalculator(props: {
         ...prev,
         [key]: String(value),
       }));
+      return;
+    }
+    if (key === "factorySupportEuro" || key === "maatsSupportEuro") {
+      setSharedParams((prev) =>
+        withSyncedSupportTotal(prev, key, Number(value) || 0),
+      );
       return;
     }
 
@@ -214,6 +238,8 @@ export default function ReverseCalculator(props: {
       euroRate,
       downPaymentEuro: 0,
       financingSupportEuro: 0,
+      factorySupportEuro: 0,
+      maatsSupportEuro: 0,
       euroInterest: 6.5,
       tlInterest: 42,
       firma: "",
@@ -236,7 +262,7 @@ export default function ReverseCalculator(props: {
       {
         allInTotalEuro: params.allInTotalEuro,
         downPaymentEuro: params.downPaymentEuro,
-        financingSupportEuro: params.financingSupportEuro,
+        financingSupportEuro: resolveSupportSplit(params).total,
         euroRate: params.euroRate,
         euroInterest: params.euroInterest,
         tlInterest: params.tlInterest,
@@ -302,7 +328,9 @@ export default function ReverseCalculator(props: {
         expenses,
         calc,
         baselineCalc,
-        financingSupportEuro: Number(params.financingSupportEuro) || 0,
+        financingSupportEuro: resolveSupportSplit(params).total,
+        factorySupportEuro: resolveSupportSplit(params).factory,
+        maatsSupportEuro: resolveSupportSplit(params).maats,
       }),
     [baselineCalc, calc, expenses, params, pdfCurrency, termMonths],
   );

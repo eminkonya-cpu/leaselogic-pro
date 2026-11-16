@@ -5,6 +5,7 @@ import { formatAmount, formatNumber } from "@/components/finance/format";
 import type { PrintableGraceBalloonSummaryProps } from "@/components/finance/PrintableGraceBalloonSummary";
 import { sumGraceBalloonDetailRows } from "@/lib/graceBalloonSummaryRows";
 import { isKatkiPayiLabel, KATKI_PAYI_NOTE } from "@/lib/kalemlerToplam";
+import { reportSupportLines } from "@/lib/supportSplit";
 import { cn } from "@/lib/utils";
 
 const DOCUMENT_TITLE = "3 Ay Ödemesiz & Balon Hesaplama";
@@ -35,6 +36,7 @@ export function ClassicGraceBalloonSummaryContent(
   const sym = props.currencySymbol;
   const fmt = (v: number) => formatNumber(v, { decimals: 2 });
   const support = Math.max(0, props.financingSupport);
+  const supportLines = reportSupportLines(props.supportSplit, support, 1);
   const isReverse = props.direction === "reverse";
   const kalemlerToplam = sumGraceBalloonDetailRows(props.detailRows);
   const customerTotal = Math.max(0, props.customerTotalPayment);
@@ -101,14 +103,14 @@ export function ClassicGraceBalloonSummaryContent(
           <div className="text-right tabular-nums font-extrabold">
             {props.startDate}
           </div>
-          {support > 0 ? (
-            <>
-              <div className="text-slate-600">Finansman desteği</div>
+          {supportLines.map((row) => (
+            <div key={row.label} className="contents">
+              <div className="text-slate-600">{row.label}</div>
               <div className="text-right tabular-nums font-extrabold">
-                {fmt(support)} {sym}
+                {fmt(Math.abs(row.value))} {sym}
               </div>
-            </>
-          ) : null}
+            </div>
+          ))}
           {props.totalBalloon > 0.005 ? (
             <>
               <div className="text-slate-600">Toplam balon</div>
@@ -147,12 +149,13 @@ export function ClassicGraceBalloonSummaryContent(
             label="Vade farkı"
             value={`${isReverse ? "− " : ""}${formatAmount(financeInterest)} ${sym}`}
           />
-          {support > 0 ? (
+          {supportLines.map((row) => (
             <Row
-              label="Finansman desteği"
-              value={`+ ${formatAmount(support)} ${sym}`}
+              key={row.label}
+              label={row.label}
+              value={`+ ${formatAmount(Math.abs(row.value))} ${sym}`}
             />
-          ) : null}
+          ))}
           <div className="border-t border-slate-200 bg-slate-50/80">
             <Row
               label="Peşinat dahil, vade farkı düşülmüş tutar"
@@ -214,19 +217,22 @@ export function ClassicGraceBalloonSummaryContent(
             {formatAmount(kalemlerToplam)} {sym}
           </span>
         </div>
-        {support > 0 ? (
-          <div className="flex items-center justify-between gap-4 border-t border-dashed border-slate-200 px-3 py-2 text-sm font-semibold text-emerald-800 print:text-[10px]">
+        {supportLines.map((row) => (
+          <div
+            key={row.label}
+            className="flex items-center justify-between gap-4 border-t border-dashed border-slate-200 px-3 py-2 text-sm font-semibold text-emerald-800 print:text-[10px]"
+          >
             <span className="min-w-0 leading-snug">
-              Finansman desteği{" "}
+              {row.label}{" "}
               <span className="font-medium text-slate-500">
                 (kalemler toplamına dahil değil)
               </span>
             </span>
             <span className="shrink-0 tabular-nums font-bold">
-              + {formatAmount(support)} {sym}
+              + {formatAmount(Math.abs(row.value))} {sym}
             </span>
           </div>
-        ) : null}
+        ))}
       </div>
 
       <div className="mt-2 rounded-lg border-2 border-[#2563eb]/30 bg-[#eff4ff] p-3 print:mt-1.5 print:p-2">
@@ -247,14 +253,17 @@ export function ClassicGraceBalloonSummaryContent(
                   {formatAmount(kalemlerToplam)} {sym}
                 </span>
               </div>
-              {support > 0 ? (
-                <div className="flex items-center justify-between gap-3 text-emerald-800">
-                  <span>+ Finansman desteği</span>
+              {supportLines.map((row) => (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between gap-3 text-emerald-800"
+                >
+                  <span>+ {row.label}</span>
                   <span className="tabular-nums font-bold">
-                    {formatAmount(support)} {sym}
+                    {formatAmount(Math.abs(row.value))} {sym}
                   </span>
                 </div>
-              ) : null}
+              ))}
             </>
           ) : (
             <>
@@ -270,14 +279,17 @@ export function ClassicGraceBalloonSummaryContent(
                   {formatAmount(kalemlerToplam)} {sym}
                 </span>
               </div>
-              {support > 0 ? (
-                <div className="flex items-center justify-between gap-3 text-red-700">
-                  <span>− Finansman desteği</span>
+              {supportLines.map((row) => (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between gap-3 text-red-700"
+                >
+                  <span>− {row.label}</span>
                   <span className="tabular-nums font-bold">
-                    {formatAmount(support)} {sym}
+                    {formatAmount(Math.abs(row.value))} {sym}
                   </span>
                 </div>
-              ) : null}
+              ))}
             </>
           )}
         </div>

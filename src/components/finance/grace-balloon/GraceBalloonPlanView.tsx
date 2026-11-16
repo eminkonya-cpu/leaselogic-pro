@@ -40,6 +40,8 @@ const plex = IBM_Plex_Sans({
   weight: ["400", "500", "600", "700"],
   display: "swap",
 });
+import { PlanFinancingSupportField } from "@/components/finance/ui/FinanceContextBar";
+import { resolveSupportSplit } from "@/lib/supportSplit";
 import {
   DEFAULT_GRACE_MONTHS,
   useGraceBalloonPlan,
@@ -347,22 +349,13 @@ function InputsCard({ plan }: { plan: GraceBalloonPlan }) {
               </select>
             )}
           </FormField>
-          <FormField
-            label="Finansman desteği"
-            hint="İsteğe bağlı"
+          <PlanFinancingSupportField
+            factoryValue={resolveSupportSplit(state).factory}
+            maatsValue={resolveSupportSplit(state).maats}
+            onFactoryChange={(n) => setField("factorySupport", n)}
+            onMaatsChange={(n) => setField("maatsSupport", n)}
             suffix={plan.sym}
-            className="sm:col-span-2"
-          >
-            {(id) => (
-              <DecimalTextInput
-                id={id}
-                className={inputCls}
-                placeholder="0"
-                value={state.financingSupport}
-                onValueChange={(n) => setField("financingSupport", n)}
-              />
-            )}
-          </FormField>
+          />
         </div>
       </FormStep>
 

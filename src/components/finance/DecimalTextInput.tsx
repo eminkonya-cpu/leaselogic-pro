@@ -8,6 +8,7 @@ import {
   parseTurkishDecimal,
   roundDecimal,
   sanitizeDecimalTyping,
+  sanitizeIntegerTyping,
 } from "@/lib/turkishDecimalInput";
 import { cn } from "@/lib/utils";
 import { useState, type ComponentProps } from "react";
@@ -33,6 +34,7 @@ export default function DecimalTextInput({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
+  const integer = decimals <= 0;
   const shown = editing ? draft : formatDecimalIdle(value, decimals);
 
   return (
@@ -40,27 +42,41 @@ export default function DecimalTextInput({
       <Input
         {...rest}
         type="text"
-        inputMode="decimal"
+        inputMode={integer ? "numeric" : "decimal"}
         autoComplete="off"
         className={cn(suffix && "pr-7", className)}
         value={shown}
         onFocus={(e) => {
           setEditing(true);
-          setDraft(formatDecimalForInput(value));
+          setDraft(
+            integer
+              ? Number.isFinite(value) && value !== 0
+                ? String(Math.trunc(value))
+                : ""
+              : formatDecimalForInput(value),
+          );
           onFocus?.(e);
         }}
         onBlur={(e) => {
-          const n = roundDecimal(parseTurkishDecimal(draft), decimals);
+          const n = integer
+            ? Math.trunc(parseTurkishDecimal(draft))
+            : roundDecimal(parseTurkishDecimal(draft), decimals);
           onValueChange(n);
           setEditing(false);
           setDraft("");
           onBlur?.(e);
         }}
         onChange={(e) => {
-          const raw = sanitizeDecimalTyping(e.target.value);
+          const raw = integer
+            ? sanitizeIntegerTyping(e.target.value)
+            : sanitizeDecimalTyping(e.target.value);
           setDraft(raw);
-          if (!isIncompleteDecimal(raw)) {
-            onValueChange(roundDecimal(parseTurkishDecimal(raw), decimals));
+          if (integer || !isIncompleteDecimal(raw)) {
+            onValueChange(
+              integer
+                ? Math.trunc(parseTurkishDecimal(raw))
+                : roundDecimal(parseTurkishDecimal(raw), decimals),
+            );
           }
         }}
       />

@@ -17,6 +17,8 @@ type Field = {
   placeholder?: string;
   type?: "text" | "number";
   step?: string;
+  /** 0 = tam sayı (virgül yok). Varsayılan para/oran: 2. */
+  decimals?: number;
   options?: readonly string[];
 };
 
@@ -56,6 +58,7 @@ export default function FinanceFieldGrid(props: {
                 data-promo-field={f.key}
                 className={CALC_INPUT_CLS}
                 placeholder={f.placeholder}
+                decimals={f.decimals}
                 value={Number.isFinite(numericValue) ? numericValue : 0}
                 onValueChange={(next) => props.onChange(f.key, next)}
               />
@@ -125,6 +128,7 @@ export default function FinanceFieldGrid(props: {
               roomy ? "h-8 text-[13px] md:text-sm max-lg:h-8 max-lg:text-sm" : "h-8 text-sm max-lg:h-8",
             )}
             placeholder={f.placeholder}
+            decimals={f.decimals}
             value={Number.isFinite(numericValue) ? numericValue : 0}
             onValueChange={(next) => props.onChange(f.key, next)}
           />

@@ -17,6 +17,10 @@ import {
   type ExtraCostModes,
   type ExtraCostPaymentMode,
 } from "@/lib/leasingPaymentPlan";
+import {
+  internalSupportLines,
+  type SupportSplit,
+} from "@/lib/supportSplit";
 
 const CATALOG_GROUP_LABELS: Record<CatalogCategoryId, string> = {
   attachment: "Ataşman toplamı",
@@ -119,6 +123,7 @@ export function buildForwardStitchSummaryRows(args: {
   vadeFarki: number;
   /** Bilgi satırı; finansman maliyeti satırından ayrı, toplamdan sonra mavi kutuda net etki. */
   financingSupport?: number;
+  supportSplit?: SupportSplit;
   totalPrimary: number;
   extraCostModes?: ExtraCostModes;
 }): CostSummaryRow[] {
@@ -151,11 +156,17 @@ export function buildForwardStitchSummaryRows(args: {
     }
   }
 
-  const support = Math.max(0, args.financingSupport ?? 0);
-  if (support > 0) {
+  const splitLines = internalSupportLines(
+    args.supportSplit ??
+      (args.financingSupport
+        ? { factory: 0, maats: args.financingSupport }
+        : undefined),
+    -1,
+  );
+  for (const row of splitLines) {
     rows.push({
-      label: "Finansman desteği",
-      value: -support,
+      label: row.label,
+      value: row.value,
       tone: "negative",
     });
   }

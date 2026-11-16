@@ -5,6 +5,10 @@ import {
 } from "@/lib/katkiPayiGroup";
 import { sumKalemlerToplam } from "@/lib/kalemlerToplam";
 import type { LeasingPlanSummary } from "@/lib/leasingPaymentPlan";
+import {
+  internalSupportLines,
+  type SupportSplit,
+} from "@/lib/supportSplit";
 
 export type GraceBalloonExtraAmounts = {
   fileFee: number;
@@ -14,7 +18,6 @@ export type GraceBalloonExtraAmounts = {
 };
 
 const ATTACHMENT_LABEL = "Ataşman ve donanım maliyeti";
-const FINANCING_SUPPORT_LABEL = "Finansman desteği";
 
 function graceKatkiRows(
   extras: GraceBalloonExtraAmounts,
@@ -87,6 +90,7 @@ export function buildGraceBalloonStitchSummaryRows(args: {
   summary: LeasingPlanSummary;
   extras: GraceBalloonExtraAmounts;
   financingSupport: number;
+  supportSplit?: SupportSplit;
   /** Destek varken desteksiz referans faiz maliyeti. */
   displayFinanceInterest?: number;
   optionRows?: { label: string; value: number }[];
@@ -98,7 +102,13 @@ export function buildGraceBalloonStitchSummaryRows(args: {
     0,
     args.displayFinanceInterest ?? args.summary.totalFinanceInterest,
   );
-  const support = Math.max(0, args.financingSupport);
+  const supportLines = internalSupportLines(
+    args.supportSplit ??
+      (args.financingSupport
+        ? { factory: 0, maats: args.financingSupport }
+        : undefined),
+    args.direction === "reverse" ? 1 : -1,
+  );
   const hasFollowing = optionRows.length > 0 || attachment > 0;
 
   if (args.direction === "reverse") {
@@ -133,10 +143,10 @@ export function buildGraceBalloonStitchSummaryRows(args: {
         tone: "negative",
       });
     }
-    if (support > 0) {
+    for (const row of supportLines) {
       rows.push({
-        label: FINANCING_SUPPORT_LABEL,
-        value: support,
+        label: row.label,
+        value: row.value,
         tone: "positive",
       });
     }
@@ -178,10 +188,10 @@ export function buildGraceBalloonStitchSummaryRows(args: {
       tone: "positive",
     });
   }
-  if (support > 0) {
+  for (const row of supportLines) {
     rows.push({
-      label: FINANCING_SUPPORT_LABEL,
-      value: -support,
+      label: row.label,
+      value: row.value,
       tone: "negative",
     });
   }

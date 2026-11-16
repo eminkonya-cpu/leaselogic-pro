@@ -19,6 +19,8 @@ export function clearReverseParameters(
   handleParamChange("allInTotalEuro", 0);
   handleParamChange("downPaymentEuro", 0);
   handleParamChange("financingSupportEuro", 0);
+  handleParamChange("factorySupportEuro", 0);
+  handleParamChange("maatsSupportEuro", 0);
   handleParamChange("term", 0);
   handleParamChange("euroInterest", 6.5);
   handleParamChange("tlInterest", 42);

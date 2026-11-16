@@ -91,7 +91,10 @@ function isAuthJsStack(stack: string): boolean {
     s.includes("_recoverandrefresh") ||
     s.includes("_callrefreshtoken") ||
     s.includes("@supabase/auth-js") ||
-    s.includes("auth-js")
+    s.includes("auth-js") ||
+    s.includes("gotrue") ||
+    s.includes("supabase.co") ||
+    s.includes("/auth/v1")
   );
 }
 

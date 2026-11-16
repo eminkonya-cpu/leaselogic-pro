@@ -56,6 +56,37 @@ describe("reverse financing support", () => {
     expect(withRate.displayNetMachine).toBeLessThan(zero.displayNetMachine - 1_000);
   });
 
+  it("vade 0: finansman yok, opsiyon düşer, destek neti artırır", () => {
+    const catalog = 4_500;
+    const base = computeReverseFinanceLeg({
+      allInTotal: 130_000,
+      downPayment: 0,
+      annualRatePct: 0,
+      term: 0,
+      totalExpenses: 1_600,
+      catalogTotal: catalog,
+      paymentMode: "monthly",
+    });
+    const supported = computeReverseFinanceLeg({
+      allInTotal: 130_000,
+      downPayment: 0,
+      financingSupport: 3_000,
+      annualRatePct: 0,
+      term: 0,
+      totalExpenses: 1_600,
+      catalogTotal: catalog,
+      paymentMode: "monthly",
+    });
+    expect(base.installment).toBe(0);
+    expect(base.interestDiff).toBe(0);
+    expect(base.displayNetMachine).toBeCloseTo(130_000 - 1_600 - catalog, 2);
+    expect(supported.interestDiff).toBe(0);
+    expect(supported.displayNetMachine).toBeCloseTo(
+      base.displayNetMachine + 3_000,
+      2,
+    );
+  });
+
   it("boş faiz oranını 6.5 kabul eder", () => {
     expect(resolveReverseInterestPct(0, 6.5)).toBe(6.5);
     expect(resolveReverseInterestPct("6,5", 6.5)).toBe(6.5);

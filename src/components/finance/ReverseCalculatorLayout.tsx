@@ -28,6 +28,10 @@ import type { ReverseFinanceLeg } from "@/lib/reverseFinanceCalc";
 import type { CatalogLine, CatalogSelection } from "@/lib/catalogPrices";
 import { buildReverseStitchSummaryRows } from "@/lib/reverseSummaryReport";
 import {
+  resolveSupportSplit,
+  scaleSupportSplit,
+} from "@/lib/supportSplit";
+import {
   scaleExpenseAmounts,
   splitExtraExpenseAmounts,
 } from "@/lib/expenseSummaryLines";
@@ -53,6 +57,8 @@ export default function ReverseCalculatorLayout(props: {
     euroRate: number;
     downPaymentEuro: number;
     financingSupportEuro?: number;
+    factorySupportEuro?: number;
+    maatsSupportEuro?: number;
     euroInterest: number;
     tlInterest: number;
     term: number | string;
@@ -99,10 +105,8 @@ export default function ReverseCalculatorLayout(props: {
     : props.params.euroInterest;
   const fmt = (v: number) => formatNumber(v, { decimals: 2 });
 
-  const financingSupportAmount = Math.max(
-    0,
-    Number(props.params.financingSupportEuro) || 0,
-  );
+  const supportSplit = resolveSupportSplit(props.params);
+  const financingSupportAmount = supportSplit.total;
   const baselineLeg = isTry
     ? props.baselineCalc?.tl
     : props.baselineCalc?.euro;
@@ -141,9 +145,7 @@ export default function ReverseCalculatorLayout(props: {
         allInTotal,
         expenseAmounts,
         interestDiff: interestDiffForSummary,
-        financingSupport: isTry
-          ? financingSupportAmount * rate
-          : financingSupportAmount,
+        supportSplit: scaleSupportSplit(supportSplit, isTry ? rate : 1),
         catalogLines: props.calc.catalogLines,
         catalogAmount,
         displayNetMachine: leg.displayNetMachine,
@@ -154,6 +156,7 @@ export default function ReverseCalculatorLayout(props: {
       expenseAmounts,
       financingSupportAmount,
       interestDiffForSummary,
+      supportSplit,
       isTry,
       rate,
       leg.displayNetMachine,
@@ -170,7 +173,9 @@ export default function ReverseCalculatorLayout(props: {
   const heroSub = [props.params.firma.trim(), props.params.makine.trim()]
     .filter(Boolean)
     .join(" · ");
-  const term = Number(props.params.term) || 0;
+  const term = isAnnual
+    ? Math.max(0, Math.trunc(Number(props.termYears ?? props.params.term) || 0))
+    : Math.max(0, Math.trunc(Number(props.params.term) || 0));
 
   const reverseKpiItems = useMemo((): ResultKpiItem[] => {
     return [
@@ -221,10 +226,12 @@ export default function ReverseCalculatorLayout(props: {
     ? {
         key: "term",
         label: "Vade (Yıl) — en fazla 3",
+        decimals: 0,
       }
     : {
         key: "term",
         label: "Vade (Ay)",
+        decimals: 0,
       };
 
   return (
@@ -322,9 +329,13 @@ export default function ReverseCalculatorLayout(props: {
                     onRefreshEuroRate={props.handleRefreshEuroRate}
                   />
                   <PlanFinancingSupportField
-                    value={Number(props.params.financingSupportEuro) || 0}
-                    onValueChange={(value) =>
-                      props.handleParamChange("financingSupportEuro", value)
+                    factoryValue={supportSplit.factory}
+                    maatsValue={supportSplit.maats}
+                    onFactoryChange={(value) =>
+                      props.handleParamChange("factorySupportEuro", value)
+                    }
+                    onMaatsChange={(value) =>
+                      props.handleParamChange("maatsSupportEuro", value)
                     }
                   />
                 </>

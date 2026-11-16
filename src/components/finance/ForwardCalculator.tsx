@@ -35,6 +35,14 @@ import {
 import { buildForwardPaymentPlanExtraLines } from "@/lib/forwardSummaryRows";
 import { getForwardDisplayMetrics } from "@/lib/forwardDisplayMetrics";
 import { fetchReferenceTryRates } from "@/lib/referenceRates";
+import {
+  isFinancingSupportLabel,
+} from "@/lib/kalemlerToplam";
+import {
+  resolveSupportSplit,
+  scaleSupportSplit,
+  withSyncedSupportTotal,
+} from "@/lib/supportSplit";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { parseEuroRate, useSharedEuroRate } from "@/lib/useSharedEuroRate";
 import { EMPTY_EXPENSES } from "@/components/finance/ExpenseInputCard";
@@ -75,6 +83,8 @@ export default function ForwardCalculator(props: {
       tlInterest: 42,
       downPaymentEuro: 0,
       financingSupportEuro: 0,
+      factorySupportEuro: 0,
+      maatsSupportEuro: 0,
       term: 0,
     },
   );
@@ -94,7 +104,12 @@ export default function ForwardCalculator(props: {
     useCatalogSelection();
   const { categories: catalogCategories } = useCatalogCategories();
 
-  const params = { ...sharedParams, euroRate };
+  const params = {
+    ...sharedParams,
+    euroRate,
+    term: normalizeForwardTermMonths(sharedParams.term),
+  };
+  const supportSplit = resolveSupportSplit(params);
 
   useEffect(() => {
     migrateLegacyForwardTermInParams(setSharedParams);
@@ -112,6 +127,16 @@ export default function ForwardCalculator(props: {
         ...prev,
         term: normalizeForwardTermMonths(value),
       }));
+      return;
+    }
+    if (key === "factorySupportEuro" || key === "maatsSupportEuro") {
+      setSharedParams((prev) =>
+        withSyncedSupportTotal(
+          prev,
+          key,
+          Number(value) || 0,
+        ),
+      );
       return;
     }
 
@@ -146,6 +171,8 @@ export default function ForwardCalculator(props: {
       tlInterest: 42,
       downPaymentEuro: 0,
       financingSupportEuro: 0,
+      factorySupportEuro: 0,
+      maatsSupportEuro: 0,
       term: 0,
     });
     setExpenses({ ...EMPTY_EXPENSES });
@@ -174,7 +201,6 @@ export default function ForwardCalculator(props: {
       euroInterest,
       tlInterest,
       downPaymentEuro,
-      financingSupportEuro,
     } = params;
     const termMonths = normalizeForwardTermMonths(params.term);
     const catalog = resolveCatalogSelection(
@@ -188,7 +214,7 @@ export default function ForwardCalculator(props: {
       euroInterest,
       tlInterest,
       downPaymentEuro,
-      financingSupportEuro: Number(financingSupportEuro) || 0,
+      financingSupportEuro: supportSplit.total,
       catalogTotalEuro: catalog.totalEuro,
       catalogLines: catalog.lines,
       expenses,
@@ -201,6 +227,7 @@ export default function ForwardCalculator(props: {
     };
   }, [
     params,
+    supportSplit.total,
     expenses,
     extraCostModes,
     computedRates,
@@ -272,7 +299,7 @@ export default function ForwardCalculator(props: {
         ? "Kampanyalı makine bedeli"
         : "Makine bedeli";
     const financing = forwardSummaryReportFinancing({
-      financingSupportEuro: Number(params.financingSupportEuro) || 0,
+      financingSupportEuro: supportSplit.total,
       activeTab,
       baselineCalc,
       params: {
@@ -290,7 +317,7 @@ export default function ForwardCalculator(props: {
       expenses,
       includeExpenses: display.includeExpenses,
       vadeFarkiEuro: financing.vadeFarkiDisplay,
-      financingSupport: financing.financingSupportDisplay,
+      supportSplit: scaleSupportSplit(supportSplit, isTry ? rate : 1),
       extraCostModes: display.includeExpenses ? extraCostModes : undefined,
     });
     return {
@@ -312,11 +339,12 @@ export default function ForwardCalculator(props: {
         valueEuro:
           isTry &&
           (row.label === "Finansman maliyeti (vade farkı)" ||
-            row.label === "Finansman desteği")
+            isFinancingSupportLabel(row.label))
             ? row.valueEuro
             : scale(row.valueEuro),
       })),
       financingSupportDisplay: financing.financingSupportDisplay,
+      supportSplit: scaleSupportSplit(supportSplit, isTry ? rate : 1),
       supportCompare: financing.compare,
       primaryTotalLabel: financing.compare
         ? "Müşteri toplam ödemesi (destekli)"
@@ -335,6 +363,7 @@ export default function ForwardCalculator(props: {
     display,
     expenses,
     extraCostModes,
+    supportSplit,
     params.financingSupportEuro,
     params.downPaymentEuro,
     params.euroInterest,
@@ -359,11 +388,11 @@ export default function ForwardCalculator(props: {
     activeTab === "campaign"
       ? [
           { key: "downPaymentEuro", label: "Peşinat (€)" },
-          { key: "term", label: "Vade (Ay)" },
+          { key: "term", label: "Vade (Ay)", decimals: 0 },
         ]
       : [
           { key: "downPaymentEuro", label: "Peşinat (€)" },
-          { key: "term", label: "Vade (Ay)" },
+          { key: "term", label: "Vade (Ay)", decimals: 0 },
           {
             key: "euroInterest",
             label: "Euro Faiz Oranı (%)",
@@ -381,6 +410,8 @@ export default function ForwardCalculator(props: {
     clearForwardMachineFinance(handleParamChange, [
       ...financeFields.map((field) => field.key),
       "financingSupportEuro",
+      "factorySupportEuro",
+      "maatsSupportEuro",
     ]);
 
   const printMode =

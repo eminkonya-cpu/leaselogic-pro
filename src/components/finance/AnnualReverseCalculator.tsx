@@ -17,6 +17,7 @@ import {
 import { useCatalogSelection } from "@/lib/useCatalogSelection";
 import { reverseSummaryReportFinancing } from "@/lib/financingSupportReport";
 import { buildDetailedReverseReportRows } from "@/lib/reverseSummaryReport";
+import { clampAnnualTermYears } from "@/lib/annualForwardCalc";
 import {
   computeReverseBothLegs,
   DEFAULT_REVERSE_EURO_INTEREST,
@@ -29,6 +30,11 @@ import { fetchReferenceTryRates } from "@/lib/referenceRates";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { parseEuroRate, useSharedEuroRate } from "@/lib/useSharedEuroRate";
 import { clearReverseParameters } from "@/lib/financeFormClear";
+import {
+  resolveSupportSplit,
+  scaleSupportSplit,
+  withSyncedSupportTotal,
+} from "@/lib/supportSplit";
 import { EMPTY_EXPENSES } from "@/components/finance/ExpenseInputCard";
 
 const REVERSE_STORAGE_PREFIX = "llp:v2:reverse";
@@ -39,15 +45,6 @@ type ReverseCalcBundle = {
   euro: ReverseFinanceLeg;
   tl: ReverseFinanceLeg;
 };
-
-function clampTermYears(v: string | number) {
-  const raw =
-    typeof v === "string"
-      ? Number(String(v).replace(",", "."))
-      : Number(v);
-  const n = Math.trunc(Number.isFinite(raw) ? raw : 0);
-  return Math.min(3, Math.max(0, n));
-}
 
 function buildReverseSummaryProps(args: {
   firma: string;
@@ -67,6 +64,8 @@ function buildReverseSummaryProps(args: {
   calc: ReverseCalcBundle;
   baselineCalc?: ReverseCalcBundle;
   financingSupportEuro: number;
+  factorySupportEuro?: number;
+  maatsSupportEuro?: number;
 }): PrintableReverseSummaryProps {
   const isTry = args.pdfCurrency === "TRY";
   const rate = args.euroRate;
@@ -110,6 +109,14 @@ function buildReverseSummaryProps(args: {
     installment: leg.installment,
     installmentLabel: args.installmentLabel,
     financingSupportDisplay: financing.financingSupportDisplay,
+    supportSplit: scaleSupportSplit(
+      resolveSupportSplit({
+        factorySupportEuro: args.factorySupportEuro,
+        maatsSupportEuro: args.maatsSupportEuro,
+        financingSupportEuro: args.financingSupportEuro,
+      }),
+      isTry ? rate : 1,
+    ),
     supportCompare: financing.compare,
     netMachineTotalLabel: financing.compare
       ? "Net makine bedeli (destekli)"
@@ -136,6 +143,8 @@ export default function AnnualReverseCalculator(props: {
       euroRate: 50.5,
       downPaymentEuro: 0,
       financingSupportEuro: 0,
+      factorySupportEuro: 0,
+      maatsSupportEuro: 0,
       euroInterest: 6.5,
       tlInterest: 42,
       firma: "",
@@ -159,7 +168,7 @@ export default function AnnualReverseCalculator(props: {
     () => ({
       ...sharedParams,
       euroRate,
-      term,
+      term: clampAnnualTermYears(term),
       euroInterest: resolveReverseInterestPct(
         sharedParams.euroInterest,
         DEFAULT_REVERSE_EURO_INTEREST,
@@ -171,7 +180,7 @@ export default function AnnualReverseCalculator(props: {
     }),
     [sharedParams, euroRate, term],
   );
-  const termYears = clampTermYears(params.term);
+  const termYears = clampAnnualTermYears(params.term);
 
   const handleParamChange = (key: string, value: string | number) => {
     if (key === "euroRate") {
@@ -181,7 +190,7 @@ export default function AnnualReverseCalculator(props: {
       return;
     }
     if (key === "term") {
-      setTerm(String(value));
+      setTerm(String(clampAnnualTermYears(value)));
       return;
     }
     if (key === "firma" || key === "makine") {
@@ -189,6 +198,12 @@ export default function AnnualReverseCalculator(props: {
         ...prev,
         [key]: String(value),
       }));
+      return;
+    }
+    if (key === "factorySupportEuro" || key === "maatsSupportEuro") {
+      setSharedParams((prev) =>
+        withSyncedSupportTotal(prev, key, Number(value) || 0),
+      );
       return;
     }
     const n =
@@ -224,6 +239,8 @@ export default function AnnualReverseCalculator(props: {
       euroRate,
       downPaymentEuro: 0,
       financingSupportEuro: 0,
+      factorySupportEuro: 0,
+      maatsSupportEuro: 0,
       euroInterest: 6.5,
       tlInterest: 42,
       firma: "",
@@ -245,7 +262,7 @@ export default function AnnualReverseCalculator(props: {
       {
         allInTotalEuro: params.allInTotalEuro,
         downPaymentEuro: params.downPaymentEuro,
-        financingSupportEuro: params.financingSupportEuro,
+        financingSupportEuro: resolveSupportSplit(params).total,
         euroRate: params.euroRate,
         euroInterest: params.euroInterest,
         tlInterest: params.tlInterest,
@@ -308,7 +325,9 @@ export default function AnnualReverseCalculator(props: {
         expenses,
         calc,
         baselineCalc,
-        financingSupportEuro: Number(params.financingSupportEuro) || 0,
+        financingSupportEuro: resolveSupportSplit(params).total,
+        factorySupportEuro: resolveSupportSplit(params).factory,
+        maatsSupportEuro: resolveSupportSplit(params).maats,
       }),
     [baselineCalc, calc, expenses, params, pdfCurrency, termYears],
   );

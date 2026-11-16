@@ -20,6 +20,10 @@ import {
 import { computeKaskoTotalForTerm } from "@/lib/financeExpenseCatalog";
 import type { FinancingSupportCompare } from "@/lib/financingSupportReport";
 import {
+  resolveSupportSplit,
+  withSyncedSupportTotal,
+} from "@/lib/supportSplit";
+import {
   buildGraceBalloonDetailedReportRows,
   buildGraceBalloonStitchSummaryRows,
   formatGraceBalloonPlanTerm,
@@ -64,6 +68,8 @@ export type PlanState = {
   startDate: string;
   currency: string;
   financingSupport: number;
+  factorySupport: number;
+  maatsSupport: number;
   fileFee: number;
   totalInsurance: number;
   importCost: number;
@@ -98,6 +104,8 @@ const DEFAULT_STATE: PlanState = {
   startDate: new Date().toISOString().slice(0, 10),
   currency: "EUR",
   financingSupport: 0,
+  factorySupport: 0,
+  maatsSupport: 0,
   fileFee: 0,
   totalInsurance: 0,
   importCost: 0,
@@ -134,6 +142,7 @@ function normalizePlanState(raw: Partial<PlanState>): PlanState {
     raw.balloons && raw.balloons.length > 0
       ? defaultBalloons(term).map((d, i) => raw.balloons![i] ?? d)
       : defaultBalloons(term);
+  const support = resolveSupportSplit(raw);
   return {
     ...DEFAULT_STATE,
     ...raw,
@@ -143,6 +152,9 @@ function normalizePlanState(raw: Partial<PlanState>): PlanState {
     extraCostModes: { ...DEFAULT_EXTRA_COST_MODES, ...raw.extraCostModes },
     monthModes,
     balloons,
+    factorySupport: support.factory,
+    maatsSupport: support.maats,
+    financingSupport: support.total,
   };
 }
 
@@ -171,6 +183,7 @@ export function useGraceBalloonPlan() {
   );
   const [stored, setStored] = usePersistentState<PlanState>(STORAGE, DEFAULT_STATE);
   const state = useMemo(() => normalizePlanState(stored), [stored]);
+  const supportSplit = useMemo(() => resolveSupportSplit(state), [state]);
   const [feeModes, setFeeModes] = usePersistentState<ServiceFeeModes>(
     SERVICE_FEE_MODES_KEY,
     EMPTY_SERVICE_FEE_MODES,
@@ -190,6 +203,9 @@ export function useGraceBalloonPlan() {
   const setField = useCallback(
     <K extends keyof PlanState>(key: K, value: PlanState[K]) => {
       setState((prev) => {
+        if (key === "factorySupport" || key === "maatsSupport") {
+          return withSyncedSupportTotal(prev, key, Number(value) || 0);
+        }
         let next = { ...prev, [key]: value };
         if (key === "termMonths") {
           const term = Math.max(1, Math.trunc(Number(value) || 1));
@@ -267,7 +283,7 @@ export function useGraceBalloonPlan() {
       termMonths: state.termMonths,
       startDate: state.startDate,
       currency: state.currency,
-      financingSupport: state.financingSupport,
+      financingSupport: supportSplit.total,
       fileFee: state.fileFee,
       totalInsurance: state.totalInsurance,
       importCost: state.importCost,
@@ -295,7 +311,7 @@ export function useGraceBalloonPlan() {
   const { summary, rows } = result;
 
   const supportCompare = useMemo((): FinancingSupportCompare | null => {
-    const support = Math.max(0, state.financingSupport);
+    const support = Math.max(0, supportSplit.total);
     if (support <= 0) return null;
 
     if (direction === "forward") {
@@ -345,7 +361,7 @@ export function useGraceBalloonPlan() {
     direction,
     planInput,
     result,
-    state.financingSupport,
+    supportSplit.total,
     state.machinePrice,
     state.targetCustomerTotal,
     summary.customerTotalPayment,
@@ -354,7 +370,7 @@ export function useGraceBalloonPlan() {
 
   const unsupportedInstallment = useMemo(() => {
     if (direction !== "forward") return undefined;
-    if (Math.max(0, state.financingSupport) <= 0) return undefined;
+    if (Math.max(0, supportSplit.total) <= 0) return undefined;
     if (summary.status !== "ok") return undefined;
     const baseline = computeLeasingPaymentPlan({
       ...planInput,
@@ -366,7 +382,7 @@ export function useGraceBalloonPlan() {
   }, [
     direction,
     planInput,
-    state.financingSupport,
+    supportSplit.total,
     state.machinePrice,
     summary.status,
   ]);
@@ -471,7 +487,7 @@ export function useGraceBalloonPlan() {
 
   const displayFinanceInterest = useMemo(() => {
     if (!ok) return 0;
-    const support = Math.max(0, state.financingSupport);
+    const support = Math.max(0, supportSplit.total);
     if (support <= 0) return summary.totalFinanceInterest;
     if (direction === "forward") {
       const baseline = computeLeasingPaymentPlan({
@@ -495,7 +511,7 @@ export function useGraceBalloonPlan() {
     direction,
     ok,
     planInput,
-    state.financingSupport,
+    supportSplit.total,
     state.machinePrice,
     state.targetCustomerTotal,
     summary.totalFinanceInterest,
@@ -589,7 +605,8 @@ export function useGraceBalloonPlan() {
           importCost: state.importCost,
           attachmentCost: optionTotal,
         },
-        financingSupport: state.financingSupport,
+        financingSupport: supportSplit.total,
+        supportSplit,
         displayFinanceInterest,
         optionRows,
       }),
@@ -603,7 +620,7 @@ export function useGraceBalloonPlan() {
       state.fileFee,
       state.totalInsurance,
       state.importCost,
-      state.financingSupport,
+      supportSplit,
       solvedMachine,
       summary,
     ],
@@ -646,7 +663,8 @@ export function useGraceBalloonPlan() {
       targetCustomerTotal:
         direction === "reverse" ? state.targetCustomerTotal : undefined,
       downPayment: state.downPayment,
-      financingSupport: state.financingSupport,
+      financingSupport: supportSplit.total,
+      supportSplit,
       annualRatePct: state.annualRate,
       termMonths: state.termMonths,
       startDate: state.startDate,
@@ -736,7 +754,7 @@ export function useGraceBalloonPlan() {
       symbol: sym,
       machinePrice,
       downPayment: state.downPayment,
-      financingSupport: state.financingSupport,
+      financingSupport: supportSplit.total,
       annualRatePct: state.annualRate,
       termMonths: state.termMonths,
       startDate: state.startDate,

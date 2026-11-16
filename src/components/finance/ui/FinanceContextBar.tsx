@@ -100,28 +100,48 @@ export function PlanContextFields(props: {
 }
 
 export function PlanFinancingSupportField(props: {
-  value: number;
-  onValueChange: (value: number) => void;
+  factoryValue: number;
+  maatsValue: number;
+  onFactoryChange: (value: number) => void;
+  onMaatsChange: (value: number) => void;
   suffix?: string;
 }) {
+  const suffix = props.suffix ?? "€";
   return (
-    <FormField
-      label="Finansman desteği"
-      hint="İsteğe bağlı"
-      suffix={props.suffix ?? "€"}
-      className="sm:col-span-2"
-    >
-      {(id) => (
-        <DecimalTextInput
-          id={id}
-          data-promo-field="financingSupportEuro"
-          className={CALC_INPUT_CLS}
-          placeholder="0"
-          value={props.value}
-          onValueChange={props.onValueChange}
-        />
-      )}
-    </FormField>
+    <>
+      <FormField
+        label="Fabrika desteği"
+        hint="İsteğe bağlı"
+        suffix={suffix}
+      >
+        {(id) => (
+          <DecimalTextInput
+            id={id}
+            data-promo-field="factorySupportEuro"
+            className={CALC_INPUT_CLS}
+            placeholder="0"
+            value={props.factoryValue}
+            onValueChange={props.onFactoryChange}
+          />
+        )}
+      </FormField>
+      <FormField
+        label="MAATS desteği"
+        hint="İsteğe bağlı"
+        suffix={suffix}
+      >
+        {(id) => (
+          <DecimalTextInput
+            id={id}
+            data-promo-field="maatsSupportEuro"
+            className={CALC_INPUT_CLS}
+            placeholder="0"
+            value={props.maatsValue}
+            onValueChange={props.onMaatsChange}
+          />
+        )}
+      </FormField>
+    </>
   );
 }
 

@@ -4,12 +4,12 @@ import { Separator } from "@/components/ui/separator";
 import { formatInterestRate, formatNumber } from "@/components/finance/format";
 import type { PrintableCalculationSummaryProps } from "@/components/finance/PrintableCalculationSummary";
 import {
-  FINANCING_SUPPORT_LABEL,
   isKatkiPayiLabel,
   KATKI_PAYI_NOTE,
   isFinancingSupportLabel,
   sumKalemlerToplam,
 } from "@/lib/kalemlerToplam";
+import { reportSupportLines } from "@/lib/supportSplit";
 import { cn } from "@/lib/utils";
 
 export function ClassicCalculationSummaryContent(
@@ -28,6 +28,7 @@ export function ClassicCalculationSummaryContent(
   const planInterest = isTry ? props.tlInterest : props.euroInterest;
   const interestLabel = isTry ? "TL faiz oranı" : "Euro faiz oranı";
   const financingSupport = Math.max(0, props.financingSupportDisplay ?? 0);
+  const supportLines = reportSupportLines(props.supportSplit, financingSupport, 1);
   const itemRows = props.rows.filter((row) => !isFinancingSupportLabel(row.label));
   const kalemlerToplam = sumKalemlerToplam(itemRows);
   const totalLabel =
@@ -113,14 +114,14 @@ export function ClassicCalculationSummaryContent(
           <div className="text-right tabular-nums font-extrabold">
             {formatNumber(props.euroRate, { decimals: 2 })}
           </div>
-          {financingSupport > 0 ? (
-            <>
-              <div className="text-slate-600">Finansman desteği</div>
+          {supportLines.map((row) => (
+            <div key={row.label} className="contents">
+              <div className="text-slate-600">{row.label}</div>
               <div className="text-right tabular-nums font-extrabold">
-                {formatNumber(financingSupport, { noDecimals: true })} {sym}
+                {formatNumber(Math.abs(row.value), { noDecimals: true })} {sym}
               </div>
-            </>
-          ) : null}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -176,19 +177,22 @@ export function ClassicCalculationSummaryContent(
             {formatNumber(kalemlerToplam, { noDecimals: true })} {sym}
           </span>
         </div>
-        {financingSupport > 0 ? (
-          <div className="flex items-center justify-between gap-4 border-t border-dashed border-slate-200 px-3 py-2 text-sm font-semibold text-red-700 print:text-[10px]">
+        {supportLines.map((row) => (
+          <div
+            key={row.label}
+            className="flex items-center justify-between gap-4 border-t border-dashed border-slate-200 px-3 py-2 text-sm font-semibold text-red-700 print:text-[10px]"
+          >
             <span className="min-w-0 leading-snug">
-              {FINANCING_SUPPORT_LABEL}{" "}
+              {row.label}{" "}
               <span className="font-medium text-slate-500">
                 (kalemler toplamına dahil değil)
               </span>
             </span>
             <span className="shrink-0 tabular-nums font-bold">
-              − {formatNumber(financingSupport, { noDecimals: true })} {sym}
+              − {formatNumber(Math.abs(row.value), { noDecimals: true })} {sym}
             </span>
           </div>
-        ) : null}
+        ))}
       </div>
 
       <div className="mt-3 rounded-lg border-2 border-[#2563eb]/30 bg-[#eff4ff] p-3 print:mt-1.5 print:p-2 print:break-inside-avoid">
@@ -205,14 +209,17 @@ export function ClassicCalculationSummaryContent(
               {formatNumber(kalemlerToplam, { noDecimals: true })} {sym}
             </span>
           </div>
-          {financingSupport > 0 ? (
-            <div className="flex items-center justify-between gap-3 text-red-700">
-              <span>− {FINANCING_SUPPORT_LABEL}</span>
+          {supportLines.map((row) => (
+            <div
+              key={row.label}
+              className="flex items-center justify-between gap-3 text-red-700"
+            >
+              <span>− {row.label}</span>
               <span className="tabular-nums font-bold">
-                {formatNumber(financingSupport, { noDecimals: true })} {sym}
+                {formatNumber(Math.abs(row.value), { noDecimals: true })} {sym}
               </span>
             </div>
-          ) : null}
+          ))}
         </div>
         <div className="my-3 h-px bg-[#c3c6d7]/60" />
         <div className="flex items-center justify-between gap-3">

@@ -4,6 +4,7 @@ import {
   formatDecimalIdle,
   parseTurkishDecimal,
   roundDecimal,
+  sanitizeIntegerTyping,
 } from "@/lib/turkishDecimalInput";
 
 describe("formatDecimalIdle", () => {
@@ -11,6 +12,19 @@ describe("formatDecimalIdle", () => {
     expect(formatDecimalIdle(3090)).toBe("3.090,00");
     expect(formatDecimalIdle(1600.5)).toBe("1.600,50");
     expect(formatDecimalIdle(0)).toBe("0,00");
+  });
+
+  it("year terms have no comma", () => {
+    expect(formatDecimalIdle(3, 0)).toBe("3");
+    expect(formatDecimalIdle(0, 0)).toBe("0");
+  });
+});
+
+describe("sanitizeIntegerTyping", () => {
+  it("drops comma and fraction", () => {
+    expect(sanitizeIntegerTyping("2,5")).toBe("2");
+    expect(sanitizeIntegerTyping("2.75")).toBe("2");
+    expect(sanitizeIntegerTyping("3")).toBe("3");
   });
 });
 

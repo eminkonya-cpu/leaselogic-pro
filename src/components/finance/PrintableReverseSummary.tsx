@@ -20,6 +20,7 @@ import {
 import { ClassicReverseSummaryContent } from "@/components/finance/reports/classic/ClassicReverseSummary";
 import type { FinancingSupportCompare } from "@/lib/financingSupportReport";
 import { isKatkiPayiLabel, KATKI_PAYI_NOTE } from "@/lib/kalemlerToplam";
+import { reportSupportLines, type SupportSplit } from "@/lib/supportSplit";
 import { REPORT_DESIGN } from "@/lib/reportDesign";
 import {
   sumReverseDetailRows,
@@ -45,6 +46,7 @@ export type PrintableReverseSummaryProps = {
   installment: number;
   installmentLabel: string;
   financingSupportDisplay?: number;
+  supportSplit?: SupportSplit;
   supportCompare?: FinancingSupportCompare | null;
   netMachineTotalLabel?: string;
 };
@@ -65,6 +67,11 @@ function ExecutiveReverseSummary(
   const money = (v: number) => formatMoneyWithSymbol(v, sym);
   const kalemlerToplam = sumReverseDetailRows(props.detailRows);
   const financingSupport = Math.max(0, props.financingSupportDisplay ?? 0);
+  const supportLines = reportSupportLines(props.supportSplit, financingSupport, 1);
+  const supportMetrics = supportLines.map((row) => ({
+    label: row.label,
+    value: money(Math.abs(row.value)),
+  }));
   const netSatis = Math.max(0, props.displayNetMachine);
   const totalExcludingVadeFarki = Math.max(0, props.totalPayment - props.interestDiff);
   const interestLabel = props.currency === "TRY" ? "TL faiz oranı" : "Euro faiz oranı";
@@ -75,9 +82,7 @@ function ExecutiveReverseSummary(
     { label: "Makine fiyatı", value: money(props.allInTotal) },
     { label: "Vade", value: termText },
     { label: "Vade farkı", value: money(props.interestDiff) },
-    ...(financingSupport > 0
-      ? [{ label: "Finansman desteği", value: money(financingSupport) }]
-      : []),
+    ...supportMetrics,
     { label: "Net makine bedeli", value: money(netSatis), emphasis: true },
   ];
 
@@ -88,9 +93,7 @@ function ExecutiveReverseSummary(
     { label: "Vade", value: termText },
     { label: interestLabel, value: `%${formatInterestRate(props.planInterest)}` },
     { label: "Kur (₺ / €)", value: formatNumber(props.euroRate, { decimals: 2 }) },
-    ...(financingSupport > 0
-      ? [{ label: "Finansman desteği", value: money(financingSupport) }]
-      : []),
+    ...supportMetrics,
   ];
 
   let section = 0;
@@ -125,15 +128,11 @@ function ExecutiveReverseSummary(
               value: `− ${money(props.interestDiff)}`,
               tone: "negative",
             },
-            ...(financingSupport > 0
-              ? [
-                  {
-                    label: "Finansman desteği",
-                    value: `+ ${money(financingSupport)}`,
-                    tone: "positive" as const,
-                  },
-                ]
-              : []),
+            ...supportLines.map((row) => ({
+              label: row.label,
+              value: `+ ${money(Math.abs(row.value))}`,
+              tone: "positive" as const,
+            })),
           ]}
           totals={[
             {
@@ -162,16 +161,12 @@ function ExecutiveReverseSummary(
           }))}
           totals={[
             { label: "Kalemler toplamı", value: money(kalemlerToplam), strong: true },
-            ...(financingSupport > 0
-              ? [
-                  {
-                    label: "Finansman desteği",
-                    note: "(kalemler toplamına dahil değil)",
-                    value: `+ ${money(financingSupport)}`,
-                    tone: "positive" as const,
-                  },
-                ]
-              : []),
+            ...supportLines.map((row) => ({
+              label: row.label,
+              note: "(kalemler toplamına dahil değil)",
+              value: `+ ${money(Math.abs(row.value))}`,
+              tone: "positive" as const,
+            })),
           ]}
         />
       </ReportSection>
@@ -187,15 +182,11 @@ function ExecutiveReverseSummary(
               value: money(kalemlerToplam),
               tone: "negative",
             },
-            ...(financingSupport > 0
-              ? [
-                  {
-                    label: "+ Finansman desteği",
-                    value: money(financingSupport),
-                    tone: "positive" as const,
-                  },
-                ]
-              : []),
+            ...supportLines.map((row) => ({
+              label: `+ ${row.label}`,
+              value: money(Math.abs(row.value)),
+              tone: "positive" as const,
+            })),
           ]}
         />
       </ReportSection>

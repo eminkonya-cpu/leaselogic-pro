@@ -6,6 +6,10 @@ import {
   type ExtraCostModes,
 } from "@/lib/leasingPaymentPlan";
 import { withExtraCostPaymentMode } from "@/lib/forwardSummaryRows";
+import {
+  internalSupportLines,
+  type SupportSplit,
+} from "@/lib/supportSplit";
 
 export type SummaryReportRow = {
   label: string;
@@ -21,6 +25,7 @@ export function buildDetailedSummaryReportRows(args: {
   vadeFarkiEuro: number;
   /** Aynı birimde; finansman maliyetinden ayrı bilgi satırı. */
   financingSupport?: number;
+  supportSplit?: SupportSplit;
   extraCostModes?: ExtraCostModes;
 }): SummaryReportRow[] {
   const rows: SummaryReportRow[] = [];
@@ -84,12 +89,14 @@ export function buildDetailedSummaryReportRows(args: {
     rows.push(row);
   }
 
-  const support = Math.max(0, args.financingSupport ?? 0);
-  if (support > 0) {
-    rows.push({
-      label: "Finansman desteği",
-      valueEuro: -support,
-    });
+  for (const row of internalSupportLines(
+    args.supportSplit ??
+      (args.financingSupport
+        ? { factory: 0, maats: args.financingSupport }
+        : undefined),
+    -1,
+  )) {
+    rows.push({ label: row.label, valueEuro: row.value });
   }
 
   return rows;

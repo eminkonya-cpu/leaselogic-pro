@@ -31,6 +31,12 @@ import {
   type ExtraCostPaymentMode,
 } from "@/lib/leasingPaymentPlan";
 import { fetchReferenceTryRates } from "@/lib/referenceRates";
+import { isFinancingSupportLabel } from "@/lib/kalemlerToplam";
+import {
+  resolveSupportSplit,
+  scaleSupportSplit,
+  withSyncedSupportTotal,
+} from "@/lib/supportSplit";
 import { usePersistentState } from "@/lib/usePersistentState";
 import { parseEuroRate, useSharedEuroRate } from "@/lib/useSharedEuroRate";
 import { EMPTY_EXPENSES } from "@/components/finance/ExpenseInputCard";
@@ -71,6 +77,8 @@ export default function AnnualForwardCalculator(props: {
       tlInterest: 42,
       downPaymentEuro: 0,
       financingSupportEuro: 0,
+      factorySupportEuro: 0,
+      maatsSupportEuro: 0,
     },
   );
   const [term, setTerm] = usePersistentState(
@@ -94,9 +102,10 @@ export default function AnnualForwardCalculator(props: {
   const { categories: catalogCategories } = useCatalogCategories();
 
   const params = useMemo(
-    () => ({ ...sharedParams, euroRate, term }),
+    () => ({ ...sharedParams, euroRate, term: clampAnnualTermYears(term) }),
     [sharedParams, euroRate, term],
   );
+  const supportSplit = resolveSupportSplit(params);
 
   const handleParamChange = (key: string, value: string | number) => {
     if (key === "euroRate") {
@@ -107,6 +116,12 @@ export default function AnnualForwardCalculator(props: {
     }
     if (key === "term") {
       setTerm(String(clampAnnualTermYears(value)));
+      return;
+    }
+    if (key === "factorySupportEuro" || key === "maatsSupportEuro") {
+      setSharedParams((prev) =>
+        withSyncedSupportTotal(prev, key, Number(value) || 0),
+      );
       return;
     }
 
@@ -141,6 +156,8 @@ export default function AnnualForwardCalculator(props: {
       tlInterest: 42,
       downPaymentEuro: 0,
       financingSupportEuro: 0,
+      factorySupportEuro: 0,
+      maatsSupportEuro: 0,
     });
     setTerm("0");
     setExpenses({ ...EMPTY_EXPENSES });
@@ -172,7 +189,7 @@ export default function AnnualForwardCalculator(props: {
       euroInterest: params.euroInterest,
       tlInterest: params.tlInterest,
       downPaymentEuro: params.downPaymentEuro,
-      financingSupportEuro: Number(params.financingSupportEuro) || 0,
+      financingSupportEuro: supportSplit.total,
       expenses,
       catalogSelection,
       catalogCategories,
@@ -181,6 +198,7 @@ export default function AnnualForwardCalculator(props: {
     }),
     [
       params,
+      supportSplit.total,
       expenses,
       extraCostModes,
       computedRates,
@@ -230,7 +248,7 @@ export default function AnnualForwardCalculator(props: {
         ? "Kampanyalı makine bedeli"
         : "Makine bedeli";
     const financing = forwardSummaryReportFinancing({
-      financingSupportEuro: Number(params.financingSupportEuro) || 0,
+      financingSupportEuro: supportSplit.total,
       activeTab,
       baselineCalc,
       params: {
@@ -248,7 +266,7 @@ export default function AnnualForwardCalculator(props: {
       expenses,
       includeExpenses: display.includeExpenses,
       vadeFarkiEuro: financing.vadeFarkiDisplay,
-      financingSupport: financing.financingSupportDisplay,
+      supportSplit: scaleSupportSplit(supportSplit, isTry ? rate : 1),
       extraCostModes: display.includeExpenses ? extraCostModes : undefined,
     });
     return {
@@ -270,11 +288,12 @@ export default function AnnualForwardCalculator(props: {
         valueEuro:
           isTry &&
           (row.label === "Finansman maliyeti (vade farkı)" ||
-            row.label === "Finansman desteği")
+            isFinancingSupportLabel(row.label))
             ? row.valueEuro
             : scale(row.valueEuro),
       })),
       financingSupportDisplay: financing.financingSupportDisplay,
+      supportSplit: scaleSupportSplit(supportSplit, isTry ? rate : 1),
       supportCompare: financing.compare,
       primaryTotalLabel: financing.compare
         ? "Müşteri toplam ödemesi (destekli)"
@@ -316,11 +335,11 @@ export default function AnnualForwardCalculator(props: {
     activeTab === "campaign"
       ? [
           { key: "downPaymentEuro", label: "Peşinat (€)" },
-          { key: "term", label: "Vade (Yıl) — en fazla 3" },
+          { key: "term", label: "Vade (Yıl) — en fazla 3", decimals: 0 },
         ]
       : [
           { key: "downPaymentEuro", label: "Peşinat (€)" },
-          { key: "term", label: "Vade (Yıl) — en fazla 3" },
+          { key: "term", label: "Vade (Yıl) — en fazla 3", decimals: 0 },
           {
             key: "euroInterest",
             label: "Euro Faiz Oranı (%)",
@@ -338,6 +357,8 @@ export default function AnnualForwardCalculator(props: {
     clearForwardMachineFinance(handleParamChange, [
       ...financeFields.map((field) => field.key),
       "financingSupportEuro",
+      "factorySupportEuro",
+      "maatsSupportEuro",
     ]);
 
   const printMode =

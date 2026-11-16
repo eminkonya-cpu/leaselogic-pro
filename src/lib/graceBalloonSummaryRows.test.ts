@@ -40,7 +40,7 @@ describe("buildGraceBalloonStitchSummaryRows", () => {
       financingSupport: 5000,
     });
     expect(rows[0]?.label).toBe("Makine bedeli");
-    expect(rows.find((r) => r.label === "Finansman desteği")?.value).toBe(-5000);
+    expect(rows.find((r) => r.label === "MAATS desteği")?.value).toBe(-5000);
     expect(rows.find((r) => r.label === "Kasko")?.value).toBe(8800);
     expect(rows.find((r) => r.label === "Masraflar")).toBeUndefined();
     expect(rows.find((r) => r.label === "İthalat")).toBeUndefined();
@@ -92,13 +92,34 @@ describe("buildGraceBalloonStitchSummaryRows", () => {
       financingSupport: 5000,
     });
     expect(rows[0]?.label).toBe("Müşteri toplam ödemesi");
-    expect(rows.find((r) => r.label === "Finansman desteği")?.value).toBe(5000);
+    expect(rows.find((r) => r.label === "MAATS desteği")?.value).toBe(5000);
     expect(rows.find((r) => r.label === "Vade farkı")?.value).toBe(-8560.19);
     expect(rows.find((r) => r.label === "Katkı payı")?.value).toBeCloseTo(
       -(8800 + 8560.19),
       2,
     );
     expect(rows.at(-1)?.label).toContain("Bulunan makine bedeli");
+  });
+
+  it("splits factory and MAATS on stitch, not a single financing line", () => {
+    const rows = buildGraceBalloonStitchSummaryRows({
+      direction: "forward",
+      machinePrice: 132000,
+      targetCustomerTotal: 0,
+      solvedMachine: null,
+      summary: okSummary({ customerTotalPayment: 150000 }),
+      extras: {
+        fileFee: 0,
+        totalInsurance: 0,
+        importCost: 0,
+        attachmentCost: 0,
+      },
+      financingSupport: 3000,
+      supportSplit: { factory: 2000, maats: 1000 },
+    });
+    expect(rows.find((r) => r.label === "Fabrika desteği")?.value).toBe(-2000);
+    expect(rows.find((r) => r.label === "MAATS desteği")?.value).toBe(-1000);
+    expect(rows.find((r) => r.label === "Finansman desteği")).toBeUndefined();
   });
 });
 

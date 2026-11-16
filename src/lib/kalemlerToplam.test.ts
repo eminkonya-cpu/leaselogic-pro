@@ -50,6 +50,8 @@ describe("sumStitchKalemlerToplam", () => {
         { label: "Kasko", value: 3090, tone: "positive" },
         { label: "Finansman maliyeti (vade farkı)", value: 500 },
         { label: "Finansman desteği", value: -2000, tone: "negative" },
+        { label: "Fabrika desteği", value: -1000, tone: "negative" },
+        { label: "MAATS desteği", value: -500, tone: "negative" },
         { label: "Toplam", value: 101590, tone: "subtotal" },
       ]),
     ).toBe(3590);

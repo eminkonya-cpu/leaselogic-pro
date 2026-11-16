@@ -70,6 +70,12 @@ describe("isAuthNetworkError", () => {
     expect(isAuthNetworkError(err)).toBe(true);
   });
 
+  it("detects Safari TypeError Load failed on Supabase token refresh", () => {
+    const err = new TypeError("Load failed");
+    err.stack = `${err.stack ?? ""}\nhttps://zixjwngkiqyxgfaozsjg.supabase.co/auth/v1/token`;
+    expect(isAuthNetworkError(err)).toBe(true);
+  });
+
   it("detects AuthRetryableFetchError", () => {
     const err = new Error("Failed to fetch");
     err.name = "AuthRetryableFetchError";

@@ -16,6 +16,7 @@ import { ClassicGraceBalloonSummaryContent } from "@/components/finance/reports/
 import type { FinancingSupportCompare } from "@/lib/financingSupportReport";
 import { sumGraceBalloonDetailRows } from "@/lib/graceBalloonSummaryRows";
 import { isKatkiPayiLabel, KATKI_PAYI_NOTE } from "@/lib/kalemlerToplam";
+import { reportSupportLines, type SupportSplit } from "@/lib/supportSplit";
 import { REPORT_DESIGN } from "@/lib/reportDesign";
 
 export type PrintableGraceBalloonSummaryProps = {
@@ -27,6 +28,7 @@ export type PrintableGraceBalloonSummaryProps = {
   targetCustomerTotal?: number;
   downPayment: number;
   financingSupport: number;
+  supportSplit?: SupportSplit;
   annualRatePct: number;
   termMonths: number;
   startDate: string;
@@ -60,6 +62,11 @@ function ExecutiveGraceBalloonSummary(
   const sym = props.currencySymbol;
   const money = (v: number) => formatMoneyWithSymbol(v, sym);
   const support = Math.max(0, props.financingSupport);
+  const supportLines = reportSupportLines(props.supportSplit, support, 1);
+  const supportMetrics = supportLines.map((row) => ({
+    label: row.label,
+    value: money(Math.abs(row.value)),
+  }));
   const isReverse = props.direction === "reverse";
   const hasTarget = isReverse && props.targetCustomerTotal != null;
   const kalemlerToplam = sumGraceBalloonDetailRows(props.detailRows);
@@ -77,7 +84,7 @@ function ExecutiveGraceBalloonSummary(
     { label: hasTarget ? "Hedef toplam" : "Makine bedeli", value: priceItem.value },
     { label: "Aylık taksit", value: money(props.monthlyInstallment) },
     { label: "Vade farkı", value: money(financeInterest) },
-    ...(support > 0 ? [{ label: "Finansman desteği", value: money(support) }] : []),
+    ...supportMetrics,
     { label: props.primaryTotalLabel, value: money(props.primaryTotal), emphasis: true },
   ];
 
@@ -135,15 +142,11 @@ function ExecutiveGraceBalloonSummary(
               value: isReverse ? `− ${money(financeInterest)}` : money(financeInterest),
               tone: isReverse ? "negative" : "default",
             },
-            ...(support > 0
-              ? [
-                  {
-                    label: "Finansman desteği",
-                    value: `+ ${money(support)}`,
-                    tone: "positive" as const,
-                  },
-                ]
-              : []),
+            ...supportLines.map((row) => ({
+              label: row.label,
+              value: `+ ${money(Math.abs(row.value))}`,
+              tone: "positive" as const,
+            })),
           ]}
           totals={[
             {
@@ -176,16 +179,12 @@ function ExecutiveGraceBalloonSummary(
           }))}
           totals={[
             { label: "Kalemler toplamı", value: money(kalemlerToplam), strong: true },
-            ...(support > 0
-              ? [
-                  {
-                    label: "Finansman desteği",
-                    note: "(kalemler toplamına dahil değil)",
-                    value: `+ ${money(support)}`,
-                    tone: "positive" as const,
-                  },
-                ]
-              : []),
+            ...supportLines.map((row) => ({
+              label: row.label,
+              note: "(kalemler toplamına dahil değil)",
+              value: `+ ${money(Math.abs(row.value))}`,
+              tone: "positive" as const,
+            })),
           ]}
         />
       </ReportSection>
@@ -203,15 +202,11 @@ function ExecutiveGraceBalloonSummary(
                     value: money(kalemlerToplam),
                     tone: "negative" as const,
                   },
-                  ...(support > 0
-                    ? [
-                        {
-                          label: "+ Finansman desteği",
-                          value: money(support),
-                          tone: "positive" as const,
-                        },
-                      ]
-                    : []),
+                  ...supportLines.map((row) => ({
+                    label: `+ ${row.label}`,
+                    value: money(Math.abs(row.value)),
+                    tone: "positive" as const,
+                  })),
                 ]
               : [
                   { label: "Makine bedeli", value: money(props.machinePrice) },
@@ -220,15 +215,11 @@ function ExecutiveGraceBalloonSummary(
                     value: money(kalemlerToplam),
                     tone: "positive" as const,
                   },
-                  ...(support > 0
-                    ? [
-                        {
-                          label: "− Finansman desteği",
-                          value: money(support),
-                          tone: "negative" as const,
-                        },
-                      ]
-                    : []),
+                  ...supportLines.map((row) => ({
+                    label: `− ${row.label}`,
+                    value: money(Math.abs(row.value)),
+                    tone: "negative" as const,
+                  })),
                 ]
           }
         />

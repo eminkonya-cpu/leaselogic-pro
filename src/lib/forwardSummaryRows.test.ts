@@ -91,6 +91,23 @@ describe("buildForwardStitchSummaryRows", () => {
       "Toplam",
     ]);
   });
+
+  it("shows Fabrika and MAATS separately on stitch", () => {
+    const rows = buildForwardStitchSummaryRows({
+      machine: 100_000,
+      catalogLines: [],
+      catalogAmount: (l) => l.priceEuro,
+      includeExpenses: false,
+      expenseAmounts: { kasko: 0, masraflar: 0, ithalat: 0 },
+      vadeFarki: 0,
+      financingSupport: 3000,
+      supportSplit: { factory: 2000, maats: 1000 },
+      totalPrimary: 97_000,
+    });
+    expect(rows.find((r) => r.label === "Fabrika desteği")?.value).toBe(-2000);
+    expect(rows.find((r) => r.label === "MAATS desteği")?.value).toBe(-1000);
+    expect(rows.find((r) => r.label === "Finansman desteği")).toBeUndefined();
+  });
 });
 
 describe("buildForwardPaymentPlanExtraLines", () => {

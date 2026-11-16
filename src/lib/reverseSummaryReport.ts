@@ -10,6 +10,10 @@ import {
   buildKatkiPayiRows,
   katkiPayiStitchTone,
 } from "@/lib/katkiPayiGroup";
+import {
+  internalSupportLines,
+  type SupportSplit,
+} from "@/lib/supportSplit";
 
 export type SummaryReportRow = { label: string; value: number };
 
@@ -45,6 +49,7 @@ export function buildReverseStitchSummaryRows(args: {
   /** Tam vade farkı (destekten bağımsız referans); destek varken desteksiz senaryo. */
   interestDiff: number;
   financingSupport?: number;
+  supportSplit?: SupportSplit;
   catalogLines: CatalogLine[];
   catalogAmount: (line: CatalogLine) => number;
   displayNetMachine: number;
@@ -77,11 +82,16 @@ export function buildReverseStitchSummaryRows(args: {
       tone: "negative",
     });
   }
-  const support = Math.max(0, args.financingSupport ?? 0);
-  if (support > 0) {
+  for (const row of internalSupportLines(
+    args.supportSplit ??
+      (args.financingSupport
+        ? { factory: 0, maats: args.financingSupport }
+        : undefined),
+    1,
+  )) {
     rows.push({
-      label: "Finansman desteği",
-      value: support,
+      label: row.label,
+      value: row.value,
       tone: "positive",
     });
   }

@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatAmount, formatInterestRate, formatNumber } from "@/components/finance/format";
 import type { PrintableReverseSummaryProps } from "@/components/finance/PrintableReverseSummary";
 import { isKatkiPayiLabel, KATKI_PAYI_NOTE } from "@/lib/kalemlerToplam";
+import { reportSupportLines } from "@/lib/supportSplit";
 import { sumReverseDetailRows } from "@/lib/reverseSummaryReport";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,7 @@ export function ClassicReverseSummaryContent(
   const sym = props.currencySymbol;
   const kalemlerToplam = sumReverseDetailRows(props.detailRows);
   const financingSupport = Math.max(0, props.financingSupportDisplay ?? 0);
+  const supportLines = reportSupportLines(props.supportSplit, financingSupport, 1);
   const netSatis = Math.max(0, props.displayNetMachine);
   const totalExcludingVadeFarki = Math.max(
     0,
@@ -91,14 +93,14 @@ export function ClassicReverseSummaryContent(
           <div className="text-right tabular-nums font-extrabold">
             {formatNumber(props.euroRate, { decimals: 2 })}
           </div>
-          {(props.financingSupportDisplay ?? 0) > 0 ? (
-            <>
-              <div className="text-slate-600">Finansman desteği</div>
+          {supportLines.map((row) => (
+            <div key={row.label} className="contents">
+              <div className="text-slate-600">{row.label}</div>
               <div className="text-right tabular-nums font-extrabold">
-                {formatAmount(props.financingSupportDisplay!)} {sym}
+                {formatAmount(Math.abs(row.value))} {sym}
               </div>
-            </>
-          ) : null}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -127,12 +129,13 @@ export function ClassicReverseSummaryContent(
             label="Vade farkı"
             value={`− ${formatAmount(props.interestDiff)} ${sym}`}
           />
-          {(props.financingSupportDisplay ?? 0) > 0 ? (
+          {supportLines.map((row) => (
             <Row
-              label="Finansman desteği"
-              value={`+ ${formatAmount(props.financingSupportDisplay!)} ${sym}`}
+              key={row.label}
+              label={row.label}
+              value={`+ ${formatAmount(Math.abs(row.value))} ${sym}`}
             />
-          ) : null}
+          ))}
           <div className="border-t border-slate-200 bg-slate-50/80">
             <Row
               label="Peşinat dahil, vade farkı düşülmüş tutar"
@@ -192,19 +195,22 @@ export function ClassicReverseSummaryContent(
             {formatAmount(kalemlerToplam)} {sym}
           </span>
         </div>
-        {financingSupport > 0 ? (
-          <div className="flex items-center justify-between gap-4 border-t border-dashed border-slate-200 px-3 py-2 text-sm font-semibold text-emerald-800 print:text-[10px]">
+        {supportLines.map((row) => (
+          <div
+            key={row.label}
+            className="flex items-center justify-between gap-4 border-t border-dashed border-slate-200 px-3 py-2 text-sm font-semibold text-emerald-800 print:text-[10px]"
+          >
             <span className="min-w-0 leading-snug">
-              Finansman desteği{" "}
+              {row.label}{" "}
               <span className="font-medium text-slate-500">
                 (kalemler toplamına dahil değil)
               </span>
             </span>
             <span className="shrink-0 tabular-nums font-bold">
-              + {formatAmount(financingSupport)} {sym}
+              + {formatAmount(Math.abs(row.value))} {sym}
             </span>
           </div>
-        ) : null}
+        ))}
       </div>
 
       <div className="mt-3 rounded-lg border-2 border-[#2563eb]/30 bg-[#eff4ff] p-4 print:break-inside-avoid">
@@ -223,14 +229,17 @@ export function ClassicReverseSummaryContent(
               {formatAmount(kalemlerToplam)} {sym}
             </span>
           </div>
-          {financingSupport > 0 ? (
-            <div className="flex items-center justify-between gap-3 text-emerald-800">
-              <span>+ Finansman desteği</span>
+          {supportLines.map((row) => (
+            <div
+              key={row.label}
+              className="flex items-center justify-between gap-3 text-emerald-800"
+            >
+              <span>+ {row.label}</span>
               <span className="tabular-nums font-bold">
-                {formatAmount(financingSupport)} {sym}
+                {formatAmount(Math.abs(row.value))} {sym}
               </span>
             </div>
-          ) : null}
+          ))}
         </div>
         <div className="my-3 h-px bg-[#c3c6d7]/60" />
         <div className="flex items-center justify-between gap-3">
