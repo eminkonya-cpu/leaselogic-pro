@@ -14,11 +14,24 @@ export function resolveReverseInterestPct(
   raw: unknown,
   fallback: number,
 ): number {
+  const n = parseReverseInterestPct(raw);
+  return n > 0 ? n : fallback;
+}
+
+/** Kutuya yazılan faiz; boş veya 0 ise finansman yok (6,5’e zorlanmaz). */
+export function parseReverseInterestPct(raw: unknown): number {
   const n =
     typeof raw === "string"
       ? Number(String(raw).trim().replace(",", "."))
       : Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+export function reverseFinanceEnabled(
+  term: number,
+  annualRatePct: number,
+): boolean {
+  return term > 0 && annualRatePct > 0;
 }
 
 function totalPayment(
@@ -29,7 +42,7 @@ function totalPayment(
   term: number,
   paymentMode: "monthly" | "annual",
 ) {
-  if (term <= 0) {
+  if (!reverseFinanceEnabled(term, annualRatePct)) {
     return Math.max(0, grossBase);
   }
   const financed = Math.max(0, grossBase - downPayment - financingSupport);
@@ -107,6 +120,7 @@ export function computeReverseFinanceLeg(args: {
   paymentMode: "monthly" | "annual";
 }): ReverseFinanceLeg {
   const support = Math.max(0, args.financingSupport ?? 0);
+  const financeOn = reverseFinanceEnabled(args.term, args.annualRatePct);
   const netMachine = solveNetMachineFromAllInTotal({
     allInTotal: args.allInTotal,
     downPayment: args.downPayment,
@@ -118,27 +132,24 @@ export function computeReverseFinanceLeg(args: {
   });
   const grossBase = netMachine + args.totalExpenses;
   const financed = Math.max(0, grossBase - args.downPayment - support);
-  const installment =
-    args.term > 0
-      ? args.paymentMode === "annual"
-        ? calculateAnnualPMT(financed, args.annualRatePct, args.term)
-        : calculatePMT(financed, args.annualRatePct, args.term)
-      : 0;
-  const total =
-    args.term > 0
-      ? installment * args.term + args.downPayment
-      : grossBase;
-  const interestDiff = args.term > 0 ? total - grossBase : 0;
-  const schedule =
-    args.term > 0
-      ? args.paymentMode === "annual"
-        ? generateAnnualAmortization(financed, args.annualRatePct, args.term)
-        : generateAmortization(financed, args.annualRatePct, args.term)
-      : [];
-  /** Vade yokken finansman yok; ataşman düşer, katkı/finansman desteği neti yükseltir. */
+  const installment = financeOn
+    ? args.paymentMode === "annual"
+      ? calculateAnnualPMT(financed, args.annualRatePct, args.term)
+      : calculatePMT(financed, args.annualRatePct, args.term)
+    : 0;
+  const total = financeOn
+    ? installment * args.term + args.downPayment
+    : grossBase;
+  const interestDiff = financeOn ? total - grossBase : 0;
+  const schedule = financeOn
+    ? args.paymentMode === "annual"
+      ? generateAnnualAmortization(financed, args.annualRatePct, args.term)
+      : generateAmortization(financed, args.annualRatePct, args.term)
+    : [];
+  /** Faiz veya vade yoksa finansman yok; ataşman düşer, katkı/finansman desteği neti yükseltir. */
   const displayNetMachine = Math.max(
     0,
-    netMachine - args.catalogTotal + (args.term > 0 ? 0 : support),
+    netMachine - args.catalogTotal + (financeOn ? 0 : support),
   );
 
   return {

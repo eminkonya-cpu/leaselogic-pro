@@ -19,9 +19,7 @@ import { reverseSummaryReportFinancing } from "@/lib/financingSupportReport";
 import { buildDetailedReverseReportRows } from "@/lib/reverseSummaryReport";
 import {
   computeReverseBothLegs,
-  DEFAULT_REVERSE_EURO_INTEREST,
-  DEFAULT_REVERSE_TL_INTEREST,
-  resolveReverseInterestPct,
+  parseReverseInterestPct,
   type ReverseFinanceLeg,
 } from "@/lib/reverseFinanceCalc";
 import { sumForwardExtraExpenses } from "@/lib/forwardCalculatorCore";
@@ -169,14 +167,8 @@ export default function ReverseCalculator(props: {
       ...sharedParams,
       euroRate,
       term: normalizeForwardTermMonths(term),
-      euroInterest: resolveReverseInterestPct(
-        sharedParams.euroInterest,
-        DEFAULT_REVERSE_EURO_INTEREST,
-      ),
-      tlInterest: resolveReverseInterestPct(
-        sharedParams.tlInterest,
-        DEFAULT_REVERSE_TL_INTEREST,
-      ),
+      euroInterest: parseReverseInterestPct(sharedParams.euroInterest),
+      tlInterest: parseReverseInterestPct(sharedParams.tlInterest),
     }),
     [sharedParams, euroRate, term],
   );

@@ -20,9 +20,7 @@ import { buildDetailedReverseReportRows } from "@/lib/reverseSummaryReport";
 import { clampAnnualTermYears } from "@/lib/annualForwardCalc";
 import {
   computeReverseBothLegs,
-  DEFAULT_REVERSE_EURO_INTEREST,
-  DEFAULT_REVERSE_TL_INTEREST,
-  resolveReverseInterestPct,
+  parseReverseInterestPct,
   type ReverseFinanceLeg,
 } from "@/lib/reverseFinanceCalc";
 import { sumForwardExtraExpenses } from "@/lib/forwardCalculatorCore";
@@ -169,14 +167,8 @@ export default function AnnualReverseCalculator(props: {
       ...sharedParams,
       euroRate,
       term: clampAnnualTermYears(term),
-      euroInterest: resolveReverseInterestPct(
-        sharedParams.euroInterest,
-        DEFAULT_REVERSE_EURO_INTEREST,
-      ),
-      tlInterest: resolveReverseInterestPct(
-        sharedParams.tlInterest,
-        DEFAULT_REVERSE_TL_INTEREST,
-      ),
+      euroInterest: parseReverseInterestPct(sharedParams.euroInterest),
+      tlInterest: parseReverseInterestPct(sharedParams.tlInterest),
     }),
     [sharedParams, euroRate, term],
   );
